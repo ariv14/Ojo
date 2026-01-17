@@ -1,0 +1,41 @@
+{
+  "app": {
+    "name": "Ojo",
+    "name_lowercase": "ojo",
+    "tagline": "Keep an eye on what is real",
+    "description": "Social network for verified humans using World ID"
+  },
+  "session": {
+    "storage_key": "ojo_user"
+  },
+  "storage": {
+    "avatars_bucket": "avatars",
+    "photos_bucket": "photos"
+  },
+  "payments": {
+    "currency": "WLD",
+    "premium_unlock_amount": "1.0",
+    "tip_amount": "0.5",
+    "boost_amount": "5.0",
+    "invisible_mode_amount": "5.0",
+    "creator_share_percent": "80",
+    "platform_share_percent": "20"
+  },
+  "features": {
+    "require_orb_verification": true,
+    "enable_premium_content": true,
+    "enable_tipping": true,
+    "enable_boosting": true,
+    "enable_invisible_mode": true,
+    "enable_chat": true
+  },
+  "urls": {
+    "github_repo": "https://github.com/your-username/__APP_NAME_LOWER__",
+    "production_domain": "__APP_NAME_LOWER__.vercel.app"
+  },
+  "supabase": {
+    "project_name_dev": "__APP_NAME_LOWER__-dev",
+    "project_name_staging": "__APP_NAME_LOWER__-staging",
+    "project_name_prod": "__APP_NAME_LOWER__-prod"
+  }
+}
