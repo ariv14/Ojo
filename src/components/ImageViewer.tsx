@@ -1,0 +1,207 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+
+interface ImageViewerProps {
+  imageUrl: string
+  alt?: string
+  onClose: () => void
+}
+
+export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps) {
+  const [scale, setScale] = useState(1)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const containerRef = useRef<HTMLDivElement>(null)
+  const lastTouchDistance = useRef<number | null>(null)
+  const lastTapTime = useRef<number>(0)
+
+  // Reset position when scale changes to 1
+  useEffect(() => {
+    if (scale === 1) {
+      setPosition({ x: 0, y: 0 })
+    }
+  }, [scale])
+
+  // Handle scroll wheel zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -0.1 : 0.1
+    setScale(prev => Math.min(Math.max(prev + delta, 1), 4))
+  }
+
+  // Handle pinch zoom and double-tap
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      lastTouchDistance.current = distance
+    } else if (e.touches.length === 1) {
+      // Check for double-tap
+      const now = Date.now()
+      if (now - lastTapTime.current < 300) {
+        // Double tap detected
+        if (scale === 1) {
+          setScale(2)
+        } else {
+          setScale(1)
+          setPosition({ x: 0, y: 0 })
+        }
+        lastTapTime.current = 0
+      } else {
+        lastTapTime.current = now
+        // Start drag if zoomed
+        if (scale > 1) {
+          setIsDragging(true)
+          setDragStart({
+            x: e.touches[0].clientX - position.x,
+            y: e.touches[0].clientY - position.y,
+          })
+        }
+      }
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      const delta = (distance - lastTouchDistance.current) * 0.01
+      setScale(prev => Math.min(Math.max(prev + delta, 1), 4))
+      lastTouchDistance.current = distance
+    } else if (e.touches.length === 1 && isDragging && scale > 1) {
+      setPosition({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y,
+      })
+    }
+  }
+
+  const handleTouchEnd = () => {
+    lastTouchDistance.current = null
+    setIsDragging(false)
+  }
+
+  // Handle mouse drag
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (scale > 1) {
+      setIsDragging(true)
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      })
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && scale > 1) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  // Double tap/click to zoom
+  const handleDoubleClick = () => {
+    if (scale === 1) {
+      setScale(2)
+    } else {
+      setScale(1)
+      setPosition({ x: 0, y: 0 })
+    }
+  }
+
+  // Close on background click (only when not zoomed)
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (e.target === containerRef.current && scale === 1) {
+      onClose()
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black z-50 flex flex-col"
+      onWheel={handleWheel}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-black/50">
+        <button
+          onClick={onClose}
+          className="text-white p-2 hover:bg-white/10 rounded-full transition"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setScale(prev => Math.min(prev + 0.5, 4))}
+            className="text-white p-2 hover:bg-white/10 rounded-full transition"
+            disabled={scale >= 4}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setScale(prev => Math.max(prev - 0.5, 1))}
+            className="text-white p-2 hover:bg-white/10 rounded-full transition"
+            disabled={scale <= 1}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Image Container */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+        onClick={handleBackgroundClick}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onDoubleClick={handleDoubleClick}
+      >
+        <img
+          src={imageUrl}
+          alt={alt || 'Full size image'}
+          className="max-w-full max-h-full object-contain select-none"
+          style={{
+            transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
+            transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+          }}
+          draggable={false}
+        />
+      </div>
+
+      {/* Zoom indicator */}
+      {scale > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+          {Math.round(scale * 100)}%
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="absolute bottom-4 right-4 text-white/50 text-xs">
+        Double-tap to zoom
+      </div>
+    </div>
+  )
+}

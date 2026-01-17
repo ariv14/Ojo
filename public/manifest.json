@@ -1,0 +1,9 @@
+{
+  "name": "Ojo",
+  "short_name": "Ojo",
+  "description": "Keep an eye on what is real",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#000000"
+}

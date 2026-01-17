@@ -1,0 +1,430 @@
+'use client'
+
+import { useEffect, useState, useRef } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/session'
+
+interface Message {
+  id: string
+  sender_id: string
+  content: string
+  created_at: string
+  is_edited?: boolean
+  users: {
+    first_name: string
+  }
+}
+
+export default function ChatPage() {
+  const router = useRouter()
+  const params = useParams()
+  const connectionId = params.id as string
+
+  const [messages, setMessages] = useState<Message[]>([])
+  const [newMessage, setNewMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSending, setIsSending] = useState(false)
+  const [menuMessageId, setMenuMessageId] = useState<string | null>(null)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [blockedBy, setBlockedBy] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const session = getSession()
+
+  useEffect(() => {
+    if (!session) {
+      router.push('/')
+      return
+    }
+
+    fetchMessages()
+    fetchConnectionStatus()
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel(`messages:${connectionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `connection_id=eq.${connectionId}`,
+        },
+        async (payload) => {
+          // Fetch the new message with user data
+          const { data } = await supabase
+            .from('messages')
+            .select(`
+              id,
+              sender_id,
+              content,
+              created_at,
+              is_edited,
+              users (
+                first_name
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single()
+
+          if (data) {
+            setMessages((prev) => [...prev, data as unknown as Message])
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [connectionId, router, session])
+
+  useEffect(() => {
+    // Scroll to bottom when messages change
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  useEffect(() => {
+    // Close menu when clicking outside
+    const handleClickOutside = () => {
+      setMenuMessageId(null)
+      setShowSettings(false)
+    }
+    if (menuMessageId || showSettings) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [menuMessageId, showSettings])
+
+  const fetchMessages = async () => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        id,
+        sender_id,
+        content,
+        created_at,
+        is_edited,
+        users (
+          first_name
+        )
+      `)
+      .eq('connection_id', connectionId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching messages:', error)
+    } else {
+      setMessages(data as unknown as Message[])
+    }
+    setIsLoading(false)
+  }
+
+  const fetchConnectionStatus = async () => {
+    const { data } = await supabase
+      .from('connections')
+      .select('is_blocked, blocked_by')
+      .eq('id', connectionId)
+      .single()
+    if (data) {
+      setIsBlocked(data.is_blocked || false)
+      setBlockedBy(data.blocked_by || null)
+    }
+  }
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMessage.trim() || !session || isSending) return
+
+    if (isBlocked) {
+      return
+    }
+
+    setIsSending(true)
+    const messageContent = newMessage.trim()
+    setNewMessage('')
+
+    // Send the message
+    const { error } = await supabase.from('messages').insert({
+      connection_id: connectionId,
+      sender_id: session.nullifier_hash,
+      content: messageContent,
+    })
+
+    if (error) {
+      console.error('Error sending message:', error)
+      setNewMessage(messageContent) // Restore message on error
+    }
+    setIsSending(false)
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    setMenuMessageId(null)
+    await supabase.from('messages').delete().eq('id', messageId)
+    setMessages(prev => prev.filter(m => m.id !== messageId))
+  }
+
+  const handleStartEdit = (message: Message) => {
+    setMenuMessageId(null)
+    setEditingMessageId(message.id)
+    setEditContent(message.content)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId || !editContent.trim()) return
+
+    await supabase
+      .from('messages')
+      .update({ content: editContent.trim(), is_edited: true })
+      .eq('id', editingMessageId)
+
+    setMessages(prev => prev.map(m =>
+      m.id === editingMessageId
+        ? { ...m, content: editContent.trim(), is_edited: true }
+        : m
+    ))
+    setEditingMessageId(null)
+    setEditContent('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditContent('')
+  }
+
+  const handleBlockUser = async () => {
+    setShowSettings(false)
+    await supabase
+      .from('connections')
+      .update({ is_blocked: true, blocked_by: session?.nullifier_hash })
+      .eq('id', connectionId)
+    setIsBlocked(true)
+    setBlockedBy(session?.nullifier_hash || null)
+  }
+
+  const handleUnblockUser = async () => {
+    setShowSettings(false)
+    await supabase
+      .from('connections')
+      .update({ is_blocked: false, blocked_by: null })
+      .eq('id', connectionId)
+    setIsBlocked(false)
+    setBlockedBy(null)
+  }
+
+  const handleClearChat = async () => {
+    setShowSettings(false)
+    await supabase
+      .from('messages')
+      .delete()
+      .eq('connection_id', connectionId)
+    setMessages([])
+  }
+
+  const handleDeleteConversation = async () => {
+    setShowSettings(false)
+    await supabase.rpc('delete_conversation', {
+      p_connection_id: connectionId,
+      p_user_id: session?.nullifier_hash
+    })
+    router.push('/inbox')
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500">Loading chat...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => router.push('/feed')}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="font-semibold flex-1">Chat</h1>
+
+          {/* Settings Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="text-gray-600 hover:text-gray-900 p-1"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </button>
+
+            {showSettings && (
+              <div
+                className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden z-20"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={handleClearChat}
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700"
+                >
+                  Clear Chat
+                </button>
+                <button
+                  onClick={handleDeleteConversation}
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600"
+                >
+                  Delete Conversation
+                </button>
+                {isBlocked && blockedBy === session?.nullifier_hash ? (
+                  <button
+                    onClick={handleUnblockUser}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-green-600"
+                  >
+                    Unblock User
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBlockUser}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600"
+                  >
+                    Block User
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Blocked Banner */}
+      {isBlocked && (
+        <div className="bg-red-50 text-red-600 text-center py-2 text-sm">
+          {blockedBy === session?.nullifier_hash
+            ? 'You blocked this user'
+            : 'You have been blocked'}
+        </div>
+      )}
+
+      {/* Messages */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+          {messages.length === 0 ? (
+            <p className="text-center text-gray-400 py-8">
+              No messages yet. Say hello!
+            </p>
+          ) : (
+            messages.map((message) => {
+              const isMe = message.sender_id === session?.nullifier_hash
+              const isEditing = editingMessageId === message.id
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className="relative">
+                    <div
+                      onClick={() => isMe && !isEditing && setMenuMessageId(menuMessageId === message.id ? null : message.id)}
+                      className={`max-w-[75%] px-4 py-2 rounded-2xl ${
+                        isMe
+                          ? 'bg-blue-500 text-white rounded-br-md cursor-pointer'
+                          : 'bg-gray-200 text-gray-900 rounded-bl-md'
+                      }`}
+                    >
+                      {!isMe && (
+                        <p className="text-xs font-medium mb-1 opacity-70">
+                          {message.users?.first_name}
+                        </p>
+                      )}
+                      {isEditing ? (
+                        <div className="flex flex-col gap-2">
+                          <input
+                            type="text"
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit()
+                              if (e.key === 'Escape') handleCancelEdit()
+                            }}
+                            className="text-sm bg-white text-gray-900 px-2 py-1 rounded outline-none"
+                            autoFocus
+                          />
+                          <div className="flex gap-2 text-xs">
+                            <button onClick={handleSaveEdit} className="underline">Save</button>
+                            <button onClick={handleCancelEdit} className="underline opacity-70">Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm">{message.content}</p>
+                          {message.is_edited && (
+                            <p className={`text-xs mt-1 ${isMe ? 'opacity-60' : 'opacity-50'}`}>Edited</p>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Context Menu */}
+                    {menuMessageId === message.id && isMe && (
+                      <div
+                        className="absolute right-0 bottom-full mb-1 bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => handleStartEdit(message)}
+                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMessage(message.id)}
+                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </main>
+
+      {/* Input */}
+      <footer className="sticky bottom-0 bg-white border-t border-gray-200">
+        <form
+          onSubmit={handleSend}
+          className="max-w-lg mx-auto px-4 py-3 flex gap-2"
+        >
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder={isBlocked ? "This conversation is blocked" : "Type a message..."}
+            disabled={isBlocked}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:text-gray-500"
+          />
+          <button
+            type="submit"
+            disabled={!newMessage.trim() || isSending || isBlocked}
+            className="bg-blue-500 text-white px-4 py-2 rounded-full font-medium disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
+      </footer>
+    </div>
+  )
+}
