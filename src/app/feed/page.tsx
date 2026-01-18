@@ -65,6 +65,7 @@ function FeedContent() {
   const feedRef = useRef<HTMLDivElement>(null)
   const POSTS_PER_PAGE = 10
   const PULL_THRESHOLD = 80
+  const SCROLL_TOLERANCE = 10 // pixels - allows pull-to-refresh when near top
 
   useEffect(() => {
     const initFeed = async () => {
@@ -416,7 +417,7 @@ function FeedContent() {
 
   // Pull-to-refresh handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
+    if (window.scrollY <= SCROLL_TOLERANCE) {
       touchStartY.current = e.touches[0].clientY
     }
   }, [])
@@ -427,7 +428,9 @@ function FeedContent() {
     const currentY = e.touches[0].clientY
     const diff = currentY - touchStartY.current
 
-    if (diff > 0 && window.scrollY === 0) {
+    if (diff > 0 && window.scrollY <= SCROLL_TOLERANCE) {
+      // Prevent browser scroll interference during pull-to-refresh
+      e.preventDefault()
       // Dampen the pull effect
       const dampedDiff = Math.min(diff * 0.5, 120)
       setPullDistance(dampedDiff)
