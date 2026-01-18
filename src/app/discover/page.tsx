@@ -14,10 +14,27 @@ interface User {
   avatar_url: string | null
   country: string | null
   last_seen_at: string | null
+  post_count: number
 }
 
 const USERS_PER_PAGE = 10
 const SEARCH_DEBOUNCE_MS = 300
+
+// Sort users: followed users first, then others (maintains order within groups)
+const sortUsersFollowedFirst = (users: User[], followingSet: Set<string>): User[] => {
+  const followed: User[] = []
+  const notFollowed: User[] = []
+
+  for (const user of users) {
+    if (followingSet.has(user.nullifier_hash)) {
+      followed.push(user)
+    } else {
+      notFollowed.push(user)
+    }
+  }
+
+  return [...followed, ...notFollowed]
+}
 
 export default function DiscoverPage() {
   const router = useRouter()
@@ -57,14 +74,13 @@ export default function DiscoverPage() {
           .from('relationships')
           .select('target_id, type')
           .eq('follower_id', session.nullifier_hash),
-        // Initial users fetch (will filter blocked client-side on first load)
-        supabase
-          .from('users')
-          .select('nullifier_hash, first_name, last_name, avatar_url, country, last_seen_at')
-          .neq('nullifier_hash', session.nullifier_hash)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .range(0, USERS_PER_PAGE - 1),
+        // Initial users fetch with post counts via RPC
+        supabase.rpc('get_discover_users', {
+          p_user_id: session.nullifier_hash,
+          p_limit: USERS_PER_PAGE,
+          p_offset: 0,
+          p_search: null
+        }),
       ])
 
       const following = new Set<string>()
@@ -76,20 +92,21 @@ export default function DiscoverPage() {
       setFollowingSet(following)
       setBlockedSet(blocked)
 
-      // Filter blocked users from initial fetch
+      // Filter blocked users and sort with followed first
       const filteredUsers = (usersResult.data || []).filter(
-        u => !blocked.has(u.nullifier_hash)
+        (u: User) => !blocked.has(u.nullifier_hash)
       )
-      setUsers(filteredUsers)
+      const sortedUsers = sortUsersFollowedFirst(filteredUsers, following)
+      setUsers(sortedUsers)
       setHasMore((usersResult.data?.length || 0) === USERS_PER_PAGE)
 
       // Cache the discover data for instant load next time
-      if (filteredUsers.length > 0) {
+      if (sortedUsers.length > 0) {
         setDiscoverCache({
           version: DISCOVER_CACHE_VERSION,
           timestamp: Date.now(),
           userId: session.nullifier_hash,
-          users: filteredUsers,
+          users: sortedUsers,
           followingUsers: Array.from(following),
           blockedUsers: Array.from(blocked),
         })
@@ -106,32 +123,26 @@ export default function DiscoverPage() {
     query: string,
     pageNum: number,
     append: boolean,
-    blocked: Set<string>
+    blocked: Set<string>,
+    following: Set<string>
   ) => {
-    const from = pageNum * USERS_PER_PAGE
-    const to = from + USERS_PER_PAGE - 1
+    const offset = pageNum * USERS_PER_PAGE
 
-    let queryBuilder = supabase
-      .from('users')
-      .select('nullifier_hash, first_name, last_name, avatar_url, country, last_seen_at')
-      .neq('nullifier_hash', myId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .range(from, to)
-
-    if (query.trim()) {
-      queryBuilder = queryBuilder.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
-    }
-
-    const { data, error } = await queryBuilder
+    const { data, error } = await supabase.rpc('get_discover_users', {
+      p_user_id: myId,
+      p_limit: USERS_PER_PAGE,
+      p_offset: offset,
+      p_search: query.trim() || null
+    })
 
     if (error) {
       console.error('Error fetching users:', error)
       return
     }
 
-    // Filter out blocked users
-    const filteredData = (data || []).filter(u => !blocked.has(u.nullifier_hash))
+    // Filter out blocked users and sort with followed first
+    const filteredData = (data || []).filter((u: User) => !blocked.has(u.nullifier_hash))
+    const sortedData = sortUsersFollowedFirst(filteredData, following)
 
     if (!data || data.length < USERS_PER_PAGE) {
       setHasMore(false)
@@ -140,9 +151,9 @@ export default function DiscoverPage() {
     }
 
     if (append) {
-      setUsers(prev => [...prev, ...filteredData])
+      setUsers(prev => [...prev, ...sortedData])
     } else {
-      setUsers(filteredData)
+      setUsers(sortedData)
     }
   }
 
@@ -160,10 +171,10 @@ export default function DiscoverPage() {
       setPage(0)
       setHasMore(true)
       if (currentSession) {
-        await fetchUsers(currentSession.nullifier_hash, query, 0, false, blockedSet)
+        await fetchUsers(currentSession.nullifier_hash, query, 0, false, blockedSet, followingSet)
       }
     }, SEARCH_DEBOUNCE_MS)
-  }, [currentSession, blockedSet])
+  }, [currentSession, blockedSet, followingSet])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -179,7 +190,7 @@ export default function DiscoverPage() {
     setIsLoadingMore(true)
     const nextPage = page + 1
     setPage(nextPage)
-    await fetchUsers(currentSession.nullifier_hash, searchQuery, nextPage, true, blockedSet)
+    await fetchUsers(currentSession.nullifier_hash, searchQuery, nextPage, true, blockedSet, followingSet)
     setIsLoadingMore(false)
   }
 
@@ -307,6 +318,18 @@ export default function DiscoverPage() {
                   )}
                 </div>
               </button>
+              {/* Post count button */}
+              {user.post_count > 0 && (
+                <button
+                  onClick={() => router.push(`/profile/${user.nullifier_hash}`)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>{user.post_count}</span>
+                </button>
+              )}
               <button
                 onClick={() => handleFollowToggle(user.nullifier_hash)}
                 disabled={processingUserId === user.nullifier_hash}

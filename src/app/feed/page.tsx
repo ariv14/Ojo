@@ -61,7 +61,9 @@ function FeedContent() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
+  const [newPostCount, setNewPostCount] = useState(0)
   const touchStartY = useRef(0)
+  const lastFetchTime = useRef<string | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const POSTS_PER_PAGE = 10
@@ -130,8 +132,28 @@ function FeedContent() {
       )
       .subscribe()
 
+    // Subscribe to new posts
+    const postsChannel = supabase
+      .channel('new-posts')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'posts',
+        },
+        (payload) => {
+          // Don't count user's own posts (they're already added optimistically)
+          if (payload.new && (payload.new as { user_id: string }).user_id !== session.nullifier_hash) {
+            setNewPostCount((prev) => prev + 1)
+          }
+        }
+      )
+      .subscribe()
+
     return () => {
       supabase.removeChannel(channel)
+      supabase.removeChannel(postsChannel)
     }
   }, [router])
 
@@ -376,8 +398,7 @@ function FeedContent() {
       boosted_until: (p as unknown as { boosted_until: string | null }).boosted_until || null,
     }))
 
-    // Sort: boosted first, then followed users, then by date
-    // Only sort on initial load - appended posts maintain chronological order
+    // Sort: boosted posts first, then pure chronological
     if (!append) {
       const now = new Date()
       postsWithVotes.sort((a, b) => {
@@ -386,12 +407,7 @@ function FeedContent() {
         const bBoosted = b.boosted_until && new Date(b.boosted_until) > now ? 1 : 0
         if (aBoosted !== bBoosted) return bBoosted - aBoosted
 
-        // Then followed users
-        const aFollowed = followedUserIds.has(a.user_id) ? 1 : 0
-        const bFollowed = followedUserIds.has(b.user_id) ? 1 : 0
-        if (aFollowed !== bFollowed) return bFollowed - aFollowed
-
-        // Then by date
+        // Everything else by date (newest first)
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       })
     }
@@ -453,6 +469,7 @@ function FeedContent() {
       setPullDistance(0)
       setPage(0)
       setHasMore(true)
+      setNewPostCount(0)
       await fetchPosts(currentSession)
     } else {
       setPullDistance(0)
@@ -824,6 +841,23 @@ function FeedContent() {
           </div>
         )}
       </div>
+
+      {/* New posts notification pill */}
+      {newPostCount > 0 && (
+        <button
+          onClick={() => {
+            setNewPostCount(0)
+            fetchPosts(currentSession!)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+          className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg z-30 flex items-center gap-2 hover:bg-blue-600 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+          {newPostCount} new {newPostCount === 1 ? 'post' : 'posts'}
+        </button>
+      )}
 
       {/* Header */}
       <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-10">
