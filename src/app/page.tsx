@@ -24,7 +24,21 @@ export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md text-center">
-        <h1 className="text-4xl font-bold mb-2">Ojo</h1>
+        <h1 className="text-4xl font-bold mb-2 flex items-center justify-center">
+          <span className="relative">
+            O
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="w-2.5 h-2.5 bg-current rounded-full"></span>
+            </span>
+          </span>
+          <span>J</span>
+          <span className="relative">
+            O
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="w-2.5 h-2.5 bg-current rounded-full"></span>
+            </span>
+          </span>
+        </h1>
         <p className="text-gray-500 mb-8">
           Keep an eye on what is real
         </p>

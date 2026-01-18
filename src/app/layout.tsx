@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ojo",
+  title: "OJO",
   description: "Keep an eye on what is real",
 };
 

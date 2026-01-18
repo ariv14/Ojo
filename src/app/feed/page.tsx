@@ -689,7 +689,21 @@ function FeedContent() {
       {/* Header */}
       <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-10">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold">Ojo</h1>
+          <h1 className="text-xl font-bold flex items-center">
+            <span className="relative">
+              O
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
+              </span>
+            </span>
+            <span>J</span>
+            <span className="relative">
+              O
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
+              </span>
+            </span>
+          </h1>
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/discover')}
