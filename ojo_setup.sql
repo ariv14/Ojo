@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 -- =============================================
--- SECTION 2: INDEXES (24 Indexes)
+-- SECTION 2: INDEXES (29 Indexes)
 -- =============================================
 
 -- Posts indexes
@@ -210,6 +210,13 @@ CREATE INDEX IF NOT EXISTS idx_reports_target_type ON reports(target_type);
 -- Support tickets indexes
 CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
+
+-- Users indexes (for search and discovery)
+CREATE INDEX IF NOT EXISTS idx_users_first_name ON users(first_name);
+CREATE INDEX IF NOT EXISTS idx_users_last_name ON users(last_name);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_users_last_seen_at ON users(last_seen_at DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 
 -- =============================================
 -- SECTION 3: ENABLE ROW LEVEL SECURITY
@@ -528,7 +535,7 @@ CREATE POLICY "Anyone can delete photos"
 --
 -- Summary:
 -- - 12 Tables created with CASCADE DELETE
--- - 24 Indexes for query performance
+-- - 29 Indexes for query performance
 -- - RLS enabled on all 12 tables
 -- - 36 RLS policies (permissive)
 -- - 2 RPC functions (delete_conversation, reset_all_data)

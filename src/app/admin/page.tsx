@@ -13,6 +13,20 @@ interface Stats {
   totalPosts: number
   pendingReports: number
   openTickets: number
+  newThisWeek: number
+  activeToday: number
+}
+
+interface AdminUser {
+  nullifier_hash: string
+  first_name: string
+  last_name: string
+  avatar_url: string | null
+  country: string | null
+  status: string
+  created_at: string
+  last_seen_at: string | null
+  post_count: number
 }
 
 interface Report {
@@ -52,6 +66,13 @@ export default function AdminPage() {
   const [isResponding, setIsResponding] = useState(false)
   const [processingReportId, setProcessingReportId] = useState<string | null>(null)
   const [reportsKey, setReportsKey] = useState(0)
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
+  const [userPage, setUserPage] = useState(0)
+  const [hasMoreUsers, setHasMoreUsers] = useState(true)
+  const [userSearch, setUserSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'recent' | 'activity'>('recent')
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -71,6 +92,7 @@ export default function AdminPage() {
 
     setIsAuthorized(true)
     fetchDashboardData()
+    fetchAdminUsers(0, false)
   }, [router])
 
   const fetchDashboardData = async () => {
@@ -82,6 +104,12 @@ export default function AdminPage() {
       .delete()
       .lt('created_at', thirtyDaysAgo.toISOString())
 
+    // Calculate date ranges
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    const oneDayAgo = new Date()
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1)
+
     // Fetch all stats in parallel
     const [
       { count: totalUsers },
@@ -91,6 +119,8 @@ export default function AdminPage() {
       { count: totalPosts },
       { count: pendingReports },
       { count: openTickets },
+      { count: newThisWeek },
+      { count: activeToday },
       { data: reportsData },
       { data: ticketsData },
     ] = await Promise.all([
@@ -101,6 +131,8 @@ export default function AdminPage() {
       supabase.from('posts').select('*', { count: 'exact', head: true }),
       supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+      supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', oneWeekAgo.toISOString()),
+      supabase.from('users').select('*', { count: 'exact', head: true }).gte('last_seen_at', oneDayAgo.toISOString()),
       supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(20),
       supabase.from('support_tickets').select('*').order('created_at', { ascending: false }).limit(20),
     ])
@@ -113,6 +145,8 @@ export default function AdminPage() {
       totalPosts: totalPosts || 0,
       pendingReports: pendingReports || 0,
       openTickets: openTickets || 0,
+      newThisWeek: newThisWeek || 0,
+      activeToday: activeToday || 0,
     })
 
     setReports(reportsData || [])
@@ -290,6 +324,140 @@ export default function AdminPage() {
     }
   }
 
+  const USERS_PER_PAGE = 10
+
+  const fetchAdminUsers = async (pageNum: number, append: boolean) => {
+    setIsLoadingUsers(true)
+    const from = pageNum * USERS_PER_PAGE
+    const to = from + USERS_PER_PAGE - 1
+
+    let queryBuilder = supabase
+      .from('users')
+      .select('nullifier_hash, first_name, last_name, avatar_url, country, status, created_at, last_seen_at')
+
+    if (userSearch.trim()) {
+      queryBuilder = queryBuilder.or(`first_name.ilike.%${userSearch}%,last_name.ilike.%${userSearch}%`)
+    }
+
+    if (sortBy === 'activity') {
+      queryBuilder = queryBuilder.order('last_seen_at', { ascending: false, nullsFirst: false })
+    } else {
+      queryBuilder = queryBuilder.order('created_at', { ascending: false })
+    }
+
+    queryBuilder = queryBuilder.range(from, to)
+
+    const { data: usersData, error } = await queryBuilder
+
+    if (error) {
+      console.error('Error fetching users:', error)
+      setIsLoadingUsers(false)
+      return
+    }
+
+    // Fetch post counts for each user
+    const usersWithCounts: AdminUser[] = await Promise.all(
+      (usersData || []).map(async (user) => {
+        const { count } = await supabase
+          .from('posts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.nullifier_hash)
+
+        return {
+          ...user,
+          post_count: count || 0,
+        }
+      })
+    )
+
+    if (!usersData || usersData.length < USERS_PER_PAGE) {
+      setHasMoreUsers(false)
+    } else {
+      setHasMoreUsers(true)
+    }
+
+    if (append) {
+      setAdminUsers(prev => [...prev, ...usersWithCounts])
+    } else {
+      setAdminUsers(usersWithCounts)
+    }
+    setIsLoadingUsers(false)
+  }
+
+  const handleUserSearch = async (query: string) => {
+    setUserSearch(query)
+    setUserPage(0)
+    setHasMoreUsers(true)
+    // Delay fetch to allow state update
+    setTimeout(() => fetchAdminUsers(0, false), 0)
+  }
+
+  const handleSortChange = (newSort: 'recent' | 'activity') => {
+    setSortBy(newSort)
+    setUserPage(0)
+    setHasMoreUsers(true)
+    setTimeout(() => fetchAdminUsers(0, false), 0)
+  }
+
+  const handleLoadMoreUsers = async () => {
+    if (isLoadingUsers || !hasMoreUsers) return
+    const nextPage = userPage + 1
+    setUserPage(nextPage)
+    await fetchAdminUsers(nextPage, true)
+  }
+
+  const handleBanUserDirect = async (userId: string) => {
+    setProcessingUserId(userId)
+
+    const { error } = await supabase
+      .from('users')
+      .update({ status: 'banned' })
+      .eq('nullifier_hash', userId)
+
+    if (error) {
+      console.error('Error banning user:', error)
+      alert('Failed to ban user: ' + error.message)
+    } else {
+      // Update local state
+      setAdminUsers(prev => prev.map(u =>
+        u.nullifier_hash === userId ? { ...u, status: 'banned' } : u
+      ))
+      setStats(prev => prev ? {
+        ...prev,
+        bannedUsers: prev.bannedUsers + 1,
+        activeUsers: Math.max(0, prev.activeUsers - 1),
+      } : null)
+    }
+
+    setProcessingUserId(null)
+  }
+
+  const handleUnbanUser = async (userId: string) => {
+    setProcessingUserId(userId)
+
+    const { error } = await supabase
+      .from('users')
+      .update({ status: 'active' })
+      .eq('nullifier_hash', userId)
+
+    if (error) {
+      console.error('Error unbanning user:', error)
+      alert('Failed to unban user: ' + error.message)
+    } else {
+      // Update local state
+      setAdminUsers(prev => prev.map(u =>
+        u.nullifier_hash === userId ? { ...u, status: 'active' } : u
+      ))
+      setStats(prev => prev ? {
+        ...prev,
+        bannedUsers: Math.max(0, prev.bannedUsers - 1),
+        activeUsers: prev.activeUsers + 1,
+      } : null)
+    }
+
+    setProcessingUserId(null)
+  }
+
   if (!isAuthorized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -333,6 +501,113 @@ export default function AdminPage() {
           <StatCard label="Total Posts" value={stats?.totalPosts || 0} />
           <StatCard label="Pending Reports" value={stats?.pendingReports || 0} color="red" />
           <StatCard label="Open Tickets" value={stats?.openTickets || 0} color="yellow" />
+          <StatCard label="New This Week" value={stats?.newThisWeek || 0} color="green" />
+          <StatCard label="Active Today" value={stats?.activeToday || 0} color="green" />
+        </div>
+
+        {/* User Management Section */}
+        <div className="bg-white rounded-xl p-4">
+          <h2 className="text-lg font-semibold mb-4">User Management</h2>
+          <div className="flex flex-col md:flex-row gap-3 mb-4">
+            <input
+              type="text"
+              value={userSearch}
+              onChange={(e) => handleUserSearch(e.target.value)}
+              placeholder="Search users..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value as 'recent' | 'activity')}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+            >
+              <option value="recent">Sort: Recent</option>
+              <option value="activity">Sort: Last Active</option>
+            </select>
+          </div>
+          {adminUsers.length === 0 && !isLoadingUsers ? (
+            <p className="text-gray-500 text-center py-4">No users found</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">User</th>
+                    <th className="text-left py-2 px-2">Country</th>
+                    <th className="text-left py-2 px-2">Status</th>
+                    <th className="text-left py-2 px-2">Posts</th>
+                    <th className="text-left py-2 px-2">Joined</th>
+                    <th className="text-left py-2 px-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminUsers.map((user) => (
+                    <tr key={user.nullifier_hash} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                            {user.avatar_url ? (
+                              <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
+                                {user.first_name?.[0] || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-medium">{user.first_name} {user.last_name}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 text-gray-500">{user.country || '-'}</td>
+                      <td className="py-2 px-2">
+                        <UserStatusBadge status={user.status} />
+                      </td>
+                      <td className="py-2 px-2">{user.post_count}</td>
+                      <td className="py-2 px-2">{new Date(user.created_at).toLocaleDateString()}</td>
+                      <td className="py-2 px-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => router.push(`/profile/${user.nullifier_hash}`)}
+                            className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200"
+                          >
+                            View
+                          </button>
+                          {user.status === 'banned' ? (
+                            <button
+                              onClick={() => handleUnbanUser(user.nullifier_hash)}
+                              disabled={processingUserId === user.nullifier_hash}
+                              className="px-2 py-1 text-xs bg-green-100 text-green-600 rounded hover:bg-green-200 disabled:opacity-50"
+                            >
+                              {processingUserId === user.nullifier_hash ? '...' : 'Unban'}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleBanUserDirect(user.nullifier_hash)}
+                              disabled={processingUserId === user.nullifier_hash}
+                              className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50"
+                            >
+                              {processingUserId === user.nullifier_hash ? '...' : 'Ban'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {/* Load More Users Button */}
+          {hasMoreUsers && adminUsers.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={handleLoadMoreUsers}
+                disabled={isLoadingUsers}
+                className="w-full py-2 text-blue-500 font-medium border border-blue-500 rounded-lg hover:bg-blue-50 disabled:opacity-50 transition"
+              >
+                {isLoadingUsers ? 'Loading...' : 'Load More Users'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Reports Table */}
@@ -664,6 +939,19 @@ function StatusBadge({ status }: { status: string }) {
     actioned: 'bg-red-100 text-red-600',
     resolved: 'bg-green-100 text-green-600',
     closed: 'bg-gray-100 text-gray-600',
+  }
+  return (
+    <span className={`px-2 py-1 text-xs rounded-full ${colors[status] || 'bg-gray-100'}`}>
+      {status}
+    </span>
+  )
+}
+
+function UserStatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    active: 'bg-green-100 text-green-600',
+    disabled: 'bg-yellow-100 text-yellow-600',
+    banned: 'bg-red-100 text-red-600',
   }
   return (
     <span className={`px-2 py-1 text-xs rounded-full ${colors[status] || 'bg-gray-100'}`}>
