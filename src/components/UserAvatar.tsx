@@ -38,7 +38,7 @@ export default function UserAvatar({
         className={`${sizeClasses[size]} rounded-full bg-gray-200 flex items-center justify-center font-medium overflow-hidden`}
       >
         {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+          <img src={avatarUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <span className="text-gray-500">{firstName?.[0] || '?'}</span>
         )}

@@ -63,7 +63,9 @@ function FeedContent() {
   const [pullDistance, setPullDistance] = useState(0)
   const touchStartY = useRef(0)
   const feedRef = useRef<HTMLDivElement>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
   const POSTS_PER_PAGE = 10
+  const MAX_POSTS = 100 // Limit posts in memory for performance
   const PULL_THRESHOLD = 80
   const SCROLL_TOLERANCE = 10 // pixels - allows pull-to-refresh when near top
 
@@ -300,59 +302,60 @@ function FeedContent() {
 
     const postIds = filteredPostsData.map(p => p.id)
 
-    // Fetch all votes for these posts
-    const { data: allVotes } = await supabase
-      .from('post_votes')
-      .select('post_id, vote_type')
-      .in('post_id', postIds)
+    // Fetch all related data in parallel for better performance
+    const [
+      { data: allVotes },
+      { data: userVotes },
+      { data: tipTotals },
+      { data: accessData }
+    ] = await Promise.all([
+      // All votes for these posts
+      supabase
+        .from('post_votes')
+        .select('post_id, vote_type')
+        .in('post_id', postIds),
+      // Current user's votes
+      supabase
+        .from('post_votes')
+        .select('post_id, vote_type')
+        .eq('user_id', session.nullifier_hash)
+        .in('post_id', postIds),
+      // Tip totals for posts
+      supabase
+        .from('tips')
+        .select('post_id, amount')
+        .in('post_id', postIds),
+      // User's post access (for premium posts)
+      supabase
+        .from('post_access')
+        .select('post_id')
+        .eq('user_id', session.nullifier_hash)
+    ])
 
-    // Fetch current user's votes
-    let userVotesMap: Record<string, 'like' | 'dislike'> = {}
-    const { data: userVotes } = await supabase
-      .from('post_votes')
-      .select('post_id, vote_type')
-      .eq('user_id', session.nullifier_hash)
-      .in('post_id', postIds)
-
-    if (userVotes) {
-      userVotes.forEach(v => {
-        userVotesMap[v.post_id] = v.vote_type as 'like' | 'dislike'
-      })
-    }
+    // Process user votes into a map
+    const userVotesMap: Record<string, 'like' | 'dislike'> = {}
+    userVotes?.forEach(v => {
+      userVotesMap[v.post_id] = v.vote_type as 'like' | 'dislike'
+    })
 
     // Calculate vote counts per post
     const voteCounts: Record<string, { likes: number; dislikes: number }> = {}
     postIds.forEach(id => {
       voteCounts[id] = { likes: 0, dislikes: 0 }
     })
-
-    if (allVotes) {
-      allVotes.forEach(v => {
-        if (v.vote_type === 'like') {
-          voteCounts[v.post_id].likes++
-        } else {
-          voteCounts[v.post_id].dislikes++
-        }
-      })
-    }
-
-    // Fetch tip totals for posts
-    const { data: tipTotals } = await supabase
-      .from('tips')
-      .select('post_id, amount')
-      .in('post_id', postIds)
+    allVotes?.forEach(v => {
+      if (v.vote_type === 'like') {
+        voteCounts[v.post_id].likes++
+      } else {
+        voteCounts[v.post_id].dislikes++
+      }
+    })
 
     // Aggregate tips per post
     const tipsByPost: Record<string, number> = {}
     tipTotals?.forEach(t => {
       tipsByPost[t.post_id] = (tipsByPost[t.post_id] || 0) + Number(t.amount)
     })
-
-    // Fetch user's post access (for premium posts)
-    const { data: accessData } = await supabase
-      .from('post_access')
-      .select('post_id')
-      .eq('user_id', session.nullifier_hash)
 
     const accessedPostIds = new Set(accessData?.map(a => a.post_id) || [])
 
@@ -393,9 +396,16 @@ function FeedContent() {
       })
     }
 
-    // Append or replace posts
+    // Append or replace posts (with windowing to limit memory usage)
     if (append) {
-      setPosts(prev => [...prev, ...postsWithVotes])
+      setPosts(prev => {
+        const combined = [...prev, ...postsWithVotes]
+        // Keep only the most recent MAX_POSTS to prevent memory bloat
+        if (combined.length > MAX_POSTS) {
+          return combined.slice(-MAX_POSTS)
+        }
+        return combined
+      })
     } else {
       setPosts(postsWithVotes)
       // Cache the first page for instant load next time
@@ -466,13 +476,38 @@ function FeedContent() {
     }
   }, [handleTouchStart, handleTouchMove, handleTouchEnd])
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (!currentSession || isLoadingMore || !hasMore) return
     setIsLoadingMore(true)
     const nextPage = page + 1
     setPage(nextPage)
     await fetchPosts(currentSession, nextPage, true)
-  }
+  }, [currentSession, isLoadingMore, hasMore, page])
+
+  // Infinite scroll with IntersectionObserver
+  useEffect(() => {
+    const loadMoreElement = loadMoreRef.current
+    if (!loadMoreElement) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries
+        if (entry.isIntersecting && hasMore && !isLoadingMore && currentSession) {
+          handleLoadMore()
+        }
+      },
+      {
+        rootMargin: '200px', // Start loading 200px before the element is visible
+        threshold: 0,
+      }
+    )
+
+    observer.observe(loadMoreElement)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [hasMore, isLoadingMore, currentSession, handleLoadMore])
 
   const handleVote = async (postId: string, voteType: 'like' | 'dislike') => {
     const session = getSession()
@@ -1022,6 +1057,8 @@ function FeedContent() {
                   <img
                     src={post.image_url}
                     alt={post.caption || 'Post image'}
+                    loading="lazy"
+                    decoding="async"
                     className={`w-full aspect-square object-cover ${
                       post.is_premium && !post.has_access ? 'blur-xl' : ''
                     }`}
@@ -1162,18 +1199,31 @@ function FeedContent() {
           ))
         )}
 
-        {/* Load More Button */}
-        {hasMore && posts.length > 0 && (
-          <div className="p-4">
-            <button
-              onClick={handleLoadMore}
-              disabled={isLoadingMore}
-              className="w-full py-3 text-blue-500 font-medium border border-blue-500 rounded-lg hover:bg-blue-50 disabled:opacity-50 transition"
-            >
-              {isLoadingMore ? 'Loading...' : 'Load More'}
-            </button>
-          </div>
-        )}
+        {/* Infinite scroll trigger / Load More */}
+        <div ref={loadMoreRef} className="p-4">
+          {hasMore && posts.length > 0 && (
+            <div className="flex justify-center py-4">
+              {isLoadingMore ? (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  <span>Loading more posts...</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleLoadMore}
+                  className="text-blue-500 font-medium hover:underline"
+                >
+                  Load More
+                </button>
+              )}
+            </div>
+          )}
+          {!hasMore && posts.length > 0 && (
+            <p className="text-center text-gray-400 text-sm py-4">
+              You've reached the end
+            </p>
+          )}
+        </div>
       </main>
 
       {/* Report Modal */}
