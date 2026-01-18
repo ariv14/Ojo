@@ -13,6 +13,7 @@ import UserAvatar from '@/components/UserAvatar'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
 import ReportModal from '@/components/ReportModal'
 import ImageViewer from '@/components/ImageViewer'
+import ConfirmationModal from '@/components/ConfirmationModal'
 
 interface Post {
   id: string
@@ -52,6 +53,8 @@ function FeedContent() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
   const [editCaption, setEditCaption] = useState('')
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
+  const [deletePostId, setDeletePostId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [viewingImage, setViewingImage] = useState<{ url: string; caption?: string } | null>(null)
   const [unlockingPost, setUnlockingPost] = useState<Post | null>(null)
   const [unlockStep, setUnlockStep] = useState(0) // 0 = not started, 1 = platform fee, 2 = creator payment
@@ -596,21 +599,24 @@ function FeedContent() {
       }, { onConflict: 'follower_id,target_id' })
   }
 
-  const handleDeletePost = async (postId: string) => {
+  const handleDeletePost = (postId: string) => {
     setOpenMenuId(null)
+    setDeletePostId(postId)
+  }
 
-    if (!window.confirm('Are you sure you want to delete this post?')) {
-      return
-    }
+  const confirmDeletePost = async () => {
+    if (!deletePostId) return
 
     const session = getSession()
     if (!session) return
 
+    setIsDeleting(true)
+
     // Get the post to find its image URL
-    const post = posts.find(p => p.id === postId)
+    const post = posts.find(p => p.id === deletePostId)
 
     // Optimistically remove from state
-    setPosts(prev => prev.filter(p => p.id !== postId))
+    setPosts(prev => prev.filter(p => p.id !== deletePostId))
 
     // Delete image from storage before deleting post from DB
     if (post?.image_url) {
@@ -624,8 +630,11 @@ function FeedContent() {
     await supabase
       .from('posts')
       .delete()
-      .eq('id', postId)
+      .eq('id', deletePostId)
       .eq('user_id', session.nullifier_hash)
+
+    setIsDeleting(false)
+    setDeletePostId(null)
   }
 
   const handleStartEdit = (post: Post) => {
@@ -1297,6 +1306,18 @@ function FeedContent() {
           onSuccess={() => setReportingPostId(null)}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!deletePostId}
+        onClose={() => setDeletePostId(null)}
+        onConfirm={confirmDeletePost}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        confirmColor="red"
+        isLoading={isDeleting}
+      />
 
       {/* Image Viewer */}
       {viewingImage && (
