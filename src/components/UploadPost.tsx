@@ -8,7 +8,7 @@ import { ensureWalletConnected } from '@/lib/wallet'
 
 interface UploadPostProps {
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (newPost: { id: string; image_url: string; caption: string | null; is_premium: boolean }) => void
 }
 
 export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
@@ -91,24 +91,29 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
         .getPublicUrl(fileName)
 
       // Save post to database
-      const { error: dbError } = await supabase.from('posts').insert({
+      const { data: postData, error: dbError } = await supabase.from('posts').insert({
         user_id: session.nullifier_hash,
         image_url: urlData.publicUrl,
         caption: caption.trim() || null,
         is_premium: isPremium,
-      })
+      }).select('id').single()
 
-      if (dbError) {
+      if (dbError || !postData) {
         console.error('Database error:', dbError)
         console.error('Error details:', JSON.stringify(dbError, null, 2))
-        console.error('Error message:', dbError.message)
-        console.error('Error code:', dbError.code)
-        setError(`Failed to save post: ${dbError.message || 'Unknown error'}`)
+        console.error('Error message:', dbError?.message)
+        console.error('Error code:', dbError?.code)
+        setError(`Failed to save post: ${dbError?.message || 'Unknown error'}`)
         setIsUploading(false)
         return
       }
 
-      onSuccess()
+      onSuccess({
+        id: postData.id,
+        image_url: urlData.publicUrl,
+        caption: caption.trim() || null,
+        is_premium: isPremium,
+      })
     } catch (err) {
       console.error('Error:', err)
       setError('Something went wrong. Please try again.')

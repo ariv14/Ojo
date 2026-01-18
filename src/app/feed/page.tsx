@@ -910,9 +910,37 @@ function FeedContent() {
       {showUpload && (
         <UploadPost
           onClose={() => setShowUpload(false)}
-          onSuccess={() => {
+          onSuccess={(newPost) => {
             setShowUpload(false)
-            if (currentSession) fetchPosts(currentSession)
+            if (currentSession) {
+              // Construct full Post object for the new post
+              const fullPost: Post = {
+                id: newPost.id,
+                user_id: currentSession.nullifier_hash,
+                image_url: newPost.image_url,
+                caption: newPost.caption,
+                created_at: new Date().toISOString(),
+                users: {
+                  first_name: currentSession.first_name || '',
+                  last_name: currentSession.last_name || '',
+                  avatar_url: currentSession.avatar_url || null,
+                  wallet_address: null,
+                  status: null,
+                  last_seen_at: new Date().toISOString(),
+                },
+                like_count: 0,
+                dislike_count: 0,
+                user_vote: null,
+                total_tips: 0,
+                is_premium: newPost.is_premium,
+                has_access: true,
+                boosted_until: null,
+              }
+              // Prepend to the top of the feed
+              setPosts(prev => [fullPost, ...prev])
+              // Scroll to top
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }
           }}
         />
       )}
