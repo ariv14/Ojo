@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession, UserSession } from '@/lib/session'
+import { getDiscoverCache, setDiscoverCache, DISCOVER_CACHE_VERSION } from '@/lib/discoverCache'
 import UserAvatar from '@/components/UserAvatar'
 
 interface User {
@@ -41,6 +42,15 @@ export default function DiscoverPage() {
       }
       setCurrentSession(session)
 
+      // Try to load from cache first for instant display
+      const cache = getDiscoverCache(session.nullifier_hash)
+      if (cache && cache.users.length > 0) {
+        setUsers(cache.users)
+        setFollowingSet(new Set(cache.followingUsers))
+        setBlockedSet(new Set(cache.blockedUsers))
+        setIsLoading(false)
+      }
+
       // Parallelize: fetch relationships AND initial users at the same time
       const [relationshipsResult, usersResult] = await Promise.all([
         supabase
@@ -72,6 +82,19 @@ export default function DiscoverPage() {
       )
       setUsers(filteredUsers)
       setHasMore((usersResult.data?.length || 0) === USERS_PER_PAGE)
+
+      // Cache the discover data for instant load next time
+      if (filteredUsers.length > 0) {
+        setDiscoverCache({
+          version: DISCOVER_CACHE_VERSION,
+          timestamp: Date.now(),
+          userId: session.nullifier_hash,
+          users: filteredUsers,
+          followingUsers: Array.from(following),
+          blockedUsers: Array.from(blocked),
+        })
+      }
+
       setIsLoading(false)
     }
 

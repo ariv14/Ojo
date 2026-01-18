@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { getProfileCacheEntry, setProfileCacheEntry } from '@/lib/profileCache'
 import ReportModal from '@/components/ReportModal'
 import ChatButton from '@/components/ChatButton'
 
@@ -56,7 +57,28 @@ export default function ProfilePage() {
     const isOwn = session && session.nullifier_hash === profileId
     setIsOwnProfile(!!isOwn)
 
+    // Try to load from cache first for instant display
+    if (session) {
+      const cached = getProfileCacheEntry(session.nullifier_hash, profileId)
+      if (cached) {
+        setUser(cached.user)
+        setPosts(cached.posts)
+        setViewCount(cached.viewCount)
+        setRecentVisitors(cached.visitors)
+        setFollowerCount(cached.followerCount)
+        setIsFollowing(cached.isFollowing)
+        if (isOwn) {
+          setTipsEarned(cached.tipsEarned)
+        }
+        setIsLoading(false)
+      }
+    }
+
     const fetchProfile = async () => {
+      // Track values for caching
+      let followingStatus = false
+      let finalTipsEarned = 0
+
       // Fetch user data (profileId is nullifier_hash)
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -107,7 +129,8 @@ export default function ProfilePage() {
           .eq('type', 'follow')
           .maybeSingle()
 
-        setIsFollowing(!!followData)
+        followingStatus = !!followData
+        setIsFollowing(followingStatus)
 
         // Record profile view FIRST only if NOT invisible
         if (!isInvisible) {
@@ -194,6 +217,20 @@ export default function ProfilePage() {
         if (premiumError) console.error('Premium RPC error:', premiumError)
 
         setTipsEarned(totalTips + totalPremium)
+        finalTipsEarned = totalTips + totalPremium
+      }
+
+      // Cache the profile data for instant load next time
+      if (session && userData) {
+        setProfileCacheEntry(session.nullifier_hash, profileId, {
+          user: userData,
+          posts: postsData || [],
+          viewCount: viewCountResult || 0,
+          visitors: uniqueVisitors,
+          followerCount: followers || 0,
+          isFollowing: followingStatus,
+          tipsEarned: finalTipsEarned,
+        })
       }
 
       setIsLoading(false)

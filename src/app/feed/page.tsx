@@ -415,14 +415,14 @@ function FeedContent() {
     setIsRefreshing(false)
   }
 
-  // Pull-to-refresh handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  // Pull-to-refresh handlers - use native TouchEvent for passive: false support
+  const handleTouchStart = useCallback((e: TouchEvent) => {
     if (window.scrollY <= SCROLL_TOLERANCE) {
       touchStartY.current = e.touches[0].clientY
     }
   }, [])
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
     if (isRefreshing || touchStartY.current === 0) return
 
     const currentY = e.touches[0].clientY
@@ -449,6 +449,22 @@ function FeedContent() {
     }
     touchStartY.current = 0
   }, [pullDistance, isRefreshing, currentSession])
+
+  // Attach native touch event listeners with passive: false for pull-to-refresh
+  useEffect(() => {
+    const element = feedRef.current
+    if (!element) return
+
+    element.addEventListener('touchstart', handleTouchStart, { passive: true })
+    element.addEventListener('touchmove', handleTouchMove, { passive: false })
+    element.addEventListener('touchend', handleTouchEnd, { passive: true })
+
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart)
+      element.removeEventListener('touchmove', handleTouchMove)
+      element.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd])
 
   const handleLoadMore = async () => {
     if (!currentSession || isLoadingMore || !hasMore) return
@@ -752,9 +768,6 @@ function FeedContent() {
     <div
       ref={feedRef}
       className="min-h-screen bg-gray-50 relative"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       {/* Pull-to-refresh indicator */}
       <div
