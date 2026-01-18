@@ -177,28 +177,22 @@ export default function ProfilePage() {
       setFollowerCount(followers || 0)
 
       // Fetch total earnings ONLY for own profile (private data)
+      // Uses RPC functions for efficient server-side aggregation
       if (isOwn) {
-        // Fetch tips earned
-        const { data: tipsData, error: tipsError } = await supabase
-          .from('tips')
-          .select('creator_share')
-          .eq('to_user_id', profileId)
+        // Fetch tips earned using RPC (single query with SUM)
+        const { data: tipsTotal, error: tipsError } = await supabase
+          .rpc('get_user_tips_total', { p_user_id: profileId })
 
-        console.log('Tips query:', { profileId, tipsData, tipsError })
+        // Fetch premium post unlock earnings using RPC (single query with SUM)
+        const { data: premiumTotal, error: premiumError } = await supabase
+          .rpc('get_user_premium_total', { p_user_id: profileId })
 
-        const totalTips = tipsData?.reduce((sum, tip) => sum + (tip.creator_share || 0), 0) || 0
+        const totalTips = Number(tipsTotal) || 0
+        const totalPremium = Number(premiumTotal) || 0
 
-        // Fetch premium post unlock earnings
-        const { data: premiumData, error: premiumError } = await supabase
-          .from('post_access')
-          .select('creator_share')
-          .eq('creator_id', profileId)
+        if (tipsError) console.error('Tips RPC error:', tipsError)
+        if (premiumError) console.error('Premium RPC error:', premiumError)
 
-        console.log('Premium query:', { profileId, premiumData, premiumError })
-
-        const totalPremium = premiumData?.reduce((sum, unlock) => sum + (unlock.creator_share || 0), 0) || 0
-
-        console.log('Total earnings:', { totalTips, totalPremium, total: totalTips + totalPremium })
         setTipsEarned(totalTips + totalPremium)
       }
 

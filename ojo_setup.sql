@@ -221,6 +221,19 @@ CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_users_last_seen_at ON users(last_seen_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 
+-- Post access indexes (for earnings queries)
+CREATE INDEX IF NOT EXISTS idx_post_access_creator_id ON post_access(creator_id);
+CREATE INDEX IF NOT EXISTS idx_post_access_user_id ON post_access(user_id);
+
+-- Tips index for post lookups
+CREATE INDEX IF NOT EXISTS idx_tips_post_id ON tips(post_id);
+
+-- Composite indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_relationships_follower_type ON relationships(follower_id, type);
+CREATE INDEX IF NOT EXISTS idx_posts_user_hidden_created ON posts(user_id, is_hidden, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_connections_status_initiator ON connections(status, initiator_id);
+CREATE INDEX IF NOT EXISTS idx_connections_status_receiver ON connections(status, receiver_id);
+
 -- =============================================
 -- SECTION 3: ENABLE ROW LEVEL SECURITY
 -- =============================================
@@ -470,6 +483,62 @@ BEGIN
 END;
 $$;
 
+-- Function: get_user_tips_total
+-- Returns total tips earned by a user (sum of creator_share)
+-- Called from: src/app/profile/[id]/page.tsx
+CREATE OR REPLACE FUNCTION get_user_tips_total(p_user_id TEXT)
+RETURNS DECIMAL
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(SUM(creator_share), 0)
+  FROM tips
+  WHERE to_user_id = p_user_id;
+$$;
+
+-- Function: get_user_premium_total
+-- Returns total premium unlock earnings for a creator
+-- Called from: src/app/profile/[id]/page.tsx
+CREATE OR REPLACE FUNCTION get_user_premium_total(p_user_id TEXT)
+RETURNS DECIMAL
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(SUM(creator_share), 0)
+  FROM post_access
+  WHERE creator_id = p_user_id;
+$$;
+
+-- Function: get_total_unread_count
+-- Returns total unread message count across all active connections
+-- Called from: src/app/feed/page.tsx
+CREATE OR REPLACE FUNCTION get_total_unread_count(p_user_id TEXT)
+RETURNS INTEGER
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(SUM(unread)::INTEGER, 0)
+  FROM (
+    SELECT COUNT(*) as unread
+    FROM connections c
+    JOIN messages m ON m.connection_id = c.id
+    WHERE (c.initiator_id = p_user_id OR c.receiver_id = p_user_id)
+      AND c.status = 'active'
+      AND m.sender_id != p_user_id
+      AND m.created_at > GREATEST(
+        COALESCE(c.last_read_at, '1970-01-01'::timestamptz),
+        COALESCE(
+          CASE
+            WHEN c.initiator_id = p_user_id THEN c.initiator_cleared_at
+            ELSE c.receiver_cleared_at
+          END,
+          '1970-01-01'::timestamptz
+        )
+      )
+    GROUP BY c.id
+  ) counts;
+$$;
+
 -- =============================================
 -- SECTION 6: REALTIME CONFIGURATION
 -- =============================================
@@ -538,10 +607,15 @@ CREATE POLICY "Anyone can delete photos"
 --
 -- Summary:
 -- - 12 Tables created with CASCADE DELETE
--- - 29 Indexes for query performance
+-- - 36 Indexes for query performance (including composite indexes)
 -- - RLS enabled on all 12 tables
 -- - 36 RLS policies (permissive)
--- - 2 RPC functions (delete_conversation, reset_all_data)
+-- - 5 RPC functions:
+--   * delete_conversation - delete chat and messages
+--   * reset_all_data - admin factory reset
+--   * get_user_tips_total - sum tips for profile earnings
+--   * get_user_premium_total - sum premium unlocks for profile earnings
+--   * get_total_unread_count - count unread messages (single query)
 -- - Realtime enabled on messages, connections
 -- - 8 Storage policies (4 avatars, 4 photos)
 --
