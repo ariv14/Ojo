@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS connections (
   is_blocked BOOLEAN DEFAULT false,
   blocked_by TEXT,
   last_read_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(initiator_id, receiver_id)
 );
 
 -- 4. MESSAGES TABLE
