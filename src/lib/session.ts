@@ -25,4 +25,5 @@ export function setSession(user: UserSession): void {
 
 export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY)
+  localStorage.removeItem('ojo_feed_cache')
 }

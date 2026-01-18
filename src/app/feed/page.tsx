@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession, clearSession, UserSession } from '@/lib/session'
+import { getFeedCache, setFeedCache, FEED_CACHE_VERSION } from '@/lib/feedCache'
 import { ensureWalletConnected } from '@/lib/wallet'
 import UploadPost from '@/components/UploadPost'
 import ChatButton from '@/components/ChatButton'
@@ -58,7 +59,12 @@ function FeedContent() {
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const touchStartY = useRef(0)
+  const feedRef = useRef<HTMLDivElement>(null)
   const POSTS_PER_PAGE = 10
+  const PULL_THRESHOLD = 80
 
   useEffect(() => {
     const initFeed = async () => {
@@ -66,6 +72,15 @@ function FeedContent() {
       if (!session) {
         router.push('/')
         return
+      }
+
+      // Try to load from cache first for instant display
+      const cache = getFeedCache(session.nullifier_hash)
+      if (cache && cache.posts.length > 0) {
+        setPosts(cache.posts)
+        setHiddenUsers(new Set(cache.hiddenUsers))
+        setFollowedUsers(new Set(cache.followedUsers))
+        setIsLoading(false)
       }
 
       // Verify user exists in database (handles deleted profiles)
@@ -83,6 +98,7 @@ function FeedContent() {
       }
 
       setCurrentSession(session)
+      // Fetch fresh data (will update cache when done)
       fetchPosts(session)
       fetchUnreadCount(session.nullifier_hash)
     }
@@ -381,10 +397,55 @@ function FeedContent() {
       setPosts(prev => [...prev, ...postsWithVotes])
     } else {
       setPosts(postsWithVotes)
+      // Cache the first page for instant load next time
+      if (postsWithVotes.length > 0) {
+        setFeedCache({
+          version: FEED_CACHE_VERSION,
+          timestamp: Date.now(),
+          userId: session.nullifier_hash,
+          posts: postsWithVotes.slice(0, POSTS_PER_PAGE),
+          hiddenUsers: Array.from(blockedUserIds),
+          followedUsers: Array.from(followedUserIds),
+        })
+      }
     }
     setIsLoading(false)
     setIsLoadingMore(false)
+    setIsRefreshing(false)
   }
+
+  // Pull-to-refresh handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      touchStartY.current = e.touches[0].clientY
+    }
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isRefreshing || touchStartY.current === 0) return
+
+    const currentY = e.touches[0].clientY
+    const diff = currentY - touchStartY.current
+
+    if (diff > 0 && window.scrollY === 0) {
+      // Dampen the pull effect
+      const dampedDiff = Math.min(diff * 0.5, 120)
+      setPullDistance(dampedDiff)
+    }
+  }, [isRefreshing])
+
+  const handleTouchEnd = useCallback(async () => {
+    if (pullDistance >= PULL_THRESHOLD && !isRefreshing && currentSession) {
+      setIsRefreshing(true)
+      setPullDistance(0)
+      setPage(0)
+      setHasMore(true)
+      await fetchPosts(currentSession)
+    } else {
+      setPullDistance(0)
+    }
+    touchStartY.current = 0
+  }, [pullDistance, isRefreshing, currentSession])
 
   const handleLoadMore = async () => {
     if (!currentSession || isLoadingMore || !hasMore) return
@@ -685,7 +746,34 @@ function FeedContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      ref={feedRef}
+      className="min-h-screen bg-gray-50 relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="absolute left-0 right-0 flex justify-center pointer-events-none z-20 transition-transform duration-150"
+        style={{ transform: `translateY(${pullDistance - 40}px)` }}
+      >
+        {isRefreshing ? (
+          <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+        ) : pullDistance > 0 && (
+          <div className={`transition-transform ${pullDistance >= PULL_THRESHOLD ? 'text-black' : 'text-gray-400'}`}>
+            <svg
+              className={`w-6 h-6 transition-transform ${pullDistance >= PULL_THRESHOLD ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-10">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
