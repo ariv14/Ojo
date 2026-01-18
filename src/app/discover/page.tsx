@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession, UserSession } from '@/lib/session'
@@ -16,6 +16,7 @@ interface User {
 }
 
 const USERS_PER_PAGE = 10
+const SEARCH_DEBOUNCE_MS = 300
 
 export default function DiscoverPage() {
   const router = useRouter()
@@ -29,6 +30,7 @@ export default function DiscoverPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [currentSession, setCurrentSession] = useState<UserSession | null>(null)
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -39,22 +41,37 @@ export default function DiscoverPage() {
       }
       setCurrentSession(session)
 
-      // Fetch relationships (follows and blocks)
-      const { data: relationships } = await supabase
-        .from('relationships')
-        .select('target_id, type')
-        .eq('follower_id', session.nullifier_hash)
+      // Parallelize: fetch relationships AND initial users at the same time
+      const [relationshipsResult, usersResult] = await Promise.all([
+        supabase
+          .from('relationships')
+          .select('target_id, type')
+          .eq('follower_id', session.nullifier_hash),
+        // Initial users fetch (will filter blocked client-side on first load)
+        supabase
+          .from('users')
+          .select('nullifier_hash, first_name, last_name, avatar_url, country, last_seen_at')
+          .neq('nullifier_hash', session.nullifier_hash)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .range(0, USERS_PER_PAGE - 1),
+      ])
 
       const following = new Set<string>()
       const blocked = new Set<string>()
-      relationships?.forEach(r => {
+      relationshipsResult.data?.forEach(r => {
         if (r.type === 'follow') following.add(r.target_id)
         if (r.type === 'block') blocked.add(r.target_id)
       })
       setFollowingSet(following)
       setBlockedSet(blocked)
 
-      await fetchUsers(session.nullifier_hash, '', 0, false, blocked)
+      // Filter blocked users from initial fetch
+      const filteredUsers = (usersResult.data || []).filter(
+        u => !blocked.has(u.nullifier_hash)
+      )
+      setUsers(filteredUsers)
+      setHasMore((usersResult.data?.length || 0) === USERS_PER_PAGE)
       setIsLoading(false)
     }
 
@@ -106,14 +123,33 @@ export default function DiscoverPage() {
     }
   }
 
-  const handleSearch = async (query: string) => {
+  // Debounced search to avoid query on every keystroke
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query)
-    setPage(0)
-    setHasMore(true)
-    if (currentSession) {
-      await fetchUsers(currentSession.nullifier_hash, query, 0, false, blockedSet)
+
+    // Clear any pending search
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
     }
-  }
+
+    // Debounce the actual search
+    searchTimeoutRef.current = setTimeout(async () => {
+      setPage(0)
+      setHasMore(true)
+      if (currentSession) {
+        await fetchUsers(currentSession.nullifier_hash, query, 0, false, blockedSet)
+      }
+    }, SEARCH_DEBOUNCE_MS)
+  }, [currentSession, blockedSet])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleLoadMore = async () => {
     if (!currentSession || isLoadingMore || !hasMore) return

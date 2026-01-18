@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
@@ -15,6 +15,8 @@ interface Message {
     first_name: string
   }
 }
+
+const MESSAGES_PER_PAGE = 50
 
 export default function ChatPage() {
   const router = useRouter()
@@ -32,8 +34,13 @@ export default function ChatPage() {
   const [isBlocked, setIsBlocked] = useState(false)
   const [blockedBy, setBlockedBy] = useState<string | null>(null)
   const [userClearedAt, setUserClearedAt] = useState<string | null>(null)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const userClearedAtRef = useRef<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  // Cache user names to avoid DB queries on realtime messages
+  const userCacheRef = useRef<Map<string, string>>(new Map())
   const session = getSession()
 
   // Keep ref in sync with state for realtime callback access
@@ -47,8 +54,7 @@ export default function ChatPage() {
       return
     }
 
-    fetchMessages()
-    fetchConnectionStatus()
+    fetchMessagesAndConnection()
 
     // Set up realtime subscription
     const channel = supabase
@@ -61,32 +67,27 @@ export default function ChatPage() {
           table: 'messages',
           filter: `connection_id=eq.${connectionId}`,
         },
-        async (payload) => {
+        (payload) => {
           // Check if message is after user's cleared_at
           const clearedAt = userClearedAtRef.current
           if (clearedAt && payload.new.created_at <= clearedAt) {
             return // Don't show messages from before user cleared
           }
 
-          // Fetch the new message with user data
-          const { data } = await supabase
-            .from('messages')
-            .select(`
-              id,
-              sender_id,
-              content,
-              created_at,
-              is_edited,
-              users (
-                first_name
-              )
-            `)
-            .eq('id', payload.new.id)
-            .single()
+          // Use cached user name instead of querying DB
+          const senderId = payload.new.sender_id as string
+          const cachedName = userCacheRef.current.get(senderId) || 'User'
 
-          if (data) {
-            setMessages((prev) => [...prev, data as unknown as Message])
+          const newMsg: Message = {
+            id: payload.new.id as string,
+            sender_id: senderId,
+            content: payload.new.content as string,
+            created_at: payload.new.created_at as string,
+            is_edited: payload.new.is_edited as boolean || false,
+            users: { first_name: cachedName },
           }
+
+          setMessages((prev) => [...prev, newMsg])
         }
       )
       .subscribe()
@@ -113,22 +114,43 @@ export default function ChatPage() {
     }
   }, [menuMessageId, showSettings])
 
-  const fetchMessages = async () => {
-    // First fetch connection to get user's cleared_at timestamp
+  // Combined fetch for connection data and messages (avoids duplicate queries)
+  const fetchMessagesAndConnection = async () => {
+    if (!session) return
+
+    // Single query for all connection data (combines two separate queries)
     const { data: connData } = await supabase
       .from('connections')
-      .select('initiator_id, receiver_id, initiator_cleared_at, receiver_cleared_at')
+      .select('initiator_id, receiver_id, initiator_cleared_at, receiver_cleared_at, is_blocked, blocked_by')
       .eq('id', connectionId)
       .single()
 
     let clearedAt: string | null = null
-    if (connData && session) {
+    if (connData) {
       const isInitiator = connData.initiator_id === session.nullifier_hash
       clearedAt = isInitiator ? connData.initiator_cleared_at : connData.receiver_cleared_at
       setUserClearedAt(clearedAt)
+      setIsBlocked(connData.is_blocked || false)
+      setBlockedBy(connData.blocked_by || null)
+
+      // Cache the other user's info for realtime messages
+      const otherUserId = isInitiator ? connData.receiver_id : connData.initiator_id
+      const { data: otherUser } = await supabase
+        .from('users')
+        .select('first_name')
+        .eq('nullifier_hash', otherUserId)
+        .single()
+      if (otherUser) {
+        userCacheRef.current.set(otherUserId, otherUser.first_name)
+      }
+
+      // Cache current user's name too
+      if (session.first_name) {
+        userCacheRef.current.set(session.nullifier_hash, session.first_name)
+      }
     }
 
-    // Build query for messages
+    // Fetch messages with pagination (most recent MESSAGES_PER_PAGE)
     let query = supabase
       .from('messages')
       .select(`
@@ -142,7 +164,8 @@ export default function ChatPage() {
         )
       `)
       .eq('connection_id', connectionId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(MESSAGES_PER_PAGE)
 
     // Filter out messages before user's cleared_at
     if (clearedAt) {
@@ -154,22 +177,67 @@ export default function ChatPage() {
     if (error) {
       console.error('Error fetching messages:', error)
     } else {
-      setMessages(data as unknown as Message[])
+      // Reverse to show oldest first, then newest at bottom
+      const orderedMessages = (data as unknown as Message[]).reverse()
+      setMessages(orderedMessages)
+      setHasMoreMessages(data.length === MESSAGES_PER_PAGE)
+
+      // Cache all fetched user names
+      orderedMessages.forEach(msg => {
+        if (msg.users?.first_name) {
+          userCacheRef.current.set(msg.sender_id, msg.users.first_name)
+        }
+      })
     }
     setIsLoading(false)
   }
 
-  const fetchConnectionStatus = async () => {
-    const { data } = await supabase
-      .from('connections')
-      .select('is_blocked, blocked_by')
-      .eq('id', connectionId)
-      .single()
-    if (data) {
-      setIsBlocked(data.is_blocked || false)
-      setBlockedBy(data.blocked_by || null)
+  // Load older messages when scrolling up
+  const loadMoreMessages = useCallback(async () => {
+    if (!session || isLoadingMore || !hasMoreMessages || messages.length === 0) return
+
+    setIsLoadingMore(true)
+    const oldestMessage = messages[0]
+
+    let query = supabase
+      .from('messages')
+      .select(`
+        id,
+        sender_id,
+        content,
+        created_at,
+        is_edited,
+        users (
+          first_name
+        )
+      `)
+      .eq('connection_id', connectionId)
+      .lt('created_at', oldestMessage.created_at)
+      .order('created_at', { ascending: false })
+      .limit(MESSAGES_PER_PAGE)
+
+    if (userClearedAt) {
+      query = query.gt('created_at', userClearedAt)
     }
-  }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error loading more messages:', error)
+    } else if (data) {
+      const olderMessages = (data as unknown as Message[]).reverse()
+      setMessages(prev => [...olderMessages, ...prev])
+      setHasMoreMessages(data.length === MESSAGES_PER_PAGE)
+
+      // Cache user names
+      olderMessages.forEach(msg => {
+        if (msg.users?.first_name) {
+          userCacheRef.current.set(msg.sender_id, msg.users.first_name)
+        }
+      })
+    }
+    setIsLoadingMore(false)
+  }, [connectionId, messages, hasMoreMessages, isLoadingMore, session, userClearedAt])
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -371,8 +439,19 @@ export default function ChatPage() {
       )}
 
       {/* Messages */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto" ref={messagesContainerRef}>
         <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+          {/* Load More Button */}
+          {hasMoreMessages && messages.length > 0 && (
+            <button
+              onClick={loadMoreMessages}
+              disabled={isLoadingMore}
+              className="w-full py-2 text-sm text-blue-500 font-medium hover:bg-blue-50 rounded-lg disabled:opacity-50 transition"
+            >
+              {isLoadingMore ? 'Loading...' : 'Load older messages'}
+            </button>
+          )}
+
           {messages.length === 0 ? (
             <p className="text-center text-gray-400 py-8">
               No messages yet. Say hello!

@@ -36,13 +36,14 @@ export default function SupportPage() {
     }
 
     const fetchTickets = async () => {
-      // Clean up tickets older than 30 days
+      // Fire-and-forget cleanup of tickets older than 30 days (don't block page load)
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      await supabase
+      supabase
         .from('support_tickets')
         .delete()
         .lt('created_at', thirtyDaysAgo.toISOString())
+        .then(() => {}) // Suppress unhandled promise warning
 
       const { data, error } = await supabase
         .from('support_tickets')

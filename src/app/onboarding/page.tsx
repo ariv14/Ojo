@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useRef } from 'react'
+import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { setSession } from '@/lib/session'
@@ -47,10 +47,23 @@ function OnboardingForm() {
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && file.type.startsWith('image/')) {
+      // Revoke old blob URL to prevent memory leak
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview)
+      }
       setAvatarFile(file)
       setAvatarPreview(URL.createObjectURL(file))
     }
   }
+
+  // Cleanup blob URL on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview)
+      }
+    }
+  }, [avatarPreview])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

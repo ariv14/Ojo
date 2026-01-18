@@ -1,27 +1,24 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import LoginButton from '@/components/LoginButton'
 import { getSession, UserSession } from '@/lib/session'
 
 export default function Home() {
   const router = useRouter()
-  const [session, setSession] = useState<UserSession | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // Initialize session state synchronously after mount (localStorage is sync)
+  const [session, setSession] = useState<UserSession | null | undefined>(undefined)
 
   useEffect(() => {
-    const userSession = getSession()
-    setSession(userSession)
-    setIsLoading(false)
+    // Session read is synchronous, no loading spinner needed
+    setSession(getSession())
   }, [])
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    )
+  // Only show minimal loading on first render before useEffect runs
+  // This prevents flash when localStorage has data
+  if (session === undefined) {
+    return null // Render nothing during hydration
   }
 
   return (

@@ -326,28 +326,26 @@ export default function AdminPage() {
 
   const USERS_PER_PAGE = 10
 
-  const fetchAdminUsers = async (pageNum: number, append: boolean) => {
+  // Use RPC function to get users with post counts in a single query
+  const fetchAdminUsers = async (
+    pageNum: number,
+    append: boolean,
+    searchOverride?: string,
+    sortOverride?: 'recent' | 'activity'
+  ) => {
     setIsLoadingUsers(true)
-    const from = pageNum * USERS_PER_PAGE
-    const to = from + USERS_PER_PAGE - 1
+    const offset = pageNum * USERS_PER_PAGE
 
-    let queryBuilder = supabase
-      .from('users')
-      .select('nullifier_hash, first_name, last_name, avatar_url, country, status, created_at, last_seen_at')
+    // Use overrides if provided, otherwise use current state
+    const searchValue = searchOverride !== undefined ? searchOverride : userSearch
+    const sortValue = sortOverride !== undefined ? sortOverride : sortBy
 
-    if (userSearch.trim()) {
-      queryBuilder = queryBuilder.or(`first_name.ilike.%${userSearch}%,last_name.ilike.%${userSearch}%`)
-    }
-
-    if (sortBy === 'activity') {
-      queryBuilder = queryBuilder.order('last_seen_at', { ascending: false, nullsFirst: false })
-    } else {
-      queryBuilder = queryBuilder.order('created_at', { ascending: false })
-    }
-
-    queryBuilder = queryBuilder.range(from, to)
-
-    const { data: usersData, error } = await queryBuilder
+    const { data: usersData, error } = await supabase.rpc('get_users_with_post_counts', {
+      p_limit: USERS_PER_PAGE,
+      p_offset: offset,
+      p_search: searchValue.trim() || null,
+      p_sort: sortValue === 'activity' ? 'activity' : 'newest',
+    })
 
     if (error) {
       console.error('Error fetching users:', error)
@@ -355,20 +353,17 @@ export default function AdminPage() {
       return
     }
 
-    // Fetch post counts for each user
-    const usersWithCounts: AdminUser[] = await Promise.all(
-      (usersData || []).map(async (user) => {
-        const { count } = await supabase
-          .from('posts')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.nullifier_hash)
-
-        return {
-          ...user,
-          post_count: count || 0,
-        }
-      })
-    )
+    const usersWithCounts: AdminUser[] = (usersData || []).map((user: AdminUser) => ({
+      nullifier_hash: user.nullifier_hash,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      avatar_url: user.avatar_url,
+      country: user.country,
+      status: user.status,
+      created_at: user.created_at,
+      last_seen_at: user.last_seen_at,
+      post_count: Number(user.post_count) || 0,
+    }))
 
     if (!usersData || usersData.length < USERS_PER_PAGE) {
       setHasMoreUsers(false)
@@ -388,15 +383,16 @@ export default function AdminPage() {
     setUserSearch(query)
     setUserPage(0)
     setHasMoreUsers(true)
-    // Delay fetch to allow state update
-    setTimeout(() => fetchAdminUsers(0, false), 0)
+    // Pass search value directly to avoid stale state
+    fetchAdminUsers(0, false, query, sortBy)
   }
 
   const handleSortChange = (newSort: 'recent' | 'activity') => {
     setSortBy(newSort)
     setUserPage(0)
     setHasMoreUsers(true)
-    setTimeout(() => fetchAdminUsers(0, false), 0)
+    // Pass sort value directly to avoid stale state
+    fetchAdminUsers(0, false, userSearch, newSort)
   }
 
   const handleLoadMoreUsers = async () => {

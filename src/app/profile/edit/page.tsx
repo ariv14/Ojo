@@ -127,21 +127,31 @@ export default function EditProfilePage() {
       .select('image_url')
       .eq('user_id', nullifierHash)
 
-    // 2. Delete all post images from storage
+    // 2. Prepare storage cleanup tasks
+    const storageCleanupTasks: Promise<unknown>[] = []
+
+    // Delete all post images from storage
     const filenames = userPosts?.map(p =>
       p.image_url.split('/photos/')[1]?.split('?')[0]
     ).filter(Boolean) || []
     if (filenames.length > 0) {
-      await supabase.storage.from('photos').remove(filenames as string[])
+      storageCleanupTasks.push(
+        supabase.storage.from('photos').remove(filenames as string[])
+      )
     }
 
-    // 3. Delete avatar if exists
+    // Delete avatar if exists
     if (currentAvatarUrl) {
       const avatarFile = currentAvatarUrl.split('/avatars/')[1]?.split('?')[0]
       if (avatarFile) {
-        await supabase.storage.from('avatars').remove([avatarFile])
+        storageCleanupTasks.push(
+          supabase.storage.from('avatars').remove([avatarFile])
+        )
       }
     }
+
+    // 3. Run all storage deletes in parallel
+    await Promise.all(storageCleanupTasks)
 
     // Clear session
     localStorage.removeItem('ojo_user')

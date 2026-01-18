@@ -539,6 +539,85 @@ AS $$
   ) counts;
 $$;
 
+-- Function: get_users_with_post_counts
+-- Returns users with their post counts in a single query (avoids N+1 in admin)
+-- Called from: src/app/admin/page.tsx
+CREATE OR REPLACE FUNCTION get_users_with_post_counts(
+  p_limit INTEGER DEFAULT 10,
+  p_offset INTEGER DEFAULT 0,
+  p_search TEXT DEFAULT NULL,
+  p_sort TEXT DEFAULT 'newest'
+)
+RETURNS TABLE (
+  nullifier_hash TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  avatar_url TEXT,
+  country TEXT,
+  status TEXT,
+  created_at TIMESTAMPTZ,
+  last_seen_at TIMESTAMPTZ,
+  post_count BIGINT
+)
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT
+    u.nullifier_hash,
+    u.first_name,
+    u.last_name,
+    u.avatar_url,
+    u.country,
+    u.status,
+    u.created_at,
+    u.last_seen_at,
+    COUNT(p.id) as post_count
+  FROM users u
+  LEFT JOIN posts p ON p.user_id = u.nullifier_hash AND p.is_hidden = false
+  WHERE (p_search IS NULL OR p_search = '' OR u.first_name ILIKE '%' || p_search || '%' OR u.last_name ILIKE '%' || p_search || '%')
+  GROUP BY u.nullifier_hash, u.first_name, u.last_name, u.avatar_url, u.country, u.status, u.created_at, u.last_seen_at
+  ORDER BY
+    CASE WHEN p_sort = 'activity' THEN u.last_seen_at END DESC NULLS LAST,
+    CASE WHEN p_sort != 'activity' THEN u.created_at END DESC
+  LIMIT p_limit OFFSET p_offset;
+$$;
+
+-- Function: get_inbox_chats
+-- Returns all active chats for a user with other user's info in a single query
+-- Avoids dual queries and O(n²) deduplication in inbox page
+-- Called from: src/app/inbox/page.tsx
+CREATE OR REPLACE FUNCTION get_inbox_chats(p_user_id TEXT)
+RETURNS TABLE (
+  connection_id UUID,
+  other_user_id TEXT,
+  other_first_name TEXT,
+  other_last_name TEXT,
+  other_avatar_url TEXT,
+  other_last_seen_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ
+)
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT DISTINCT ON (
+    CASE WHEN c.initiator_id = p_user_id THEN c.receiver_id ELSE c.initiator_id END
+  )
+    c.id as connection_id,
+    CASE WHEN c.initiator_id = p_user_id THEN c.receiver_id ELSE c.initiator_id END as other_user_id,
+    u.first_name as other_first_name,
+    u.last_name as other_last_name,
+    u.avatar_url as other_avatar_url,
+    u.last_seen_at as other_last_seen_at,
+    c.created_at
+  FROM connections c
+  JOIN users u ON u.nullifier_hash = CASE WHEN c.initiator_id = p_user_id THEN c.receiver_id ELSE c.initiator_id END
+  WHERE (c.initiator_id = p_user_id OR c.receiver_id = p_user_id)
+    AND c.status = 'active'
+  ORDER BY
+    CASE WHEN c.initiator_id = p_user_id THEN c.receiver_id ELSE c.initiator_id END,
+    c.created_at DESC;
+$$;
+
 -- =============================================
 -- SECTION 6: REALTIME CONFIGURATION
 -- =============================================
@@ -610,12 +689,14 @@ CREATE POLICY "Anyone can delete photos"
 -- - 36 Indexes for query performance (including composite indexes)
 -- - RLS enabled on all 12 tables
 -- - 36 RLS policies (permissive)
--- - 5 RPC functions:
+-- - 7 RPC functions:
 --   * delete_conversation - delete chat and messages
 --   * reset_all_data - admin factory reset
 --   * get_user_tips_total - sum tips for profile earnings
 --   * get_user_premium_total - sum premium unlocks for profile earnings
 --   * get_total_unread_count - count unread messages (single query)
+--   * get_users_with_post_counts - admin page users with post counts
+--   * get_inbox_chats - inbox page chats in single query
 -- - Realtime enabled on messages, connections
 -- - 8 Storage policies (4 avatars, 4 photos)
 --
