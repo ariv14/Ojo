@@ -31,8 +31,15 @@ export default function ChatPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [isBlocked, setIsBlocked] = useState(false)
   const [blockedBy, setBlockedBy] = useState<string | null>(null)
+  const [userClearedAt, setUserClearedAt] = useState<string | null>(null)
+  const userClearedAtRef = useRef<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const session = getSession()
+
+  // Keep ref in sync with state for realtime callback access
+  useEffect(() => {
+    userClearedAtRef.current = userClearedAt
+  }, [userClearedAt])
 
   useEffect(() => {
     if (!session) {
@@ -55,6 +62,12 @@ export default function ChatPage() {
           filter: `connection_id=eq.${connectionId}`,
         },
         async (payload) => {
+          // Check if message is after user's cleared_at
+          const clearedAt = userClearedAtRef.current
+          if (clearedAt && payload.new.created_at <= clearedAt) {
+            return // Don't show messages from before user cleared
+          }
+
           // Fetch the new message with user data
           const { data } = await supabase
             .from('messages')
@@ -101,7 +114,22 @@ export default function ChatPage() {
   }, [menuMessageId, showSettings])
 
   const fetchMessages = async () => {
-    const { data, error } = await supabase
+    // First fetch connection to get user's cleared_at timestamp
+    const { data: connData } = await supabase
+      .from('connections')
+      .select('initiator_id, receiver_id, initiator_cleared_at, receiver_cleared_at')
+      .eq('id', connectionId)
+      .single()
+
+    let clearedAt: string | null = null
+    if (connData && session) {
+      const isInitiator = connData.initiator_id === session.nullifier_hash
+      clearedAt = isInitiator ? connData.initiator_cleared_at : connData.receiver_cleared_at
+      setUserClearedAt(clearedAt)
+    }
+
+    // Build query for messages
+    let query = supabase
       .from('messages')
       .select(`
         id,
@@ -115,6 +143,13 @@ export default function ChatPage() {
       `)
       .eq('connection_id', connectionId)
       .order('created_at', { ascending: true })
+
+    // Filter out messages before user's cleared_at
+    if (clearedAt) {
+      query = query.gt('created_at', clearedAt)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('Error fetching messages:', error)
@@ -218,10 +253,30 @@ export default function ChatPage() {
 
   const handleClearChat = async () => {
     setShowSettings(false)
+    if (!session) return
+
+    // Fetch connection to determine user's role
+    const { data: connData } = await supabase
+      .from('connections')
+      .select('initiator_id')
+      .eq('id', connectionId)
+      .single()
+
+    if (!connData) return
+
+    // Determine which column to update based on user's role
+    const isInitiator = connData.initiator_id === session.nullifier_hash
+    const clearedAtColumn = isInitiator ? 'initiator_cleared_at' : 'receiver_cleared_at'
+    const now = new Date().toISOString()
+
+    // Update user's cleared_at timestamp instead of deleting messages
     await supabase
-      .from('messages')
-      .delete()
-      .eq('connection_id', connectionId)
+      .from('connections')
+      .update({ [clearedAtColumn]: now })
+      .eq('id', connectionId)
+
+    // Update local state
+    setUserClearedAt(now)
     setMessages([])
   }
 

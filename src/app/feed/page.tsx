@@ -172,10 +172,10 @@ function FeedContent() {
   }, [viewingImage])
 
   const fetchUnreadCount = async (nullifierHash: string) => {
-    // Get all connections user is part of with their last_read_at
+    // Get all connections user is part of with their last_read_at and cleared_at
     const { data: connections } = await supabase
       .from('connections')
-      .select('id, last_read_at')
+      .select('id, initiator_id, receiver_id, last_read_at, initiator_cleared_at, receiver_cleared_at')
       .or(`initiator_id.eq.${nullifierHash},receiver_id.eq.${nullifierHash}`)
       .eq('status', 'active')
 
@@ -187,12 +187,21 @@ function FeedContent() {
     // Count unread messages across all connections
     let totalUnread = 0
     for (const conn of connections) {
+      // Determine user's cleared_at based on their role
+      const isInitiator = conn.initiator_id === nullifierHash
+      const userClearedAt = isInitiator ? conn.initiator_cleared_at : conn.receiver_cleared_at
+
+      // Use the later of cleared_at or last_read_at as the cutoff
+      const lastReadAt = conn.last_read_at || '1970-01-01'
+      const clearedAt = userClearedAt || '1970-01-01'
+      const cutoff = lastReadAt > clearedAt ? lastReadAt : clearedAt
+
       const { count } = await supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('connection_id', conn.id)
         .neq('sender_id', nullifierHash)
-        .gt('created_at', conn.last_read_at || '1970-01-01')
+        .gt('created_at', cutoff)
 
       totalUnread += count || 0
     }
