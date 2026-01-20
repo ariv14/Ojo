@@ -4,6 +4,7 @@ import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { setSession } from '@/lib/session'
+import { ensureWalletConnected } from '@/lib/wallet'
 
 const COUNTRIES = [
   'Argentina',
@@ -33,7 +34,9 @@ function OnboardingForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const nullifierHash = searchParams.get('nullifier')
-  const walletAddress = searchParams.get('wallet')
+  const initialWallet = searchParams.get('wallet')
+  const [walletAddress, setWalletAddress] = useState<string | null>(initialWallet)
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [firstName, setFirstName] = useState('')
@@ -54,6 +57,21 @@ function OnboardingForm() {
       }
       setAvatarFile(file)
       setAvatarPreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleToggleWallet = async () => {
+    if (walletAddress) {
+      // Disconnect wallet (just clear local state - not saved to DB yet)
+      setWalletAddress(null)
+    } else {
+      // Connect wallet
+      setIsConnectingWallet(true)
+      const newWallet = await ensureWalletConnected()
+      if (newWallet) {
+        setWalletAddress(newWallet)
+      }
+      setIsConnectingWallet(false)
     }
   }
 
@@ -277,6 +295,32 @@ function OnboardingForm() {
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition resize-none"
           />
           <p className="text-xs text-gray-400 mt-1 text-right">{bio.length}/200</p>
+        </div>
+
+        {/* Wallet Connection */}
+        <div className="flex items-center justify-between py-3 px-1">
+          <div>
+            <p className="font-medium text-sm">Wallet Connected</p>
+            <p className="text-xs text-gray-500">
+              {walletAddress
+                ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                : 'Connect for payments'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleWallet}
+            disabled={isConnectingWallet}
+            className={`w-12 h-6 rounded-full transition disabled:opacity-50 ${
+              walletAddress ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 bg-white rounded-full shadow transform transition ${
+                walletAddress ? 'translate-x-6' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
         </div>
 
         {error && (
