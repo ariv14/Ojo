@@ -65,6 +65,56 @@ Ojo is a social network exclusively for verified humans, powered by [World ID](h
 - **Payments:** WLD token via World App
 - **Deployment:** Vercel (recommended)
 
+## MiniKit Commands Used
+
+Ojo leverages **8 distinct MiniKit commands** throughout the user journey:
+
+### Authentication & Permissions
+| Command | Purpose | Location |
+|---------|---------|----------|
+| `verify` | World ID Orb verification for login/signup | `LoginButton.tsx` |
+| `requestPermission` | Request notification permissions after login | `LoginButton.tsx` |
+| `walletAuth` | Connect wallet before any WLD payment | `lib/wallet.ts` |
+
+### Payments (5 WLD payment flows)
+| Command | Feature | Amount | Split |
+|---------|---------|--------|-------|
+| `pay` | Unlock premium post | 1.0 WLD | 80% creator, 20% platform |
+| `pay` | Tip creator | 0.5 WLD | 80% creator, 20% platform |
+| `pay` | Boost post (24h) | 5.0 WLD | 100% platform |
+| `pay` | Invisible mode (30 days) | 5.0 WLD | 100% platform |
+
+### Social & Sharing
+| Command | Purpose | Location |
+|---------|---------|----------|
+| `share` | Share posts/profiles to external apps | `feed/page.tsx`, `profile/[id]/page.tsx` |
+| `chat` | Share post link directly to World App chat | `feed/page.tsx` |
+| `shareContacts` | Invite friends from contacts | `discover/page.tsx` |
+
+### User Experience
+| Command | Purpose | Location |
+|---------|---------|----------|
+| `sendHapticFeedback` | Tactile feedback for votes, payments, errors | `lib/haptics.ts` |
+
+### Command Usage Summary
+```
+verify ─────────────► Login/Signup (Orb level verification)
+     │
+requestPermission ──► Enable push notifications
+     │
+walletAuth ─────────► Connect wallet (triggered before first payment)
+     │
+pay ────────────────► Premium unlocks, tips, boosts, invisible mode
+     │
+share ──────────────► Share content to other apps
+     │
+chat ───────────────► Share directly to World App conversations
+     │
+shareContacts ──────► Invite friends to join Ojo
+     │
+sendHapticFeedback ─► Tactile feedback throughout the app
+```
+
 ## Project Structure
 
 ```
@@ -167,6 +217,13 @@ NEXT_PUBLIC_ADMIN_ID=your_nullifier_hash_for_admin
    ```
 
 ## Changelog
+
+### v1.1.0 - MiniKit Integration
+- Added animated gradient headers across all pages
+- Documented all 8 MiniKit commands used in the app
+- Added haptic feedback throughout the user experience
+- Integrated shareContacts for friend invitations
+- Added chat command for direct World App sharing
 
 ### v1.0.0 - Ojo Launch
 - Rebranded from OrbGram to Ojo
