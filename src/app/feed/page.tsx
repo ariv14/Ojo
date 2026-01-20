@@ -941,7 +941,7 @@ function FeedContent() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-10">
+      <header className="sticky top-0 animated-gradient-header text-white z-10">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-xl font-bold flex items-center">
             <span className="relative">

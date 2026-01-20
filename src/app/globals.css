@@ -33,3 +33,31 @@ input, textarea {
   color: #171717;
   background-color: #ffffff;
 }
+
+/* Animated gradient for headers */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient-header {
+  background: linear-gradient(
+    90deg,
+    #1e1b4b,  /* deep indigo */
+    #312e81,  /* indigo */
+    #4c1d95,  /* violet */
+    #701a75,  /* fuchsia/magenta */
+    #4c1d95,  /* violet */
+    #312e81,  /* indigo */
+    #1e1b4b   /* deep indigo */
+  );
+  background-size: 300% 100%;
+  animation: gradient-shift 12s ease infinite;
+}
