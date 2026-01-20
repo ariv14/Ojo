@@ -1220,7 +1220,7 @@ function FeedContent() {
                     alt={post.caption || 'Post image'}
                     loading="lazy"
                     decoding="async"
-                    className={`w-full max-h-[450px] object-contain bg-gray-100 ${
+                    className={`w-full max-h-[450px] object-contain bg-black ${
                       post.is_premium && !post.has_access ? 'blur-xl' : ''
                     }`}
                   />

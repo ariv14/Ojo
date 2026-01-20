@@ -28,6 +28,11 @@ interface Post {
   image_url: string
   caption: string | null
   created_at: string
+  is_premium: boolean
+  has_access: boolean
+  users: {
+    wallet_address: string | null
+  } | null
 }
 
 interface Visitor {
@@ -99,16 +104,67 @@ export default function ProfilePage() {
       // Fetch user's posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('id, image_url, caption, created_at')
+        .select('id, image_url, caption, created_at, is_premium, users:user_id(wallet_address)')
         .eq('user_id', profileId)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false })
 
       if (postsError) {
         console.error('Error fetching posts:', postsError)
-      } else {
-        setPosts(postsData || [])
       }
+
+      // Check access for premium posts
+      // Helper to normalize the users field (Supabase may return object or array)
+      const normalizeUsers = (users: unknown): { wallet_address: string | null } | null => {
+        if (!users) return null
+        if (Array.isArray(users)) return users[0] || null
+        return users as { wallet_address: string | null }
+      }
+
+      let postsWithAccess: Post[] = []
+      if (session && postsData) {
+        const premiumPostIds = postsData.filter(p => p.is_premium).map(p => p.id)
+        if (premiumPostIds.length > 0) {
+          const { data: accessData } = await supabase
+            .from('post_access')
+            .select('post_id')
+            .eq('user_id', session.nullifier_hash)
+            .in('post_id', premiumPostIds)
+
+          const unlockedIds = new Set(accessData?.map(a => a.post_id) || [])
+          postsWithAccess = postsData.map(post => ({
+            id: post.id,
+            image_url: post.image_url,
+            caption: post.caption,
+            created_at: post.created_at,
+            is_premium: post.is_premium,
+            has_access: !post.is_premium || unlockedIds.has(post.id) || !!isOwn,
+            users: normalizeUsers(post.users)
+          }))
+        } else {
+          postsWithAccess = postsData.map(post => ({
+            id: post.id,
+            image_url: post.image_url,
+            caption: post.caption,
+            created_at: post.created_at,
+            is_premium: post.is_premium,
+            has_access: true,
+            users: normalizeUsers(post.users)
+          }))
+        }
+      } else {
+        // Not logged in - no access to premium posts
+        postsWithAccess = (postsData || []).map(post => ({
+          id: post.id,
+          image_url: post.image_url,
+          caption: post.caption,
+          created_at: post.created_at,
+          is_premium: post.is_premium,
+          has_access: !post.is_premium,
+          users: normalizeUsers(post.users)
+        }))
+      }
+      setPosts(postsWithAccess)
 
       // Check if current user follows this profile and record view
       console.log('Profile page:', { profileId, sessionUser: session?.nullifier_hash, isOwn })
@@ -226,7 +282,7 @@ export default function ProfilePage() {
       if (session && userData) {
         setProfileCacheEntry(session.nullifier_hash, profileId, {
           user: userData,
-          posts: postsData || [],
+          posts: postsWithAccess,
           viewCount: viewCountResult || 0,
           visitors: uniqueVisitors,
           followerCount: followers || 0,
@@ -538,13 +594,22 @@ export default function ProfilePage() {
               <Link
                 key={post.id}
                 href={`/feed?scrollTo=${post.id}`}
-                className="aspect-square bg-gray-100 overflow-hidden block"
+                className="aspect-square bg-gray-100 overflow-hidden block relative"
               >
                 <img
                   src={post.image_url}
                   alt={post.caption || 'Post'}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover ${
+                    post.is_premium && !post.has_access ? 'blur-lg' : ''
+                  }`}
                 />
+                {post.is_premium && !post.has_access && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z"/>
+                    </svg>
+                  </div>
+                )}
               </Link>
             ))}
           </div>

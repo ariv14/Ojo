@@ -1,5 +1,5 @@
 const PROFILE_CACHE_KEY = 'ojo_profile_cache'
-const PROFILE_CACHE_VERSION = 1
+const PROFILE_CACHE_VERSION = 2
 const MAX_CACHED_PROFILES = 20
 
 interface CachedUser {
@@ -19,6 +19,11 @@ interface CachedPost {
   image_url: string
   caption: string | null
   created_at: string
+  is_premium: boolean
+  has_access: boolean
+  users: {
+    wallet_address: string | null
+  } | null
 }
 
 interface CachedVisitor {
