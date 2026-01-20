@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { MiniKit } from '@worldcoin/minikit-js'
 import { supabase } from '@/lib/supabase'
 import { getSession, UserSession } from '@/lib/session'
 import { getDiscoverCache, setDiscoverCache, DISCOVER_CACHE_VERSION } from '@/lib/discoverCache'
@@ -58,7 +59,6 @@ export default function DiscoverPage() {
   const [inviteSearchQuery, setInviteSearchQuery] = useState('')
   const [inviteSearchResults, setInviteSearchResults] = useState<User[]>([])
   const [isSearchingInvite, setIsSearchingInvite] = useState(false)
-  const [isSendingInvites, setIsSendingInvites] = useState(false)
   const inviteSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -314,51 +314,22 @@ export default function DiscoverPage() {
     })
   }
 
-  // Send invites using in-app notifications via /api/notify
+  // Send invites using MiniKit share
   const handleSendInvites = async () => {
     if (selectedUsers.size === 0) return
     hapticMedium()
-    setIsSendingInvites(true)
 
     try {
-      // Get wallet addresses of selected users (filter out null wallets)
-      const walletAddresses = inviteSearchResults
-        .filter(u => selectedUsers.has(u.nullifier_hash) && u.wallet_address)
-        .map(u => u.wallet_address as string)
-
-      if (walletAddresses.length === 0) {
-        alert('Selected users do not have wallet addresses configured')
-        setIsSendingInvites(false)
-        return
-      }
-
-      const senderName = currentSession?.first_name || 'Someone'
-
-      const response = await fetch('/api/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          wallet_addresses: walletAddresses,
-          title: 'You have been invited to Ojo!',
-          message: `${senderName} invited you to connect on Ojo`,
-          mini_app_path: '/discover'
-        })
+      await MiniKit.commandsAsync.share({
+        title: 'Join me on Ojo',
+        text: 'Join me on Ojo - the social network for verified humans!',
+        url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}`,
       })
-
-      if (response.ok) {
-        // Success - close modal
-        closeInviteModal()
-      } else {
-        const error = await response.json()
-        console.error('Failed to send invites:', error)
-        alert('Failed to send invites. Please try again.')
-      }
     } catch (err) {
-      console.error('Invite error:', err)
-      alert('Failed to send invites. Please try again.')
+      console.error('Share error:', err)
     }
 
-    setIsSendingInvites(false)
+    closeInviteModal()
   }
 
   // Close invite modal
@@ -568,14 +539,14 @@ export default function DiscoverPage() {
             <div className="border-t px-4 py-4 bg-white">
               <button
                 onClick={handleSendInvites}
-                disabled={selectedUsers.size === 0 || isSendingInvites}
+                disabled={selectedUsers.size === 0}
                 className={`w-full py-3 rounded-full font-medium text-base transition ${
-                  selectedUsers.size > 0 && !isSendingInvites
+                  selectedUsers.size > 0
                     ? 'bg-black text-white hover:bg-gray-800'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {isSendingInvites ? 'Sending...' : 'Continue'}
+                Continue
               </button>
             </div>
           </div>
