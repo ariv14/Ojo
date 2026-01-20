@@ -875,7 +875,24 @@ function FeedContent() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading feed...</p>
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2 flex items-center justify-center">
+            <span className="relative">
+              O
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="w-2.5 h-2.5 bg-current rounded-full"></span>
+              </span>
+            </span>
+            <span>J</span>
+            <span className="relative">
+              O
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="w-2.5 h-2.5 bg-current rounded-full"></span>
+              </span>
+            </span>
+          </h1>
+          <p className="text-gray-500">Keep an eye on what is real</p>
+        </div>
       </div>
     )
   }
@@ -1203,7 +1220,7 @@ function FeedContent() {
                     alt={post.caption || 'Post image'}
                     loading="lazy"
                     decoding="async"
-                    className={`w-full aspect-square object-cover ${
+                    className={`w-full max-h-[450px] object-contain bg-gray-100 ${
                       post.is_premium && !post.has_access ? 'blur-xl' : ''
                     }`}
                   />

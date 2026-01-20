@@ -11,9 +11,13 @@ export default function Home() {
   const [session, setSession] = useState<UserSession | null | undefined>(undefined)
 
   useEffect(() => {
-    // Session read is synchronous, no loading spinner needed
-    setSession(getSession())
-  }, [])
+    const userSession = getSession()
+    if (userSession) {
+      router.push('/feed')
+    } else {
+      setSession(null)
+    }
+  }, [router])
 
   // Only show minimal loading on first render before useEffect runs
   // This prevents flash when localStorage has data
