@@ -55,6 +55,8 @@ export default function EditProfilePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [invisibleExpiry, setInvisibleExpiry] = useState<string | null>(null)
   const [isBuyingInvisible, setIsBuyingInvisible] = useState(false)
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -69,7 +71,7 @@ export default function EditProfilePage() {
     const fetchUser = async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('first_name, last_name, country, avatar_url, sex, age, status, invisible_mode_expiry, bio')
+        .select('first_name, last_name, country, avatar_url, sex, age, status, invisible_mode_expiry, bio, wallet_address')
         .eq('nullifier_hash', session.nullifier_hash)
         .single()
 
@@ -90,6 +92,7 @@ export default function EditProfilePage() {
         setIsDisabled(data.status === 'disabled')
         setInvisibleExpiry(data.invisible_mode_expiry)
         setBio(data.bio || '')
+        setWalletAddress(data.wallet_address || null)
       }
       setIsLoading(false)
     }
@@ -239,6 +242,30 @@ export default function EditProfilePage() {
     }
 
     setIsBuyingInvisible(false)
+  }
+
+  const handleToggleWallet = async () => {
+    if (!nullifierHash) return
+
+    if (walletAddress) {
+      // Disconnect wallet
+      const { error } = await supabase
+        .from('users')
+        .update({ wallet_address: null })
+        .eq('nullifier_hash', nullifierHash)
+
+      if (!error) {
+        setWalletAddress(null)
+      }
+    } else {
+      // Connect wallet
+      setIsConnectingWallet(true)
+      const newWallet = await ensureWalletConnected()
+      if (newWallet) {
+        setWalletAddress(newWallet)
+      }
+      setIsConnectingWallet(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -557,6 +584,32 @@ export default function EditProfilePage() {
                 <div
                   className={`w-5 h-5 bg-white rounded-full shadow transform transition ${
                     isDisabled ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Wallet Connection */}
+            <div className="flex items-center justify-between py-4 border-b">
+              <div>
+                <p className="font-medium">Wallet Connected</p>
+                <p className="text-sm text-gray-500">
+                  {walletAddress
+                    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                    : 'Connect wallet for payments'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleWallet}
+                disabled={isConnectingWallet}
+                className={`w-12 h-6 rounded-full transition disabled:opacity-50 ${
+                  walletAddress ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full shadow transform transition ${
+                    walletAddress ? 'translate-x-6' : 'translate-x-0.5'
                   }`}
                 />
               </button>
