@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { hapticLight } from '@/lib/haptics'
 
 interface Message {
   id: string
@@ -246,6 +247,9 @@ export default function ChatPage() {
     if (isBlocked) {
       return
     }
+
+    // Haptic feedback when sending
+    hapticLight()
 
     setIsSending(true)
     const messageContent = newMessage.trim()

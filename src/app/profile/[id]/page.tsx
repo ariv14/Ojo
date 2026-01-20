@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { MiniKit } from '@worldcoin/minikit-js'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { getProfileCacheEntry, setProfileCacheEntry } from '@/lib/profileCache'
+import { hapticMedium, hapticLight } from '@/lib/haptics'
 import ReportModal from '@/components/ReportModal'
 import ChatButton from '@/components/ChatButton'
 
@@ -243,6 +245,9 @@ export default function ProfilePage() {
     const session = getSession()
     if (!session || isOwnProfile) return
 
+    // Haptic feedback for follow/unfollow
+    hapticMedium()
+
     setIsFollowLoading(true)
 
     if (isFollowing) {
@@ -280,6 +285,32 @@ export default function ProfilePage() {
     setIsFollowing(!isFollowing)
     setFollowerCount(prev => isFollowing ? prev - 1 : prev + 1)
     setIsFollowLoading(false)
+  }
+
+  const handleShareProfile = async () => {
+    if (!user) return
+
+    hapticLight()
+
+    const shareData = {
+      title: `${user.first_name}'s Profile on Ojo`,
+      text: 'Check out this verified human on Ojo!',
+      url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&path=/profile/${profileId}`,
+    }
+
+    if (!MiniKit.isInstalled()) {
+      // Fallback to native share
+      if (navigator.share) {
+        await navigator.share(shareData)
+      }
+      return
+    }
+
+    try {
+      await MiniKit.commandsAsync.share(shareData)
+    } catch (err) {
+      console.error('Share profile error:', err)
+    }
   }
 
   if (isLoading) {
@@ -334,7 +365,15 @@ export default function ProfilePage() {
           </svg>
         </button>
         <h1 className="text-lg font-semibold">Profile</h1>
-        <div className="w-6" />
+        <button
+          onClick={handleShareProfile}
+          className="text-gray-600 hover:text-gray-900"
+          title="Share profile"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+        </button>
       </div>
 
       {/* Profile Info */}

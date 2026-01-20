@@ -7,6 +7,7 @@ import {
   VerifyCommandInput,
   VerificationLevel,
   ISuccessResult,
+  Permission,
 } from '@worldcoin/minikit-js'
 import { setSession } from '@/lib/session'
 
@@ -52,6 +53,15 @@ export default function LoginButton() {
       const data = await response.json()
 
       if (data.status === 'new_user') {
+        // Request notification permission for new users
+        try {
+          await MiniKit.commandsAsync.requestPermission({
+            permission: Permission.Notifications,
+          })
+        } catch (err) {
+          // Silent fail - user may have denied or feature not available
+          console.debug('Notification permission request:', err)
+        }
         router.push(`/onboarding?nullifier=${data.nullifier_hash}`)
       } else if (data.status === 'ok') {
         setSession({
@@ -60,6 +70,15 @@ export default function LoginButton() {
           last_name: data.user.last_name,
           avatar_url: data.user.avatar_url,
         })
+        // Request notification permission for returning users (if not already granted)
+        try {
+          await MiniKit.commandsAsync.requestPermission({
+            permission: Permission.Notifications,
+          })
+        } catch (err) {
+          // Silent fail - user may have denied or feature not available
+          console.debug('Notification permission request:', err)
+        }
         router.push('/feed')
       } else {
         console.error('Verification failed:', data)

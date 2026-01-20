@@ -11,6 +11,7 @@ import ChatButton from '@/components/ChatButton'
 import TipButton from '@/components/TipButton'
 import UserAvatar from '@/components/UserAvatar'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
+import { hapticLight, hapticMedium, hapticSuccess, hapticSelection } from '@/lib/haptics'
 import ReportModal from '@/components/ReportModal'
 import ImageViewer from '@/components/ImageViewer'
 import ConfirmationModal from '@/components/ConfirmationModal'
@@ -468,6 +469,8 @@ function FeedContent() {
 
   const handleTouchEnd = useCallback(async () => {
     if (pullDistance >= PULL_THRESHOLD && !isRefreshing && currentSession) {
+      // Haptic feedback when refresh triggers
+      hapticSelection()
       setIsRefreshing(true)
       setPullDistance(0)
       setPage(0)
@@ -535,6 +538,9 @@ function FeedContent() {
 
     const post = posts.find(p => p.id === postId)
     if (!post) return
+
+    // Haptic feedback for vote
+    hapticLight()
 
     // Optimistic update
     setPosts(prev => prev.map(p => {
@@ -762,6 +768,8 @@ function FeedContent() {
       ))
 
       if (creatorPayment.status === 'success') {
+        // Haptic feedback for successful unlock
+        hapticSuccess()
         setUnlockingPost(null)
       }
     } catch (err) {
@@ -770,6 +778,50 @@ function FeedContent() {
     }
 
     setUnlockStep(0)
+  }
+
+  const handleSharePost = async (post: Post) => {
+    if (!MiniKit.isInstalled()) {
+      // Fallback to native share for non-MiniKit browsers
+      if (navigator.share) {
+        await navigator.share({
+          title: `Post by ${post.users?.first_name}`,
+          text: post.caption || 'Check out this post on Ojo!',
+          url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&path=/feed?scrollTo=${post.id}`,
+        })
+      }
+      return
+    }
+
+    hapticLight()
+
+    try {
+      await MiniKit.commandsAsync.share({
+        title: `Post by ${post.users?.first_name}`,
+        text: post.caption || 'Check out this post on Ojo!',
+        url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&path=/feed?scrollTo=${post.id}`,
+      })
+    } catch (err) {
+      console.error('Share error:', err)
+    }
+  }
+
+  const handleShareToWorldChat = async (post: Post) => {
+    if (!MiniKit.isInstalled()) {
+      alert('Please open this app in World App')
+      return
+    }
+
+    hapticLight()
+
+    try {
+      const postUrl = `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&path=/feed?scrollTo=${post.id}`
+      await MiniKit.commandsAsync.chat({
+        message: `Check out this post on Ojo: ${postUrl}`,
+      })
+    } catch (err) {
+      console.error('World Chat share error:', err)
+    }
   }
 
   const handleBoostPost = async (postId: string) => {
@@ -800,6 +852,9 @@ function FeedContent() {
       const { finalPayload } = await MiniKit.commandsAsync.pay(payload)
 
       if (finalPayload.status === 'success') {
+        // Haptic feedback for successful boost
+        hapticSuccess()
+
         // Update boosted_until in database
         const boostedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
@@ -1040,9 +1095,18 @@ function FeedContent() {
                         {/* Dropdown Menu for other users' posts */}
                         {openOtherMenuId === post.id && (
                           <div
-                            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-20 min-w-[120px]"
+                            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-20 min-w-[140px]"
                             onClick={(e) => e.stopPropagation()}
                           >
+                            <button
+                              onClick={() => {
+                                setOpenOtherMenuId(null)
+                                handleShareToWorldChat(post)
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-blue-500 hover:bg-gray-100"
+                            >
+                              Share to Chat
+                            </button>
                             <button
                               onClick={() => {
                                 setOpenOtherMenuId(null)
@@ -1085,7 +1149,7 @@ function FeedContent() {
                       {/* Dropdown Menu */}
                       {openMenuId === post.id && (
                         <div
-                          className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-20 min-w-[120px]"
+                          className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-20 min-w-[140px]"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -1095,16 +1159,25 @@ function FeedContent() {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDeletePost(post.id)}
-                            className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+                            onClick={() => {
+                              setOpenMenuId(null)
+                              handleShareToWorldChat(post)
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-blue-500 hover:bg-gray-100"
                           >
-                            Delete
+                            Share to Chat
                           </button>
                           <button
                             onClick={() => handleBoostPost(post.id)}
                             className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-gray-100"
                           >
                             Boost (5 WLD)
+                          </button>
+                          <button
+                            onClick={() => handleDeletePost(post.id)}
+                            className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+                          >
+                            Delete
                           </button>
                         </div>
                       )}
@@ -1215,9 +1288,20 @@ function FeedContent() {
                   />
                 )}
 
+                {/* Share Button */}
+                <button
+                  onClick={() => handleSharePost(post)}
+                  className="text-gray-500 hover:text-gray-700 transition ml-auto"
+                  title="Share post"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </button>
+
                 {/* Total Tips Display */}
                 {post.total_tips > 0 && (
-                  <span className="text-amber-500 text-sm font-medium ml-auto">
+                  <span className="text-amber-500 text-sm font-medium">
                     {post.total_tips} WLD
                   </span>
                 )}

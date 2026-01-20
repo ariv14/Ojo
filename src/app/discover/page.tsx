@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { MiniKit, Permission } from '@worldcoin/minikit-js'
 import { supabase } from '@/lib/supabase'
 import { getSession, UserSession } from '@/lib/session'
 import { getDiscoverCache, setDiscoverCache, DISCOVER_CACHE_VERSION } from '@/lib/discoverCache'
+import { hapticMedium, hapticLight } from '@/lib/haptics'
 import UserAvatar from '@/components/UserAvatar'
 
 interface User {
@@ -200,6 +202,9 @@ export default function DiscoverPage() {
 
     const isCurrentlyFollowing = followingSet.has(userId)
 
+    // Haptic feedback for follow/unfollow
+    hapticMedium()
+
     // Optimistic update
     setFollowingSet(prev => {
       const newSet = new Set(prev)
@@ -253,6 +258,24 @@ export default function DiscoverPage() {
     setProcessingUserId(null)
   }
 
+  const handleInviteFriends = async () => {
+    if (!MiniKit.isInstalled()) {
+      alert('Please open this app in World App')
+      return
+    }
+
+    hapticLight()
+
+    try {
+      await MiniKit.commandsAsync.shareContacts({
+        isMultiSelectEnabled: true,
+        inviteMessage: 'Join me on Ojo - the social network for verified humans! 👁️',
+      })
+    } catch (err) {
+      console.error('Share contacts error:', err)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -273,7 +296,16 @@ export default function DiscoverPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-xl font-bold">Discover</h1>
+        <h1 className="text-xl font-bold flex-1">Discover</h1>
+        <button
+          onClick={handleInviteFriends}
+          className="flex items-center gap-1 px-3 py-1.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+          </svg>
+          Invite
+        </button>
       </div>
 
       {/* Search Bar */}

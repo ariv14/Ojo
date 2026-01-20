@@ -11,6 +11,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { ensureWalletConnected } from '@/lib/wallet'
+import { hapticSuccess, hapticError } from '@/lib/haptics'
 
 interface ChatButtonProps {
   targetUserAddress: string
@@ -104,6 +105,9 @@ export default function ChatButton({ targetUserAddress }: ChatButtonProps) {
       const { finalPayload } = await MiniKit.commandsAsync.pay(payload)
 
       if (finalPayload.status === 'success') {
+        // Haptic feedback for successful chat unlock
+        hapticSuccess()
+
         // Record transaction to prevent future double billing
         const { error: txError } = await supabase.from('transactions').insert({
           sender_id: session.nullifier_hash,
@@ -130,15 +134,18 @@ export default function ChatButton({ targetUserAddress }: ChatButtonProps) {
 
         if (error) {
           console.error('Error creating connection:', error.message, error.code, error.details)
+          hapticError()
           alert('Payment successful but failed to create connection. Please contact support.')
         } else {
           router.push(`/chat/${newConnection.id}`)
         }
       } else {
         console.error('Payment failed:', finalPayload)
+        hapticError()
       }
     } catch (error) {
       console.error('Error:', error)
+      hapticError()
     } finally {
       setIsLoading(false)
     }

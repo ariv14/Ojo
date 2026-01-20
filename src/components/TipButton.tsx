@@ -5,6 +5,7 @@ import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/mi
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { ensureWalletConnected } from '@/lib/wallet'
+import { hapticSuccess, hapticError } from '@/lib/haptics'
 import Toast from './Toast'
 
 // Tip amounts with 20% owner commission
@@ -125,12 +126,15 @@ export default function TipButton({ postId, authorAddress, authorWalletAddress, 
       }
 
       if (creatorPayment.status === 'success') {
+        // Haptic feedback for successful tip
+        hapticSuccess()
         setShowModal(false)
         setShowToast(true)
         onTipSuccess?.()
       }
     } catch (err) {
       console.error('Tip error:', err)
+      hapticError()
       setError('Payment failed. Please try again.')
     }
 
