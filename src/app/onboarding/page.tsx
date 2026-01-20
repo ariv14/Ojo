@@ -39,6 +39,7 @@ function OnboardingForm() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [country, setCountry] = useState('')
+  const [bio, setBio] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -124,6 +125,7 @@ function OnboardingForm() {
           last_name: lastName.trim(),
           country: country,
           avatar_url: avatarUrl,
+          bio: bio.trim() || null,
           is_orb_verified: true,
         }, {
           onConflict: 'nullifier_hash'
@@ -259,6 +261,22 @@ function OnboardingForm() {
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+            About You <span className="text-gray-400">(optional)</span>
+          </label>
+          <textarea
+            id="bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Tell us a bit about yourself..."
+            rows={3}
+            maxLength={200}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition resize-none"
+          />
+          <p className="text-xs text-gray-400 mt-1 text-right">{bio.length}/200</p>
         </div>
 
         {error && (

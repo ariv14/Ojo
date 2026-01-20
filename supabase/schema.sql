@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
   is_orb_verified BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   last_seen_at TIMESTAMPTZ,
-  invisible_mode_expiry TIMESTAMPTZ
+  invisible_mode_expiry TIMESTAMPTZ,
+  bio TEXT
 );
 
 -- 2. POSTS TABLE

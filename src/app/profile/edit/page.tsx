@@ -42,6 +42,7 @@ export default function EditProfilePage() {
   const [country, setCountry] = useState('')
   const [sex, setSex] = useState('')
   const [age, setAge] = useState<number | ''>('')
+  const [bio, setBio] = useState('')
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -68,7 +69,7 @@ export default function EditProfilePage() {
     const fetchUser = async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('first_name, last_name, country, avatar_url, sex, age, status, invisible_mode_expiry')
+        .select('first_name, last_name, country, avatar_url, sex, age, status, invisible_mode_expiry, bio')
         .eq('nullifier_hash', session.nullifier_hash)
         .single()
 
@@ -88,6 +89,7 @@ export default function EditProfilePage() {
         setAge(data.age || '')
         setIsDisabled(data.status === 'disabled')
         setInvisibleExpiry(data.invisible_mode_expiry)
+        setBio(data.bio || '')
       }
       setIsLoading(false)
     }
@@ -296,6 +298,7 @@ export default function EditProfilePage() {
           avatar_url: avatarUrl,
           sex: sex || null,
           age: age || null,
+          bio: bio.trim() || null,
         })
         .eq('nullifier_hash', nullifierHash)
 
@@ -501,6 +504,23 @@ export default function EditProfilePage() {
               placeholder="Your age"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
             />
+          </div>
+
+          {/* Bio */}
+          <div>
+            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+              About You
+            </label>
+            <textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell us a bit about yourself..."
+              rows={3}
+              maxLength={200}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition resize-none"
+            />
+            <p className="text-xs text-gray-400 mt-1 text-right">{bio.length}/200</p>
           </div>
 
           {error && (

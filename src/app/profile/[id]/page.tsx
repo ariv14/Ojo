@@ -21,6 +21,7 @@ interface User {
   created_at: string
   sex: string | null
   age: number | null
+  bio: string | null
 }
 
 interface Post {
@@ -89,7 +90,7 @@ export default function ProfilePage() {
       // Fetch user data (profileId is nullifier_hash)
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('nullifier_hash, wallet_address, first_name, last_name, country, avatar_url, created_at, sex, age')
+        .select('nullifier_hash, wallet_address, first_name, last_name, country, avatar_url, created_at, sex, age, bio')
         .eq('nullifier_hash', profileId)
         .single()
 
@@ -464,6 +465,13 @@ export default function ProfilePage() {
           {(user.age || user.sex) && (
             <p className="text-gray-500 mt-1">
               {user.sex}{user.sex && user.age && ', '}{user.age && `${user.age} years old`}
+            </p>
+          )}
+
+          {/* Bio */}
+          {user.bio && (
+            <p className="text-gray-600 text-center mt-3 px-4 max-w-xs">
+              {user.bio}
             </p>
           )}
 
