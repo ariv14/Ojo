@@ -1,5 +1,5 @@
 const DISCOVER_CACHE_KEY = 'ojo_discover_cache'
-const DISCOVER_CACHE_VERSION = 2
+const DISCOVER_CACHE_VERSION = 3
 
 interface CachedUser {
   nullifier_hash: string
@@ -9,6 +9,7 @@ interface CachedUser {
   country: string | null
   last_seen_at: string | null
   post_count: number
+  wallet_address: string | null
 }
 
 interface DiscoverCache {
