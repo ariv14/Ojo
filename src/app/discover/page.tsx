@@ -52,6 +52,14 @@ export default function DiscoverPage() {
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Invite modal state
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
+  const [inviteSearchQuery, setInviteSearchQuery] = useState('')
+  const [inviteSearchResults, setInviteSearchResults] = useState<User[]>([])
+  const [isSearchingInvite, setIsSearchingInvite] = useState(false)
+  const inviteSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   useEffect(() => {
     const init = async () => {
       const session = getSession()
@@ -181,9 +189,8 @@ export default function DiscoverPage() {
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current)
-      }
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+      if (inviteSearchTimeoutRef.current) clearTimeout(inviteSearchTimeoutRef.current)
     }
   }, [])
 
@@ -258,30 +265,75 @@ export default function DiscoverPage() {
     setProcessingUserId(null)
   }
 
-  const handleInviteFriends = async () => {
-    if (!MiniKit.isInstalled()) {
-      alert('Please open this app in World App')
-      return
-    }
-
+  // Open invite modal
+  const handleInviteFriends = () => {
     hapticLight()
+    setShowInviteModal(true)
+    setSelectedUsers(new Set())
+    setInviteSearchQuery('')
+    setInviteSearchResults(users) // Initialize with current users list
+  }
 
-    try {
-      const result = await MiniKit.commandsAsync.shareContacts({
-        isMultiSelectEnabled: true,
-        inviteMessage: 'Join me on Ojo - the social network for verified humans!',
-      })
-
-      if (result.finalPayload?.status === 'success') {
-        const contacts = result.finalPayload.contacts
-        if (contacts.length === 0) {
-          alert('No contacts selected')
-        }
-        // Contacts were shared successfully
-      }
-    } catch (err) {
-      console.error('Share contacts error:', err)
+  // Search users in invite modal (debounced)
+  const handleInviteSearch = useCallback((query: string) => {
+    setInviteSearchQuery(query)
+    if (inviteSearchTimeoutRef.current) {
+      clearTimeout(inviteSearchTimeoutRef.current)
     }
+    inviteSearchTimeoutRef.current = setTimeout(async () => {
+      if (!currentSession) return
+      if (!query.trim()) {
+        setInviteSearchResults(users)
+        return
+      }
+      setIsSearchingInvite(true)
+      const { data } = await supabase.rpc('get_discover_users', {
+        p_user_id: currentSession.nullifier_hash,
+        p_limit: 50,
+        p_offset: 0,
+        p_search: query.trim()
+      })
+      const filteredData = (data || []).filter((u: User) => !blockedSet.has(u.nullifier_hash))
+      setInviteSearchResults(filteredData)
+      setIsSearchingInvite(false)
+    }, SEARCH_DEBOUNCE_MS)
+  }, [currentSession, users, blockedSet])
+
+  // Toggle user selection in invite modal
+  const toggleUserSelection = (userId: string) => {
+    hapticLight()
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(userId)) {
+        newSet.delete(userId)
+      } else {
+        newSet.add(userId)
+      }
+      return newSet
+    })
+  }
+
+  // Send invites using share API (not shareContacts)
+  const handleSendInvites = async () => {
+    if (selectedUsers.size === 0) return
+    hapticMedium()
+    try {
+      await MiniKit.commandsAsync.share({
+        title: 'Join me on Ojo',
+        text: 'Join me on Ojo - the social network for verified humans!',
+        url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}`,
+      })
+    } catch (err) {
+      console.error('Share error:', err)
+    }
+    closeInviteModal()
+  }
+
+  // Close invite modal
+  const closeInviteModal = () => {
+    setShowInviteModal(false)
+    setSelectedUsers(new Set())
+    setInviteSearchQuery('')
   }
 
   if (isLoading) {
@@ -402,6 +454,101 @@ export default function DiscoverPage() {
           </div>
         )}
       </div>
+
+      {/* Invite Friends Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col">
+          <div className="bg-white flex flex-col h-full">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <button
+                onClick={closeInviteModal}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <h2 className="text-lg font-bold">Invite Friends</h2>
+              <span className="text-sm text-gray-500">
+                {selectedUsers.size > 0 ? `${selectedUsers.size} selected` : ''}
+              </span>
+            </div>
+
+            {/* Search Bar */}
+            <div className="px-4 py-3 border-b">
+              <input
+                type="text"
+                value={inviteSearchQuery}
+                onChange={(e) => handleInviteSearch(e.target.value)}
+                placeholder="Search users..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* User List */}
+            <div className="flex-1 overflow-y-auto">
+              {isSearchingInvite ? (
+                <div className="p-8 text-center text-gray-500">Searching...</div>
+              ) : inviteSearchResults.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  {inviteSearchQuery ? 'No users found' : 'No users available'}
+                </div>
+              ) : (
+                inviteSearchResults.map((user) => (
+                  <button
+                    key={user.nullifier_hash}
+                    onClick={() => toggleUserSelection(user.nullifier_hash)}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 border-b border-gray-100"
+                  >
+                    <UserAvatar
+                      avatarUrl={user.avatar_url}
+                      firstName={user.first_name}
+                      lastSeenAt={user.last_seen_at}
+                      size="md"
+                    />
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-sm">
+                        {user.first_name} {user.last_name}
+                      </p>
+                      {user.country && (
+                        <p className="text-xs text-gray-500">{user.country}</p>
+                      )}
+                    </div>
+                    {/* Checkbox */}
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      selectedUsers.has(user.nullifier_hash)
+                        ? 'bg-black border-black'
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedUsers.has(user.nullifier_hash) && (
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Sticky Footer with Continue Button */}
+            <div className="border-t px-4 py-4 bg-white">
+              <button
+                onClick={handleSendInvites}
+                disabled={selectedUsers.size === 0}
+                className={`w-full py-3 rounded-full font-medium text-base transition ${
+                  selectedUsers.size > 0
+                    ? 'bg-black text-white hover:bg-gray-800'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
