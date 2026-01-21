@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { ensureWalletConnected } from '@/lib/wallet'
 import { hapticSuccess, hapticError } from '@/lib/haptics'
+import { sendNotification } from '@/lib/notify'
 import Toast from './Toast'
 
 // Tip amounts with 20% owner commission
@@ -126,6 +127,16 @@ export default function TipButton({ postId, authorAddress, authorWalletAddress, 
       }
 
       if (creatorPayment.status === 'success') {
+        // Notify creator of tip
+        if (authorWalletAddress && session.first_name) {
+          sendNotification(
+            [authorWalletAddress],
+            'You received a tip!',
+            `${session.first_name} tipped you ${TIP_AMOUNT} WLD`,
+            `/feed?scrollTo=${postId}`
+          )
+        }
+
         // Haptic feedback for successful tip
         hapticSuccess()
         setShowModal(false)

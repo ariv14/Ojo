@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { getProfileCacheEntry, setProfileCacheEntry } from '@/lib/profileCache'
 import { hapticMedium, hapticLight } from '@/lib/haptics'
+import { sendNotification } from '@/lib/notify'
 import ReportModal from '@/components/ReportModal'
 import ChatButton from '@/components/ChatButton'
 
@@ -202,6 +203,15 @@ export default function ProfilePage() {
             console.error('Error recording profile view:', viewError.message, viewError.code, viewError.details)
           } else {
             console.log('Profile view recorded successfully')
+            // Notify profile owner of view
+            if (userData?.wallet_address && session.first_name) {
+              sendNotification(
+                [userData.wallet_address],
+                'Profile view',
+                `${session.first_name} viewed your profile`,
+                '/feed'
+              )
+            }
           }
         } else {
           console.log('User is invisible, skipping view recording')
@@ -337,6 +347,16 @@ export default function ProfilePage() {
         return
       }
       console.log('Followed successfully')
+
+      // Notify the user being followed
+      if (user?.wallet_address && session.first_name) {
+        sendNotification(
+          [user.wallet_address],
+          'New follower!',
+          `${session.first_name} started following you`,
+          '/feed'
+        )
+      }
     }
 
     setIsFollowing(!isFollowing)

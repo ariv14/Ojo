@@ -12,6 +12,7 @@ import TipButton from '@/components/TipButton'
 import UserAvatar from '@/components/UserAvatar'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
 import { hapticLight, hapticMedium, hapticSuccess, hapticSelection } from '@/lib/haptics'
+import { sendNotification } from '@/lib/notify'
 import ReportModal from '@/components/ReportModal'
 import ImageViewer from '@/components/ImageViewer'
 import ConfirmationModal from '@/components/ConfirmationModal'
@@ -584,6 +585,16 @@ function FeedContent() {
           user_id: session.nullifier_hash,
           vote_type: voteType,
         }, { onConflict: 'post_id,user_id' })
+
+      // Notify post creator of like (not for own posts, not when switching from dislike)
+      if (voteType === 'like' && post.user_vote !== 'dislike' && post.user_id !== session.nullifier_hash && post.users?.wallet_address && session.first_name) {
+        sendNotification(
+          [post.users.wallet_address],
+          'Someone liked your post!',
+          `${session.first_name} liked your post`,
+          `/feed?scrollTo=${postId}`
+        )
+      }
     }
   }
 
@@ -768,6 +779,16 @@ function FeedContent() {
       ))
 
       if (creatorPayment.status === 'success') {
+        // Notify creator of premium unlock
+        if (creatorWallet && session.first_name) {
+          sendNotification(
+            [creatorWallet],
+            'Premium content unlocked!',
+            `${session.first_name} paid ${UNLOCK_AMOUNT} WLD for your content`,
+            `/feed?scrollTo=${unlockingPost.id}`
+          )
+        }
+
         // Haptic feedback for successful unlock
         hapticSuccess()
         setUnlockingPost(null)

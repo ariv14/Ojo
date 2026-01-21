@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { hapticLight } from '@/lib/haptics'
+import { sendNotification } from '@/lib/notify'
 
 interface Message {
   id: string
@@ -35,6 +36,7 @@ export default function ChatPage() {
   const [isBlocked, setIsBlocked] = useState(false)
   const [blockedBy, setBlockedBy] = useState<string | null>(null)
   const [userClearedAt, setUserClearedAt] = useState<string | null>(null)
+  const [otherUser, setOtherUser] = useState<{ first_name: string; wallet_address: string | null } | null>(null)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const userClearedAtRef = useRef<string | null>(null)
@@ -134,15 +136,16 @@ export default function ChatPage() {
       setIsBlocked(connData.is_blocked || false)
       setBlockedBy(connData.blocked_by || null)
 
-      // Cache the other user's info for realtime messages
+      // Cache the other user's info for realtime messages and notifications
       const otherUserId = isInitiator ? connData.receiver_id : connData.initiator_id
-      const { data: otherUser } = await supabase
+      const { data: otherUserData } = await supabase
         .from('users')
-        .select('first_name')
+        .select('first_name, wallet_address')
         .eq('nullifier_hash', otherUserId)
         .single()
-      if (otherUser) {
-        userCacheRef.current.set(otherUserId, otherUser.first_name)
+      if (otherUserData) {
+        userCacheRef.current.set(otherUserId, otherUserData.first_name)
+        setOtherUser(otherUserData)
       }
 
       // Cache current user's name too
@@ -265,6 +268,16 @@ export default function ChatPage() {
     if (error) {
       console.error('Error sending message:', error)
       setNewMessage(messageContent) // Restore message on error
+    } else {
+      // Notify message recipient
+      if (otherUser?.wallet_address && session.first_name) {
+        sendNotification(
+          [otherUser.wallet_address],
+          'New message',
+          `${session.first_name} sent you a message`,
+          `/chat/${connectionId}`
+        )
+      }
     }
     setIsSending(false)
   }

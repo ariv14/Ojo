@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { getSession, UserSession } from '@/lib/session'
 import { getDiscoverCache, setDiscoverCache, DISCOVER_CACHE_VERSION } from '@/lib/discoverCache'
 import { hapticMedium, hapticLight } from '@/lib/haptics'
+import { sendNotification } from '@/lib/notify'
 import UserAvatar from '@/components/UserAvatar'
 
 interface User {
@@ -251,6 +252,17 @@ export default function DiscoverPage() {
           newSet.delete(userId)
           return newSet
         })
+      } else {
+        // Notify the user being followed
+        const followedUser = users.find(u => u.nullifier_hash === userId)
+        if (followedUser?.wallet_address && currentSession.first_name) {
+          sendNotification(
+            [followedUser.wallet_address],
+            'New follower!',
+            `${currentSession.first_name} started following you`,
+            '/feed'
+          )
+        }
       }
     }
 
