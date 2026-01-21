@@ -49,7 +49,10 @@ function FeedContent() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [hiddenUsers, setHiddenUsers] = useState<Set<string>>(new Set())
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set())
-  const [currentSession, setCurrentSession] = useState<UserSession | null>(null)
+  const [currentSession, setCurrentSession] = useState<UserSession | null>(() => {
+    if (typeof window === 'undefined') return null
+    return getSession()
+  })
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [openOtherMenuId, setOpenOtherMenuId] = useState<string | null>(null)
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
@@ -1022,21 +1025,13 @@ function FeedContent() {
             >
               + Post
             </button>
-            <button
-              onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)}
-              className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center"
-            >
-              {currentSession?.avatar_url ? (
-                <img
-                  src={currentSession.avatar_url}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-sm font-medium text-gray-500">
-                  {currentSession?.first_name?.[0] || '?'}
-                </span>
-              )}
+            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)}>
+              <UserAvatar
+                avatarUrl={currentSession?.avatar_url}
+                firstName={currentSession?.first_name}
+                size="sm"
+                showStatus={false}
+              />
             </button>
           </div>
         </div>

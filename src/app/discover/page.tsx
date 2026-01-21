@@ -50,7 +50,10 @@ export default function DiscoverPage() {
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [currentSession, setCurrentSession] = useState<UserSession | null>(null)
+  const [currentSession, setCurrentSession] = useState<UserSession | null>(() => {
+    if (typeof window === 'undefined') return null
+    return getSession()
+  })
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 

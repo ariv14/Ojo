@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 interface UserAvatarProps {
   avatarUrl?: string | null
   firstName?: string | null
@@ -27,6 +29,8 @@ export default function UserAvatar({
     lg: 'w-4 h-4 border-2',
   }
 
+  const [imageError, setImageError] = useState(false)
+
   // Online if last seen within 5 minutes
   const isOnline = lastSeenAt
     ? (Date.now() - new Date(lastSeenAt).getTime()) < 5 * 60 * 1000
@@ -37,8 +41,15 @@ export default function UserAvatar({
       <div
         className={`${sizeClasses[size]} rounded-full bg-gray-200 flex items-center justify-center font-medium overflow-hidden`}
       >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+        {avatarUrl && !imageError ? (
+          <img
+            src={avatarUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
         ) : (
           <span className="text-gray-500">{firstName?.[0] || '?'}</span>
         )}
