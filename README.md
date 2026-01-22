@@ -218,6 +218,14 @@ NEXT_PUBLIC_ADMIN_ID=your_nullifier_hash_for_admin
 
 ## Changelog
 
+### v1.2.0 - Albums, Reels & R2 Migration
+- Added albums support (upload 2-10 images per post)
+- Added reels support (10-second video posts with thumbnails)
+- Migrated media storage from AWS S3 to Cloudflare R2
+- Added referral system with invite tracking and bonus rewards
+- Added realtime notifications for new posts in feed
+- New database: `referrals` table, `media_type` enum, `get_referral_stats` function
+
 ### v1.1.0 - MiniKit Integration
 - Added animated gradient headers across all pages
 - Documented all 8 MiniKit commands used in the app

@@ -7,7 +7,19 @@
 -- =============================================
 
 -- =============================================
--- SECTION 1: TABLES (12 Tables)
+-- SECTION 0: CUSTOM TYPES
+-- =============================================
+
+-- Media type enum for posts (image, album, reel)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'media_type') THEN
+        CREATE TYPE media_type AS ENUM ('image', 'album', 'reel');
+    END IF;
+END$$;
+
+-- =============================================
+-- SECTION 1: TABLES (13 Tables)
 -- =============================================
 
 -- 1. USERS TABLE
@@ -29,7 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- 2. POSTS TABLE
--- User-generated content with images
+-- User-generated content with images, albums, and reels
 CREATE TABLE IF NOT EXISTS posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL REFERENCES users(nullifier_hash) ON DELETE CASCADE,
@@ -38,8 +50,19 @@ CREATE TABLE IF NOT EXISTS posts (
   is_premium BOOLEAN DEFAULT false,
   is_hidden BOOLEAN DEFAULT false,
   boosted_until TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  -- Albums & Reels support
+  media_type media_type DEFAULT 'image',
+  media_urls JSONB DEFAULT NULL,
+  thumbnail_url TEXT DEFAULT NULL,
+  duration_seconds NUMERIC DEFAULT NULL
 );
+
+-- Column documentation for albums & reels
+COMMENT ON COLUMN posts.media_type IS 'Type of media: image (single), album (multiple images), or reel (video)';
+COMMENT ON COLUMN posts.media_urls IS 'JSONB array of media objects: [{key: "posts/user/post/media_0.jpg", type: "image"}]';
+COMMENT ON COLUMN posts.thumbnail_url IS 'R2 key for reel thumbnail image';
+COMMENT ON COLUMN posts.duration_seconds IS 'Video duration in seconds (max 10s for reels)';
 
 -- 3. CONNECTIONS TABLE
 -- Chat connections between users
@@ -168,8 +191,21 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 13. REFERRALS TABLE
+-- Referral tracking for invite bonuses
+CREATE TABLE IF NOT EXISTS referrals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_id TEXT NOT NULL REFERENCES users(nullifier_hash) ON DELETE CASCADE,
+  referred_id TEXT REFERENCES users(nullifier_hash) ON DELETE SET NULL,
+  referral_code TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, signed_up, completed
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  paid_out BOOLEAN DEFAULT FALSE
+);
+
 -- =============================================
--- SECTION 2: INDEXES (29 Indexes)
+-- SECTION 2: INDEXES (35 Indexes)
 -- =============================================
 
 -- Posts indexes
@@ -177,6 +213,8 @@ CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_hidden ON posts(is_hidden);
 CREATE INDEX IF NOT EXISTS idx_posts_boosted ON posts(boosted_until);
+CREATE INDEX IF NOT EXISTS idx_posts_media_type ON posts(media_type);
+CREATE INDEX IF NOT EXISTS idx_posts_media_urls ON posts USING GIN (media_urls);
 
 -- Messages indexes
 CREATE INDEX IF NOT EXISTS idx_messages_connection_id ON messages(connection_id);
@@ -228,6 +266,11 @@ CREATE INDEX IF NOT EXISTS idx_post_access_user_id ON post_access(user_id);
 -- Tips index for post lookups
 CREATE INDEX IF NOT EXISTS idx_tips_post_id ON tips(post_id);
 
+-- Referrals indexes
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(referral_code);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_referrals_referred ON referrals(referred_id) WHERE referred_id IS NOT NULL;
+
 -- Composite indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_relationships_follower_type ON relationships(follower_id, type);
 CREATE INDEX IF NOT EXISTS idx_posts_user_hidden_created ON posts(user_id, is_hidden, created_at DESC);
@@ -250,6 +293,7 @@ ALTER TABLE profile_views ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
 
 -- =============================================
 -- SECTION 4: RLS POLICIES (36 Policies)
@@ -424,8 +468,21 @@ CREATE POLICY "Users can create transactions"
   ON transactions FOR INSERT
   WITH CHECK (true);
 
+-- REFERRALS POLICIES (3)
+CREATE POLICY "Referrals viewable"
+  ON referrals FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can create referrals"
+  ON referrals FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Users can update referrals"
+  ON referrals FOR UPDATE
+  USING (true);
+
 -- =============================================
--- SECTION 5: RPC FUNCTIONS (2 Functions)
+-- SECTION 5: RPC FUNCTIONS (8 Functions)
 -- =============================================
 
 -- Function: delete_conversation
@@ -618,14 +675,41 @@ AS $$
     c.created_at DESC;
 $$;
 
+-- Function: get_referral_stats
+-- Returns referral statistics for a user
+-- Called from: src/app/discover/page.tsx
+CREATE OR REPLACE FUNCTION get_referral_stats(p_user_id TEXT)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  result JSON;
+BEGIN
+  SELECT json_build_object(
+    'total_referrals', COUNT(*),
+    'pending', COUNT(*) FILTER (WHERE status = 'pending'),
+    'signed_up', COUNT(*) FILTER (WHERE status = 'signed_up'),
+    'completed', COUNT(*) FILTER (WHERE status = 'completed'),
+    'unpaid_completed', COUNT(*) FILTER (WHERE status = 'completed' AND paid_out = FALSE),
+    'paid_out', COUNT(*) FILTER (WHERE paid_out = TRUE)
+  )
+  INTO result
+  FROM referrals
+  WHERE referrer_id = p_user_id;
+
+  RETURN result;
+END;
+$$;
+
 -- =============================================
 -- SECTION 6: REALTIME CONFIGURATION
 -- =============================================
 
--- Enable realtime for chat functionality
--- These tables need realtime for live messaging
+-- Enable realtime for chat functionality and feed updates
+-- These tables need realtime for live messaging and "New Posts" notifications
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE connections;
+ALTER PUBLICATION supabase_realtime ADD TABLE posts;
 
 -- =============================================
 -- SECTION 7: STORAGE BUCKET POLICIES
@@ -685,11 +769,12 @@ CREATE POLICY "Anyone can delete photos"
 -- =============================================
 --
 -- Summary:
--- - 12 Tables created with CASCADE DELETE
--- - 36 Indexes for query performance (including composite indexes)
--- - RLS enabled on all 12 tables
--- - 36 RLS policies (permissive)
--- - 7 RPC functions:
+-- - 1 Custom type (media_type enum)
+-- - 13 Tables created with CASCADE DELETE
+-- - 35 Indexes for query performance (including composite indexes)
+-- - RLS enabled on all 13 tables
+-- - 39 RLS policies (permissive)
+-- - 8 RPC functions:
 --   * delete_conversation - delete chat and messages
 --   * reset_all_data - admin factory reset
 --   * get_user_tips_total - sum tips for profile earnings
@@ -697,7 +782,8 @@ CREATE POLICY "Anyone can delete photos"
 --   * get_total_unread_count - count unread messages (single query)
 --   * get_users_with_post_counts - admin page users with post counts
 --   * get_inbox_chats - inbox page chats in single query
--- - Realtime enabled on messages, connections
+--   * get_referral_stats - referral tracking statistics
+-- - Realtime enabled on messages, connections, posts
 -- - 8 Storage policies (4 avatars, 4 photos)
 --
 -- Verification:
