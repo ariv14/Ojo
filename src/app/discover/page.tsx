@@ -306,15 +306,31 @@ export default function DiscoverPage() {
     const appUrl = `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&ref=${referralCode}`
     const inviteText = `Join me on Ojo - the social network for verified humans! ${appUrl}`
 
+    // Check if MiniKit is available
+    if (!MiniKit.isInstalled()) {
+      // Fallback to native Web Share API
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Join me on Ojo',
+            text: inviteText,
+            url: appUrl,
+          })
+        } catch (err) {
+          console.error('Native share error:', err)
+        }
+      }
+      return
+    }
+
+    // MiniKit is available - try shareContacts first
     try {
-      // Try World App contact picker first
       const result = await MiniKit.commandsAsync.shareContacts({
         isMultiSelectEnabled: true,
         inviteMessage: inviteText,
       })
 
       if (result.finalPayload.status === 'success') {
-        // User selected contacts from World App - done
         return
       }
     } catch (err) {
