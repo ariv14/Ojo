@@ -5,6 +5,18 @@
 -- =============================================
 
 -- =============================================
+-- TYPES
+-- =============================================
+
+-- Media type enum for posts (image, album, reel)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'media_type') THEN
+        CREATE TYPE media_type AS ENUM ('image', 'album', 'reel');
+    END IF;
+END$$;
+
+-- =============================================
 -- TABLES
 -- =============================================
 
@@ -27,15 +39,19 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- 2. POSTS TABLE
--- User-generated content with images
+-- User-generated content with images, albums, and reels
 CREATE TABLE IF NOT EXISTS posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL REFERENCES users(nullifier_hash) ON DELETE CASCADE,
-  image_url TEXT NOT NULL,
+  image_url TEXT,  -- Nullable: albums/reels use media_urls instead
   caption TEXT,
   is_premium BOOLEAN DEFAULT false,
   is_hidden BOOLEAN DEFAULT false,
   boosted_until TIMESTAMPTZ,
+  media_type media_type DEFAULT 'image',
+  media_urls JSONB DEFAULT NULL,
+  thumbnail_url TEXT DEFAULT NULL,
+  duration_seconds NUMERIC DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -172,6 +188,8 @@ CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_hidden ON posts(is_hidden);
 CREATE INDEX IF NOT EXISTS idx_posts_boosted ON posts(boosted_until);
+CREATE INDEX IF NOT EXISTS idx_posts_media_type ON posts(media_type);
+CREATE INDEX IF NOT EXISTS idx_posts_media_urls ON posts USING GIN (media_urls);
 
 -- Messages indexes
 CREATE INDEX IF NOT EXISTS idx_messages_connection_id ON messages(connection_id);
