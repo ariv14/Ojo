@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { compressImage } from '@/utils/compress'
@@ -48,6 +48,16 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const [videoDuration, setVideoDuration] = useState<number>(0)
   const [videoThumbnail, setVideoThumbnail] = useState<Blob | null>(null)
 
+  // Video recorder state
+  const [showRecorder, setShowRecorder] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordedChunksRef = useRef<Blob[]>([])
+  const liveVideoRef = useRef<HTMLVideoElement>(null)
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   // Common state
   const [caption, setCaption] = useState('')
   const [isPremium, setIsPremium] = useState(false)
@@ -82,16 +92,32 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
       return
     }
 
-    // Limit to 10 images
-    const limitedFiles = imageFiles.slice(0, 10)
-    if (imageFiles.length > 10) {
-      setError('Maximum 10 images allowed. Only first 10 were selected.')
+    // Calculate available slots based on existing selection
+    const currentCount = selectedFiles.length
+    const availableSlots = 10 - currentCount
+
+    if (availableSlots <= 0) {
+      setError('Maximum 10 images already selected')
+      return
+    }
+
+    // Limit new files to available slots
+    const limitedFiles = imageFiles.slice(0, availableSlots)
+    if (imageFiles.length > availableSlots) {
+      setError(`Only ${availableSlots} more image(s) can be added. Maximum is 10.`)
     } else {
       setError('')
     }
 
-    setSelectedFiles(limitedFiles)
-    setAlbumPreviews(limitedFiles.map((f) => URL.createObjectURL(f)))
+    // Append to existing files instead of replacing
+    setSelectedFiles((prev) => [...prev, ...limitedFiles])
+    setAlbumPreviews((prev) => [
+      ...prev,
+      ...limitedFiles.map((f) => URL.createObjectURL(f)),
+    ])
+
+    // Reset the input so the same file can be selected again if removed
+    e.target.value = ''
   }
 
   const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,6 +191,151 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
 
     video.src = URL.createObjectURL(file)
   }
+
+  // Process a recorded video file
+  const processRecordedVideo = (file: File) => {
+    setSelectedVideo(file)
+    setVideoPreview(URL.createObjectURL(file))
+
+    // Get duration
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      setVideoDuration(video.duration)
+      URL.revokeObjectURL(video.src)
+    }
+    video.src = URL.createObjectURL(file)
+
+    // Extract thumbnail
+    extractVideoThumbnail(file)
+  }
+
+  // Start the video recorder
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: true,
+      })
+      setCameraStream(stream)
+
+      // Show live preview
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream
+        liveVideoRef.current.play()
+      }
+
+      // Determine best supported format
+      const mimeType = MediaRecorder.isTypeSupported('video/mp4')
+        ? 'video/mp4'
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm'
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType })
+      mediaRecorderRef.current = mediaRecorder
+      recordedChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: mimeType })
+        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm'
+        const file = new File([blob], `recording.${extension}`, { type: mimeType })
+        processRecordedVideo(file)
+        stopCamera()
+      }
+
+      mediaRecorder.start(100) // Collect data every 100ms
+      setIsRecording(true)
+      setRecordingTime(0)
+
+      // Start countdown timer
+      let elapsed = 0
+      recordingTimerRef.current = setInterval(() => {
+        elapsed++
+        setRecordingTime(elapsed)
+        if (elapsed >= 10) {
+          if (recordingTimerRef.current) {
+            clearInterval(recordingTimerRef.current)
+          }
+          if (mediaRecorderRef.current?.state === 'recording') {
+            mediaRecorderRef.current.stop()
+          }
+          setIsRecording(false)
+        }
+      }, 1000)
+    } catch (err) {
+      console.error('Camera access error:', err)
+      setError('Camera access denied. Please allow camera permissions.')
+      setShowRecorder(false)
+    }
+  }
+
+  // Stop recording manually
+  const stopRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+    }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    setIsRecording(false)
+  }
+
+  // Stop camera and close recorder
+  const stopCamera = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+    }
+    cameraStream?.getTracks().forEach((track) => track.stop())
+    setCameraStream(null)
+    setShowRecorder(false)
+    setRecordingTime(0)
+    setIsRecording(false)
+  }
+
+  // Cancel recording without saving
+  const cancelRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+    }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    // Clear recorded chunks so nothing gets processed
+    recordedChunksRef.current = []
+    stopCamera()
+  }
+
+  // Open the recorder modal
+  const openRecorder = () => {
+    setShowRecorder(true)
+    setError('')
+  }
+
+  // Cleanup camera on unmount or when recorder closes
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop())
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+      }
+    }
+  }, [cameraStream])
+
+  // Auto-start recording when recorder opens
+  useEffect(() => {
+    if (showRecorder && !cameraStream && !isRecording) {
+      startRecording()
+    }
+  }, [showRecorder])
 
   const removeAlbumImage = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
@@ -804,37 +975,75 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                   <p className="text-xs text-gray-500 text-center">
                     Duration: {videoDuration.toFixed(1)}s / 10s max
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (videoPreview) URL.revokeObjectURL(videoPreview)
+                      setSelectedVideo(null)
+                      setVideoPreview(null)
+                      setVideoDuration(0)
+                      setVideoThumbnail(null)
+                    }}
+                    className="w-full py-2 text-sm text-red-500 hover:text-red-600"
+                  >
+                    Remove and choose another
+                  </button>
                 </div>
               ) : (
-                <div
-                  onClick={() => videoInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
-                >
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <p className="text-gray-500 text-center">
-                    Tap to select a video
-                    <br />
-                    <span className="text-xs text-gray-400">Max 10 seconds</span>
-                  </p>
+                <div className="space-y-4">
+                  <div className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center">
+                    <svg
+                      className="w-12 h-12 text-gray-400 mb-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <p className="text-gray-500 text-center">
+                      Record or choose a video
+                      <br />
+                      <span className="text-xs text-gray-400">Max 10 seconds</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={openRecorder}
+                      className="flex-1 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
+                      Record Video
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      Library
+                    </button>
+                  </div>
                 </div>
               )}
               <input
                 ref={videoInputRef}
                 type="file"
                 accept="video/*"
-                capture="environment"
                 onChange={handleVideoSelect}
                 className="hidden"
               />
@@ -902,6 +1111,89 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
         </div>
       </div>
+
+      {/* Video Recorder Modal */}
+      {showRecorder && (
+        <div className="fixed inset-0 bg-black z-[60] flex flex-col">
+          {/* Live video preview */}
+          <video
+            ref={liveVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="flex-1 object-cover w-full"
+          />
+
+          {/* Timer display */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+            {isRecording && (
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+            )}
+            <div
+              className={`px-4 py-2 rounded-full font-mono text-lg ${
+                isRecording ? 'bg-red-500 text-white' : 'bg-black/50 text-white'
+              }`}
+            >
+              {isRecording ? `${10 - recordingTime}s` : 'Ready'}
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          {isRecording && (
+            <div className="absolute top-16 left-4 right-4">
+              <div className="h-1 bg-white/30 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-red-500 transition-all duration-1000 ease-linear"
+                  style={{ width: `${(recordingTime / 10) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Controls */}
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center gap-8">
+            <button
+              type="button"
+              onClick={cancelRecording}
+              className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white hover:bg-white/30 transition"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`w-20 h-20 rounded-full flex items-center justify-center transition ${
+                isRecording
+                  ? 'bg-white'
+                  : 'bg-red-500 hover:bg-red-600'
+              }`}
+            >
+              {isRecording ? (
+                <div className="w-8 h-8 bg-red-500 rounded-sm" />
+              ) : (
+                <div className="w-16 h-16 bg-red-600 rounded-full border-4 border-white" />
+              )}
+            </button>
+
+            <div className="w-12 h-12" /> {/* Spacer for balance */}
+          </div>
+
+          {/* Instructions */}
+          <div className="absolute bottom-32 left-0 right-0 text-center">
+            <p className="text-white/70 text-sm">
+              {isRecording ? 'Tap stop or wait for auto-stop' : 'Tap record to start'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
