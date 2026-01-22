@@ -50,6 +50,16 @@ interface Ticket {
   created_at: string
 }
 
+interface ReferralBonusUser {
+  referrer_id: string
+  first_name: string
+  last_name: string
+  avatar_url: string | null
+  wallet_address: string | null
+  unpaid_completed: number
+  bonuses_owed: number
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [isAuthorized, setIsAuthorized] = useState(false)
@@ -73,6 +83,8 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState<'recent' | 'activity'>('recent')
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [referralBonusUsers, setReferralBonusUsers] = useState<ReferralBonusUser[]>([])
+  const [processingPayoutId, setProcessingPayoutId] = useState<string | null>(null)
 
   useEffect(() => {
     const session = getSession()
@@ -93,7 +105,83 @@ export default function AdminPage() {
     setIsAuthorized(true)
     fetchDashboardData()
     fetchAdminUsers(0, false)
+    fetchReferralBonusUsers()
   }, [router])
+
+  const fetchReferralBonusUsers = async () => {
+    // Fetch users who have 10+ unpaid completed referrals
+    const { data, error } = await supabase
+      .from('referrals')
+      .select('referrer_id')
+      .eq('status', 'completed')
+      .eq('paid_out', false)
+
+    if (error) {
+      console.error('Error fetching referral data:', error)
+      return
+    }
+
+    // Count unpaid completed referrals per user
+    const countByUser: Record<string, number> = {}
+    data?.forEach(r => {
+      countByUser[r.referrer_id] = (countByUser[r.referrer_id] || 0) + 1
+    })
+
+    // Filter users with 10+ unpaid referrals
+    const eligibleUserIds = Object.entries(countByUser)
+      .filter(([, count]) => count >= 10)
+      .map(([userId]) => userId)
+
+    if (eligibleUserIds.length === 0) {
+      setReferralBonusUsers([])
+      return
+    }
+
+    // Fetch user details for eligible users
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('nullifier_hash, first_name, last_name, avatar_url, wallet_address')
+      .in('nullifier_hash', eligibleUserIds)
+
+    const bonusUsers: ReferralBonusUser[] = (usersData || []).map(u => ({
+      referrer_id: u.nullifier_hash,
+      first_name: u.first_name,
+      last_name: u.last_name,
+      avatar_url: u.avatar_url,
+      wallet_address: u.wallet_address,
+      unpaid_completed: countByUser[u.nullifier_hash] || 0,
+      bonuses_owed: Math.floor((countByUser[u.nullifier_hash] || 0) / 10),
+    }))
+
+    // Sort by bonuses owed (descending)
+    bonusUsers.sort((a, b) => b.bonuses_owed - a.bonuses_owed)
+    setReferralBonusUsers(bonusUsers)
+  }
+
+  const handleMarkPaidOut = async (referrerId: string, numToPay: number) => {
+    setProcessingPayoutId(referrerId)
+
+    // Mark the first (numToPay * 10) unpaid completed referrals as paid
+    const { data: referralsToMark } = await supabase
+      .from('referrals')
+      .select('id')
+      .eq('referrer_id', referrerId)
+      .eq('status', 'completed')
+      .eq('paid_out', false)
+      .limit(numToPay * 10)
+
+    if (referralsToMark && referralsToMark.length > 0) {
+      const ids = referralsToMark.map(r => r.id)
+      await supabase
+        .from('referrals')
+        .update({ paid_out: true })
+        .in('id', ids)
+    }
+
+    // Refresh the list
+    await fetchReferralBonusUsers()
+    setProcessingPayoutId(null)
+  }
 
   const fetchDashboardData = async () => {
     // Clean up tickets older than 30 days
@@ -602,6 +690,75 @@ export default function AdminPage() {
               >
                 {isLoadingUsers ? 'Loading...' : 'Load More Users'}
               </button>
+            </div>
+          )}
+        </div>
+
+        {/* Referral Bonus Payouts */}
+        <div className="bg-white rounded-xl p-4">
+          <h2 className="text-lg font-semibold mb-4">Referral Bonus Payouts</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Users earn 1 WLD for every 10 completed referrals (referred user made their first post).
+          </p>
+          {referralBonusUsers.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No users eligible for payout</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">User</th>
+                    <th className="text-left py-2 px-2">Wallet</th>
+                    <th className="text-left py-2 px-2">Unpaid Referrals</th>
+                    <th className="text-left py-2 px-2">Bonuses Owed</th>
+                    <th className="text-left py-2 px-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referralBonusUsers.map((user) => (
+                    <tr key={user.referrer_id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                            {user.avatar_url ? (
+                              <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
+                                {user.first_name?.[0] || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-medium">{user.first_name} {user.last_name}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-2">
+                        {user.wallet_address ? (
+                          <span className="font-mono text-xs">{user.wallet_address.slice(0, 8)}...</span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">No wallet</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-2">{user.unpaid_completed}</td>
+                      <td className="py-2 px-2">
+                        <span className="font-bold text-amber-600">{user.bonuses_owed} WLD</span>
+                      </td>
+                      <td className="py-2 px-2">
+                        {user.wallet_address ? (
+                          <button
+                            onClick={() => handleMarkPaidOut(user.referrer_id, user.bonuses_owed)}
+                            disabled={processingPayoutId === user.referrer_id}
+                            className="px-3 py-1 text-xs bg-green-100 text-green-600 rounded hover:bg-green-200 disabled:opacity-50"
+                          >
+                            {processingPayoutId === user.referrer_id ? 'Processing...' : `Mark ${user.bonuses_owed} WLD Paid`}
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Needs wallet</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

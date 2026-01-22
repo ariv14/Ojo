@@ -1,23 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import LoginButton from '@/components/LoginButton'
 import { getSession, UserSession } from '@/lib/session'
 
-export default function Home() {
+// Key for storing referral code in localStorage
+const REFERRAL_CODE_KEY = 'ojo_referral_code'
+
+function HomeContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   // Initialize session state synchronously after mount (localStorage is sync)
   const [session, setSession] = useState<UserSession | null | undefined>(undefined)
 
   useEffect(() => {
+    // Check for referral code in URL and store it
+    const refCode = searchParams.get('ref')
+    if (refCode) {
+      localStorage.setItem(REFERRAL_CODE_KEY, refCode.toUpperCase())
+    }
+
     const userSession = getSession()
     if (userSession) {
       router.push('/feed')
     } else {
       setSession(null)
     }
-  }, [router])
+  }, [router, searchParams])
 
   // Only show minimal loading on first render before useEffect runs
   // This prevents flash when localStorage has data
@@ -64,5 +74,13 @@ export default function Home() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>}>
+      <HomeContent />
+    </Suspense>
   )
 }

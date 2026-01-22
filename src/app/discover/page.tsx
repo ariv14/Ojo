@@ -21,6 +21,21 @@ interface User {
   wallet_address: string | null
 }
 
+interface ReferralStats {
+  total_referrals: number
+  pending: number
+  signed_up: number
+  completed: number
+  unpaid_completed: number
+  paid_out: number
+}
+
+// Generate a short referral code from nullifier_hash
+const generateReferralCode = (nullifierHash: string): string => {
+  // Take first 8 characters and convert to uppercase alphanumeric
+  return nullifierHash.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()
+}
+
 const USERS_PER_PAGE = 10
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -55,6 +70,7 @@ export default function DiscoverPage() {
     return getSession()
   })
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -75,8 +91,8 @@ export default function DiscoverPage() {
         setIsLoading(false)
       }
 
-      // Parallelize: fetch relationships AND initial users at the same time
-      const [relationshipsResult, usersResult] = await Promise.all([
+      // Parallelize: fetch relationships, users, and referral stats at the same time
+      const [relationshipsResult, usersResult, referralStatsResult] = await Promise.all([
         supabase
           .from('relationships')
           .select('target_id, type')
@@ -88,7 +104,14 @@ export default function DiscoverPage() {
           p_offset: 0,
           p_search: null
         }),
+        // Fetch referral stats
+        supabase.rpc('get_referral_stats', { p_user_id: session.nullifier_hash }),
       ])
+
+      // Set referral stats
+      if (referralStatsResult.data) {
+        setReferralStats(referralStatsResult.data as ReferralStats)
+      }
 
       const following = new Set<string>()
       const blocked = new Set<string>()
@@ -276,11 +299,18 @@ export default function DiscoverPage() {
   const handleInviteFriends = async () => {
     hapticLight()
 
+    if (!currentSession) return
+
+    // Generate referral code and URL
+    const referralCode = generateReferralCode(currentSession.nullifier_hash)
+    const appUrl = `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&ref=${referralCode}`
+    const inviteText = `Join me on Ojo - the social network for verified humans! ${appUrl}`
+
     try {
       // Try World App contact picker first
       const result = await MiniKit.commandsAsync.shareContacts({
         isMultiSelectEnabled: true,
-        inviteMessage: 'Join me on Ojo - the social network for verified humans!',
+        inviteMessage: inviteText,
       })
 
       if (result.finalPayload.status === 'success') {
@@ -296,7 +326,7 @@ export default function DiscoverPage() {
       await MiniKit.commandsAsync.share({
         title: 'Join me on Ojo',
         text: 'Join me on Ojo - the social network for verified humans!',
-        url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}`,
+        url: appUrl,
       })
     } catch (err) {
       console.error('Share error:', err)
@@ -334,6 +364,33 @@ export default function DiscoverPage() {
           Invite
         </button>
       </div>
+
+      {/* Referral Stats Card */}
+      {referralStats && (referralStats.completed > 0 || referralStats.signed_up > 0 || referralStats.pending > 0) && (
+        <div className="bg-white border-b px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Your Referrals</p>
+              <p className="text-xs text-gray-500">
+                {referralStats.completed} completed, {referralStats.signed_up} signed up
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-amber-600">
+                {referralStats.unpaid_completed % 10}/10
+              </p>
+              <p className="text-xs text-gray-500">until 1 WLD bonus</p>
+            </div>
+          </div>
+          {/* Progress bar */}
+          <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-500 transition-all duration-300"
+              style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="bg-white px-4 py-3 border-b">

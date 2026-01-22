@@ -1041,7 +1041,7 @@ function FeedContent() {
       {showUpload && (
         <UploadPost
           onClose={() => setShowUpload(false)}
-          onSuccess={(newPost) => {
+          onSuccess={async (newPost) => {
             setShowUpload(false)
             if (currentSession) {
               // Construct full Post object for the new post
@@ -1071,6 +1071,24 @@ function FeedContent() {
               setPosts(prev => [fullPost, ...prev])
               // Scroll to top
               window.scrollTo({ top: 0, behavior: 'smooth' })
+
+              // Check if this is the user's first post and complete referral
+              const { count } = await supabase
+                .from('posts')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', currentSession.nullifier_hash)
+
+              // If this is the first post (count === 1), mark referral as completed
+              if (count === 1) {
+                await supabase
+                  .from('referrals')
+                  .update({
+                    status: 'completed',
+                    completed_at: new Date().toISOString(),
+                  })
+                  .eq('referred_id', currentSession.nullifier_hash)
+                  .eq('status', 'signed_up')
+              }
             }
           }}
         />
