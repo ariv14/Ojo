@@ -355,67 +355,73 @@ export default function DiscoverPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="sticky top-0 animated-gradient-header text-white px-4 py-3 flex items-center gap-3 z-10">
-        <button
-          onClick={() => router.back()}
-          className="text-white/80 hover:text-white"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h1 className="text-xl font-bold flex-1">Discover</h1>
-        <button
-          onClick={handleInviteFriends}
-          className="flex items-center gap-1 px-3 py-1.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          Invite
-        </button>
-      </div>
+      <header className="sticky top-0 animated-gradient-header text-white z-10">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="text-white/80 hover:text-white"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold flex-1">Discover</h1>
+          <button
+            onClick={handleInviteFriends}
+            className="flex items-center gap-1 px-3 py-1.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            Invite
+          </button>
+        </div>
+      </header>
 
       {/* Referral Stats Card */}
       {referralStats && (referralStats.completed > 0 || referralStats.signed_up > 0 || referralStats.pending > 0) && (
-        <div className="bg-white border-b px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">Your Referrals</p>
-              <p className="text-xs text-gray-500">
-                {referralStats.completed} completed, {referralStats.signed_up} signed up
-              </p>
+        <div className="bg-white border-b">
+          <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Your Referrals</p>
+                <p className="text-xs text-gray-500">
+                  {referralStats.completed} completed, {referralStats.signed_up} signed up
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-amber-600">
+                  {referralStats.unpaid_completed % 10}/10
+                </p>
+                <p className="text-xs text-gray-500">until 1 WLD bonus</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-amber-600">
-                {referralStats.unpaid_completed % 10}/10
-              </p>
-              <p className="text-xs text-gray-500">until 1 WLD bonus</p>
+            {/* Progress bar */}
+            <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 transition-all duration-300"
+                style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
+              />
             </div>
-          </div>
-          {/* Progress bar */}
-          <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-amber-500 transition-all duration-300"
-              style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
-            />
           </div>
         </div>
       )}
 
       {/* Search Bar */}
-      <div className="bg-white px-4 py-3 border-b">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search by name..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
-        />
+      <div className="bg-white border-b">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Search by name..."
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+          />
+        </div>
       </div>
 
       {/* User List */}
-      <div className="max-w-md mx-auto bg-white">
+      <div className="w-full md:max-w-2xl mx-auto bg-white">
         {users.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             {searchQuery ? 'No users found' : 'No users to discover'}

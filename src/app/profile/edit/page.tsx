@@ -366,32 +366,34 @@ export default function EditProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-900"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div className="bg-white border-b">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-900"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <h1 className="text-lg font-semibold">Edit Profile</h1>
-        <div className="w-6" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <h1 className="text-lg font-semibold">Edit Profile</h1>
+          <div className="w-6" />
+        </div>
       </div>
 
       {/* Form */}
-      <div className="px-4 py-6">
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-md mx-auto">
+      <div className="w-full md:max-w-2xl mx-auto px-4 py-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Avatar */}
           <div className="flex flex-col items-center">
             <input

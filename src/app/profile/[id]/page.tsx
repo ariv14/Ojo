@@ -422,40 +422,43 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-900"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div className="bg-white border-b">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-900"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <h1 className="text-lg font-semibold">Profile</h1>
-        <button
-          onClick={handleShareProfile}
-          className="text-gray-600 hover:text-gray-900"
-          title="Share profile"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
-        </button>
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <h1 className="text-lg font-semibold">Profile</h1>
+          <button
+            onClick={handleShareProfile}
+            className="text-gray-600 hover:text-gray-900"
+            title="Share profile"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Profile Info */}
-      <div className="bg-white px-4 py-6 border-b">
-        <div className="flex flex-col items-center">
+      <div className="bg-white border-b">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-6">
+          <div className="flex flex-col items-center">
           {/* Avatar */}
           <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-4">
             {user.avatar_url ? (
@@ -568,46 +571,49 @@ export default function ProfilePage() {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
 
       {/* Recent Visitors */}
       {recentVisitors.length > 0 && (
-        <div className="bg-white px-4 py-4 border-b">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
-            Recent Visitors
-          </h3>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {recentVisitors.map((visitor) => (
-              <button
-                key={visitor.nullifier_hash}
-                onClick={() => router.push(`/profile/${visitor.nullifier_hash}`)}
-                className="flex flex-col items-center flex-shrink-0"
-              >
-                <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden">
-                  {visitor.avatar_url ? (
-                    <img
-                      src={visitor.avatar_url}
-                      alt={visitor.first_name || 'Visitor'}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
-                      {visitor.first_name?.[0] || '?'}
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs text-gray-500 mt-1 truncate max-w-[60px]">
-                  {visitor.first_name}
-                </span>
-              </button>
-            ))}
+        <div className="bg-white border-b">
+          <div className="w-full md:max-w-2xl mx-auto px-4 py-4">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+              Recent Visitors
+            </h3>
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {recentVisitors.map((visitor) => (
+                <button
+                  key={visitor.nullifier_hash}
+                  onClick={() => router.push(`/profile/${visitor.nullifier_hash}`)}
+                  className="flex flex-col items-center flex-shrink-0"
+                >
+                  <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden">
+                    {visitor.avatar_url ? (
+                      <img
+                        src={visitor.avatar_url}
+                        alt={visitor.first_name || 'Visitor'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
+                        {visitor.first_name?.[0] || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500 mt-1 truncate max-w-[60px]">
+                    {visitor.first_name}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* Posts Grid */}
-      <div className="px-4 py-4">
+      <div className="w-full md:max-w-2xl mx-auto px-4 py-4">
         <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
           Posts ({posts.length})
         </h3>

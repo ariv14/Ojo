@@ -136,7 +136,7 @@ export default function InboxPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="sticky top-0 animated-gradient-header text-white z-10">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.push('/feed')}
             className="text-white/80 hover:text-white"
@@ -150,7 +150,7 @@ export default function InboxPage() {
       </header>
 
       {/* Chat List */}
-      <main className="max-w-lg mx-auto">
+      <main className="w-full md:max-w-2xl mx-auto">
         {chats.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             No messages yet

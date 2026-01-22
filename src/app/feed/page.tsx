@@ -966,7 +966,7 @@ function FeedContent() {
 
       {/* Header */}
       <header className="sticky top-0 animated-gradient-header text-white z-10">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-xl font-bold flex items-center">
             <span className="relative">
               O
@@ -1095,7 +1095,7 @@ function FeedContent() {
       )}
 
       {/* Feed */}
-      <main className="max-w-md mx-auto">
+      <main className="w-full md:max-w-2xl mx-auto">
         {posts.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             No posts yet. Be the first to share!
@@ -1254,7 +1254,7 @@ function FeedContent() {
                     alt={post.caption || 'Post image'}
                     loading="lazy"
                     decoding="async"
-                    className={`w-full max-h-[450px] object-contain bg-black ${
+                    className={`w-full max-h-[450px] md:max-h-[600px] object-contain bg-black ${
                       post.is_premium && !post.has_access ? 'blur-xl' : ''
                     }`}
                   />

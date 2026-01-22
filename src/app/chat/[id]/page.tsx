@@ -386,7 +386,7 @@ export default function ChatPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <header className="sticky top-0 animated-gradient-header text-white z-10">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.push('/feed')}
             className="text-white/80 hover:text-white"
@@ -457,7 +457,7 @@ export default function ChatPage() {
 
       {/* Messages */}
       <main className="flex-1 overflow-y-auto" ref={messagesContainerRef}>
-        <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-4 space-y-3">
           {/* Load More Button */}
           {hasMoreMessages && messages.length > 0 && (
             <button
@@ -557,7 +557,7 @@ export default function ChatPage() {
       <footer className="sticky bottom-0 bg-white border-t border-gray-200">
         <form
           onSubmit={handleSend}
-          className="max-w-lg mx-auto px-4 py-3 flex gap-2"
+          className="w-full md:max-w-2xl mx-auto px-4 py-3 flex gap-2"
         >
           <input
             type="text"
