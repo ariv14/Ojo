@@ -9,6 +9,7 @@ import { getSession } from '@/lib/session'
 import { getProfileCacheEntry, setProfileCacheEntry } from '@/lib/profileCache'
 import { hapticMedium, hapticLight } from '@/lib/haptics'
 import { sendNotification } from '@/lib/notify'
+import { getS3PublicUrl } from '@/lib/s3'
 import ReportModal from '@/components/ReportModal'
 import ChatButton from '@/components/ChatButton'
 
@@ -35,6 +36,9 @@ interface Post {
   users: {
     wallet_address: string | null
   } | null
+  media_type?: 'image' | 'album' | 'reel'
+  media_urls?: { key: string; type: string }[]
+  thumbnail_url?: string
 }
 
 interface Visitor {
@@ -106,7 +110,7 @@ export default function ProfilePage() {
       // Fetch user's posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('id, image_url, caption, created_at, is_premium, users:user_id(wallet_address)')
+        .select('id, image_url, caption, created_at, is_premium, media_type, media_urls, thumbnail_url, users:user_id(wallet_address)')
         .eq('user_id', profileId)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false })
@@ -141,7 +145,10 @@ export default function ProfilePage() {
             created_at: post.created_at,
             is_premium: post.is_premium,
             has_access: !post.is_premium || unlockedIds.has(post.id) || !!isOwn,
-            users: normalizeUsers(post.users)
+            users: normalizeUsers(post.users),
+            media_type: (post as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
+            media_urls: (post as unknown as { media_urls?: { key: string; type: string }[] }).media_urls,
+            thumbnail_url: (post as unknown as { thumbnail_url?: string }).thumbnail_url,
           }))
         } else {
           postsWithAccess = postsData.map(post => ({
@@ -151,7 +158,10 @@ export default function ProfilePage() {
             created_at: post.created_at,
             is_premium: post.is_premium,
             has_access: true,
-            users: normalizeUsers(post.users)
+            users: normalizeUsers(post.users),
+            media_type: (post as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
+            media_urls: (post as unknown as { media_urls?: { key: string; type: string }[] }).media_urls,
+            thumbnail_url: (post as unknown as { thumbnail_url?: string }).thumbnail_url,
           }))
         }
       } else {
@@ -163,7 +173,10 @@ export default function ProfilePage() {
           created_at: post.created_at,
           is_premium: post.is_premium,
           has_access: !post.is_premium,
-          users: normalizeUsers(post.users)
+          users: normalizeUsers(post.users),
+          media_type: (post as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
+          media_urls: (post as unknown as { media_urls?: { key: string; type: string }[] }).media_urls,
+          thumbnail_url: (post as unknown as { thumbnail_url?: string }).thumbnail_url,
         }))
       }
       setPosts(postsWithAccess)
@@ -624,28 +637,54 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-1">
-            {posts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/feed?scrollTo=${post.id}`}
-                className="aspect-square bg-gray-100 overflow-hidden block relative"
-              >
-                <img
-                  src={post.image_url}
-                  alt={post.caption || 'Post'}
-                  className={`w-full h-full object-cover ${
-                    post.is_premium && !post.has_access ? 'blur-lg' : ''
-                  }`}
-                />
-                {post.is_premium && !post.has_access && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z"/>
-                    </svg>
-                  </div>
-                )}
-              </Link>
-            ))}
+            {posts.map((post) => {
+              // Compute the thumbnail URL based on media type
+              let thumbnailSrc = post.image_url
+              if (post.media_type === 'album' && post.media_urls && post.media_urls.length > 0) {
+                thumbnailSrc = getS3PublicUrl(post.media_urls[0].key)
+              } else if (post.media_type === 'reel' && post.thumbnail_url) {
+                thumbnailSrc = getS3PublicUrl(post.thumbnail_url)
+              }
+
+              return (
+                <Link
+                  key={post.id}
+                  href={`/feed?scrollTo=${post.id}`}
+                  className="aspect-square bg-gray-100 overflow-hidden block relative"
+                >
+                  <img
+                    src={thumbnailSrc}
+                    alt={post.caption || 'Post'}
+                    className={`w-full h-full object-cover ${
+                      post.is_premium && !post.has_access ? 'blur-lg' : ''
+                    }`}
+                  />
+                  {/* Album indicator */}
+                  {post.media_type === 'album' && (
+                    <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                      </svg>
+                    </div>
+                  )}
+                  {/* Reel indicator */}
+                  {post.media_type === 'reel' && (
+                    <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                      </svg>
+                    </div>
+                  )}
+                  {post.is_premium && !post.has_access && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z"/>
+                      </svg>
+                    </div>
+                  )}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

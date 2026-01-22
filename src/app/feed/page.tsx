@@ -416,6 +416,9 @@ function FeedContent() {
       is_premium: (p as unknown as { is_premium: boolean }).is_premium || false,
       has_access: accessedPostIds.has(p.id) || p.user_id === session.nullifier_hash,
       boosted_until: (p as unknown as { boosted_until: string | null }).boosted_until || null,
+      media_type: (p as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
+      media_urls: (p as unknown as { media_urls?: MediaUrl[] }).media_urls,
+      thumbnail_url: (p as unknown as { thumbnail_url?: string }).thumbnail_url,
     }))
 
     // Sort: boosted posts first, then pure chronological
