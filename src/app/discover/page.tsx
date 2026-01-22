@@ -304,7 +304,7 @@ export default function DiscoverPage() {
     // Generate referral code and URL
     const referralCode = generateReferralCode(currentSession.nullifier_hash)
     const appUrl = `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&ref=${referralCode}`
-    const inviteText = `Join me on Ojo - the social network for verified humans! ${appUrl}`
+    const inviteText = `Join me on OJO - The Social Network for verified humans, connect, share photos, albums, reels and earn !! ${appUrl}`
 
     // Check if MiniKit is available
     if (!MiniKit.isInstalled()) {
@@ -312,7 +312,7 @@ export default function DiscoverPage() {
       if (navigator.share) {
         try {
           await navigator.share({
-            title: 'Join me on Ojo',
+            title: 'Join me on OJO',
             text: inviteText,
             url: appUrl,
           })
@@ -334,7 +334,7 @@ export default function DiscoverPage() {
       // Fallback to generic share sheet
       try {
         await MiniKit.commandsAsync.share({
-          title: 'Join me on Ojo',
+          title: 'Join me on OJO',
           text: inviteText,
           url: appUrl,
         })
