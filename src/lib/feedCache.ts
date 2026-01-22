@@ -1,10 +1,15 @@
 const FEED_CACHE_KEY = 'ojo_feed_cache'
-const FEED_CACHE_VERSION = 1
+const FEED_CACHE_VERSION = 2 // Bumped for albums & reels support
+
+interface MediaUrl {
+  key: string
+  type: string
+}
 
 interface CachedPost {
   id: string
   user_id: string
-  image_url: string
+  image_url?: string
   caption: string | null
   created_at: string
   users: {
@@ -22,6 +27,9 @@ interface CachedPost {
   is_premium: boolean
   has_access: boolean
   boosted_until: string | null
+  media_type?: 'image' | 'album' | 'reel'
+  media_urls?: MediaUrl[]
+  thumbnail_url?: string
 }
 
 interface FeedCache {
@@ -78,4 +86,4 @@ export function clearFeedCache(): void {
 }
 
 export { FEED_CACHE_VERSION }
-export type { FeedCache, CachedPost }
+export type { FeedCache, CachedPost, MediaUrl }

@@ -16,11 +16,17 @@ import { sendNotification } from '@/lib/notify'
 import ReportModal from '@/components/ReportModal'
 import ImageViewer from '@/components/ImageViewer'
 import ConfirmationModal from '@/components/ConfirmationModal'
+import PostMedia from '@/components/PostMedia'
+
+interface MediaUrl {
+  key: string
+  type: string
+}
 
 interface Post {
   id: string
   user_id: string
-  image_url: string
+  image_url?: string
   caption: string | null
   created_at: string
   users: {
@@ -38,6 +44,9 @@ interface Post {
   is_premium: boolean
   has_access: boolean
   boosted_until: string | null
+  media_type?: 'image' | 'album' | 'reel'
+  media_urls?: MediaUrl[]
+  thumbnail_url?: string
 }
 
 function FeedContent() {
@@ -60,7 +69,7 @@ function FeedContent() {
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [viewingImage, setViewingImage] = useState<{ url: string; caption?: string } | null>(null)
+  const [viewingImage, setViewingImage] = useState<{ urls: string[]; currentIndex: number; caption?: string } | null>(null)
   const [unlockingPost, setUnlockingPost] = useState<Post | null>(null)
   const [unlockStep, setUnlockStep] = useState(0) // 0 = not started, 1 = platform fee, 2 = creator payment
   const [unlockError, setUnlockError] = useState('')
@@ -281,6 +290,9 @@ function FeedContent() {
         created_at,
         is_premium,
         boosted_until,
+        media_type,
+        media_urls,
+        thumbnail_url,
         users (
           first_name,
           last_name,
@@ -632,17 +644,37 @@ function FeedContent() {
 
     setIsDeleting(true)
 
-    // Get the post to find its image URL
+    // Get the post to find its media
     const post = posts.find(p => p.id === deletePostId)
 
     // Optimistically remove from state
     setPosts(prev => prev.filter(p => p.id !== deletePostId))
 
-    // Delete image from storage before deleting post from DB
-    if (post?.image_url) {
-      const filename = post.image_url.split('/photos/')[1]?.split('?')[0]
-      if (filename) {
-        await supabase.storage.from('photos').remove([filename])
+    // Delete media from storage before deleting post from DB
+    if (post) {
+      // Handle legacy Supabase Storage images
+      if (post.image_url) {
+        const filename = post.image_url.split('/photos/')[1]?.split('?')[0]
+        if (filename) {
+          await supabase.storage.from('photos').remove([filename])
+        }
+      }
+
+      // Handle S3 media (albums and reels)
+      if (post.media_urls && post.media_urls.length > 0) {
+        const keysToDelete = post.media_urls.map(m => m.key)
+        if (post.thumbnail_url) {
+          keysToDelete.push(post.thumbnail_url)
+        }
+        try {
+          await fetch('/api/s3-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keys: keysToDelete }),
+          })
+        } catch (error) {
+          console.error('Failed to delete S3 objects:', error)
+        }
       }
     }
 
@@ -1237,47 +1269,17 @@ function FeedContent() {
                 </div>
               </div>
 
-              {/* Post Image */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!post.is_premium || post.has_access) {
-                      window.history.pushState(null, '', '#view')
-                      setViewingImage({ url: post.image_url, caption: post.caption || undefined })
-                    }
-                  }}
-                  className="w-full block"
-                >
-                  <img
-                    src={post.image_url}
-                    alt={post.caption || 'Post image'}
-                    loading="lazy"
-                    decoding="async"
-                    className={`w-full max-h-[450px] md:max-h-[600px] object-contain bg-black ${
-                      post.is_premium && !post.has_access ? 'blur-xl' : ''
-                    }`}
-                  />
-                </button>
-
-                {/* Unlock Overlay for Premium Posts */}
-                {post.is_premium && !post.has_access && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    {post.users?.wallet_address ? (
-                      <button
-                        onClick={() => setUnlockingPost(post)}
-                        className="bg-amber-500 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:bg-amber-600 transition pointer-events-auto"
-                      >
-                        Unlock for 1.0 WLD
-                      </button>
-                    ) : (
-                      <div className="bg-gray-500 text-white px-6 py-3 rounded-full font-medium shadow-lg cursor-not-allowed">
-                        Creator hasn't enabled payments
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {/* Post Media (Image/Album/Reel) */}
+              <PostMedia
+                post={post}
+                onImageClick={(urls, index) => {
+                  if (!post.is_premium || post.has_access) {
+                    window.history.pushState(null, '', '#view')
+                    setViewingImage({ urls, currentIndex: index, caption: post.caption || undefined })
+                  }
+                }}
+                onUnlock={() => setUnlockingPost(post)}
+              />
 
               {/* Vote Buttons */}
               <div className="flex items-center gap-4 px-4 py-2">
@@ -1457,7 +1459,8 @@ function FeedContent() {
       {/* Image Viewer */}
       {viewingImage && (
         <ImageViewer
-          imageUrl={viewingImage.url}
+          imageUrls={viewingImage.urls}
+          currentIndex={viewingImage.currentIndex}
           alt={viewingImage.caption}
           onClose={() => window.history.back()}
         />
