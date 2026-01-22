@@ -38,6 +38,45 @@ Quick setup for deploying Ojo to a new environment.
 1. Go to Settings → API
 2. Copy Project URL and anon key
 
+## Step 1.5: Cloudflare R2 Setup (For Albums & Reels)
+
+Albums and reels media are stored in Cloudflare R2 (S3-compatible storage).
+
+### 1.5.1 Create R2 Bucket
+
+1. Go to https://dash.cloudflare.com → R2 Object Storage
+2. Click "Create bucket"
+3. Name: `ojo-media`
+4. Location: Choose closest region to users
+
+### 1.5.2 Create API Token
+
+1. Go to R2 → Manage R2 API Tokens
+2. Click "Create API token"
+3. Permissions: Object Read & Write
+4. Specify bucket: `ojo-media`
+5. Save the Access Key ID and Secret Access Key
+
+### 1.5.3 Configure Public Access
+
+Option A: R2.dev subdomain (simpler)
+1. Go to bucket settings → Public access
+2. Enable "R2.dev subdomain"
+3. Use the provided URL as `R2_PUBLIC_URL`
+
+Option B: Custom domain (recommended for production)
+1. Go to bucket settings → Custom domains
+2. Add your domain (e.g., `media.yourdomain.com`)
+3. Use this as `R2_PUBLIC_URL`
+
+### 1.5.4 Get Endpoint URL
+
+Your R2 endpoint follows this pattern:
+```
+https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+```
+Find your Account ID in Cloudflare dashboard → Overview → right sidebar.
+
 ## Step 2: Environment Setup
 
 1. Copy `.env.example` to `.env.local`
@@ -66,6 +105,11 @@ Add all variables from `.env.local`:
 | `NEXT_PUBLIC_APP_ID` | Your World ID App ID |
 | `NEXT_PUBLIC_OWNER_WALLET` | Your WLD wallet address |
 | `NEXT_PUBLIC_ADMIN_ID` | Your admin nullifier hash |
+| `R2_BUCKET` | `ojo-media` |
+| `R2_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
+| `R2_PUBLIC_URL` | Your R2 public URL or custom domain |
+| `R2_ACCESS_KEY_ID` | Your R2 API access key ID |
+| `R2_SECRET_ACCESS_KEY` | Your R2 API secret access key |
 
 ### 3.3 Deploy
 
@@ -136,6 +180,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=staging-anon-key
 NEXT_PUBLIC_APP_ID=app_staging-worldcoin-app-id
 NEXT_PUBLIC_OWNER_WALLET=0x_staging_wallet
 NEXT_PUBLIC_ADMIN_ID=staging_admin_nullifier
+R2_BUCKET=ojo-media-staging
+R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+R2_PUBLIC_URL=https://staging-media.yourdomain.com
+R2_ACCESS_KEY_ID=staging-r2-access-key
+R2_SECRET_ACCESS_KEY=staging-r2-secret-key
 ```
 
 **`.env.production`:**
@@ -145,6 +194,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=prod-anon-key
 NEXT_PUBLIC_APP_ID=app_production-worldcoin-app-id
 NEXT_PUBLIC_OWNER_WALLET=0x_production_wallet
 NEXT_PUBLIC_ADMIN_ID=production_admin_nullifier
+R2_BUCKET=ojo-media
+R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+R2_PUBLIC_URL=https://media.yourdomain.com
+R2_ACCESS_KEY_ID=prod-r2-access-key
+R2_SECRET_ACCESS_KEY=prod-r2-secret-key
 ```
 
 ### Step 3: Configure Vercel Environments
@@ -244,18 +298,20 @@ WHERE created_at > NOW() - INTERVAL '7 days';
 
 **Staging:**
 - [ ] Supabase `ojo-staging` project created
-- [ ] Storage buckets configured
+- [ ] Storage buckets configured (`avatars`, `photos`)
+- [ ] R2 bucket configured (`ojo-media-staging`)
 - [ ] World ID staging app created
 - [ ] Vercel preview environment configured
-- [ ] `.env.staging` values set in Vercel
+- [ ] `.env.staging` values set in Vercel (including R2)
 - [ ] `staging` branch created and deployed
 
 **Production:**
 - [ ] Supabase `ojo-prod` project created
-- [ ] Storage buckets configured
+- [ ] Storage buckets configured (`avatars`, `photos`)
+- [ ] R2 bucket configured (`ojo-media`)
 - [ ] World ID production app created
 - [ ] Vercel production environment configured
-- [ ] `.env.production` values set in Vercel
+- [ ] `.env.production` values set in Vercel (including R2)
 - [ ] Custom domain configured (optional)
 
 ---
@@ -264,8 +320,11 @@ WHERE created_at > NOW() - INTERVAL '7 days';
 
 ### "Failed to upload image"
 
-- Check storage bucket permissions
-- Verify bucket names are exactly `avatars` and `photos`
+- For single photos: Check Supabase storage bucket permissions (`avatars`, `photos`)
+- For albums/reels: Check R2 configuration:
+  - Verify `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` are set
+  - Ensure R2 API token has Object Read & Write permissions
+  - Check that `R2_PUBLIC_URL` matches your bucket's public access configuration
 
 ### "Verification failed"
 
@@ -334,12 +393,17 @@ WHERE schemaname = 'public';
 - [ ] Storage buckets created: `avatars`, `photos`
 - [ ] All 12 tables created successfully
 - [ ] Realtime enabled for messages and connections
+- [ ] Cloudflare R2 bucket created: `ojo-media`
+- [ ] R2 API token created with read/write permissions
+- [ ] R2 public access configured
 - [ ] Vercel project deployed successfully
-- [ ] Environment variables configured in Vercel
+- [ ] Environment variables configured in Vercel (including R2)
 - [ ] App loads at Vercel URL
 - [ ] World ID verification works
 - [ ] Can create new user (onboarding)
-- [ ] Can upload post (storage works)
+- [ ] Can upload single photo post (Supabase storage)
+- [ ] Can upload album post (R2 storage)
+- [ ] Can upload reel post (R2 storage)
 
 ## Quick Reference Links
 

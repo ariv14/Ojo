@@ -61,6 +61,7 @@ Ojo is a social network exclusively for verified humans, powered by [World ID](h
 
 - **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS
 - **Backend:** Supabase (PostgreSQL, Auth, Storage, Realtime)
+- **Media Storage:** Supabase Storage (avatars, single photos), Cloudflare R2 (albums, reels)
 - **Authentication:** World ID via MiniKit
 - **Payments:** WLD token via World App
 - **Deployment:** Vercel (recommended)
@@ -181,6 +182,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 NEXT_PUBLIC_APP_ID=your_worldcoin_app_id
 NEXT_PUBLIC_OWNER_WALLET=your_wld_wallet_address
 NEXT_PUBLIC_ADMIN_ID=your_nullifier_hash_for_admin
+
+# Cloudflare R2 (for albums and reels)
+R2_BUCKET=ojo-media
+R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+R2_PUBLIC_URL=https://your-r2-public-domain.com
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 ```
 
 ## Getting Started

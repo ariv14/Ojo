@@ -19,7 +19,7 @@ This file provides context for Claude and other AI assistants working on the Ojo
 | Language | TypeScript |
 | Styling | Tailwind CSS 4 |
 | Database | Supabase (PostgreSQL) |
-| Storage | Supabase Storage (avatars, photos) |
+| Storage | Supabase Storage (avatars, single photos), Cloudflare R2 (albums, reels) |
 | Realtime | Supabase Realtime |
 | Auth | World ID via MiniKit |
 | Payments | WLD via MiniKit Pay |
@@ -90,6 +90,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=   # Supabase anonymous key
 NEXT_PUBLIC_APP_ID=              # World ID App ID
 NEXT_PUBLIC_OWNER_WALLET=        # Platform owner's WLD wallet
 NEXT_PUBLIC_ADMIN_ID=            # Admin user's nullifier_hash
+
+# Cloudflare R2 (for albums and reels media storage)
+R2_BUCKET=                       # R2 bucket name (e.g., ojo-media)
+R2_ENDPOINT=                     # R2 endpoint URL
+R2_PUBLIC_URL=                   # Public URL for R2 assets
+R2_ACCESS_KEY_ID=                # R2 API access key ID
+R2_SECRET_ACCESS_KEY=            # R2 API secret access key
 ```
 
 ## Common Tasks
