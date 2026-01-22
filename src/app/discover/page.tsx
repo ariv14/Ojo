@@ -323,29 +323,24 @@ export default function DiscoverPage() {
       return
     }
 
-    // MiniKit is available - try shareContacts first
+    // Use World Chat to send invite - this opens chat and lets user pick contacts
     try {
-      const result = await MiniKit.commandsAsync.shareContacts({
-        isMultiSelectEnabled: true,
-        inviteMessage: inviteText,
+      await MiniKit.commandsAsync.chat({
+        message: inviteText,
       })
+    } catch (err) {
+      console.error('World Chat error, falling back to share:', err)
 
-      if (result.finalPayload.status === 'success') {
-        return
+      // Fallback to generic share sheet
+      try {
+        await MiniKit.commandsAsync.share({
+          title: 'Join me on Ojo',
+          text: inviteText,
+          url: appUrl,
+        })
+      } catch (shareErr) {
+        console.error('Share error:', shareErr)
       }
-    } catch (err) {
-      console.error('shareContacts error, falling back to share:', err)
-    }
-
-    // Fallback to generic share sheet
-    try {
-      await MiniKit.commandsAsync.share({
-        title: 'Join me on Ojo',
-        text: 'Join me on Ojo - the social network for verified humans!',
-        url: appUrl,
-      })
-    } catch (err) {
-      console.error('Share error:', err)
     }
   }
 
