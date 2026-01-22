@@ -208,11 +208,17 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     }
   }
 
+  interface UploadResult {
+    success: boolean
+    error?: string
+    status?: number
+  }
+
   const uploadToS3 = async (
     presignedUrl: string,
     file: File | Blob,
     contentType: string
-  ): Promise<boolean> => {
+  ): Promise<UploadResult> => {
     try {
       const response = await fetch(presignedUrl, {
         method: 'PUT',
@@ -221,9 +227,24 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           'Content-Type': contentType,
         },
       })
-      return response.ok
-    } catch {
-      return false
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        console.error(`R2 upload failed: HTTP ${response.status} - ${errorText}`)
+        return { success: false, error: `Upload failed (${response.status})`, status: response.status }
+      }
+
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Network error'
+      console.error('R2 upload error:', errorMessage)
+
+      // CORS errors manifest as "Failed to fetch"
+      if (errorMessage.includes('Failed to fetch')) {
+        return { success: false, error: 'Storage access denied (CORS)', status: 0 }
+      }
+
+      return { success: false, error: errorMessage }
     }
   }
 
@@ -341,14 +362,14 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
         const uploadPromises = uploads.map(
           async (upload: { index: number; key: string; presignedUrl: string }, idx: number) => {
             const file = files.find((f) => f.index === upload.index)
-            if (!file) return { success: false, key: upload.key }
+            if (!file) return { success: false, key: upload.key, error: 'File not found' }
 
-            const success = await uploadToS3(upload.presignedUrl, file.file, file.contentType)
+            const result = await uploadToS3(upload.presignedUrl, file.file, file.contentType)
 
             // Update progress
             setUploadProgress(20 + Math.floor(((idx + 1) / uploads.length) * 60))
 
-            return { success, key: upload.key }
+            return { success: result.success, key: upload.key, error: result.error }
           }
         )
 
@@ -356,7 +377,11 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
         const failedUploads = uploadResults.filter((r) => !r.success)
 
         if (failedUploads.length > 0) {
-          setError(`Failed to upload ${failedUploads.length} image(s)`)
+          const firstError = failedUploads[0].error || 'Unknown error'
+          const errorMsg = firstError.includes('CORS')
+            ? 'Storage access denied. Please contact support.'
+            : `Failed to upload ${failedUploads.length} image(s): ${firstError}`
+          setError(errorMsg)
           setIsUploading(false)
           return
         }
@@ -435,14 +460,17 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
 
         // Upload video
         const videoUpload = uploads[0]
-        const videoSuccess = await uploadToS3(
+        const videoResult = await uploadToS3(
           videoUpload.presignedUrl,
           selectedVideo!,
           selectedVideo!.type
         )
 
-        if (!videoSuccess) {
-          setError('Failed to upload video')
+        if (!videoResult.success) {
+          const errorMsg = videoResult.error?.includes('CORS')
+            ? 'Storage access denied. Please contact support.'
+            : `Failed to upload video: ${videoResult.error || 'Unknown error'}`
+          setError(errorMsg)
           setIsUploading(false)
           return
         }
@@ -452,12 +480,12 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
         // Upload thumbnail
         let thumbnailKey: string | null = null
         if (thumbnail && videoThumbnail) {
-          const thumbSuccess = await uploadToS3(
+          const thumbResult = await uploadToS3(
             thumbnail.presignedUrl,
             videoThumbnail,
             'image/jpeg'
           )
-          if (thumbSuccess) {
+          if (thumbResult.success) {
             thumbnailKey = thumbnail.key
           }
         }
@@ -806,6 +834,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                 ref={videoInputRef}
                 type="file"
                 accept="video/*"
+                capture="environment"
                 onChange={handleVideoSelect}
                 className="hidden"
               />

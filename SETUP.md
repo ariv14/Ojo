@@ -69,7 +69,40 @@ Option B: Custom domain (recommended for production)
 2. Add your domain (e.g., `media.yourdomain.com`)
 3. Use this as `R2_PUBLIC_URL`
 
-### 1.5.4 Get Endpoint URL
+### 1.5.4 Configure CORS Policy (REQUIRED)
+
+**IMPORTANT:** Without a CORS policy, browser-based uploads will fail even if presigned URLs are valid. The browser will show "Failed to fetch" errors.
+
+1. Go to Cloudflare Dashboard → R2 Object Storage
+2. Select your `ojo-media` bucket
+3. Go to **Settings** tab → **CORS policy**
+4. Click "Add CORS policy" and paste:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "https://your-app.vercel.app",
+      "http://localhost:3000"
+    ],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["Content-Type", "Content-Length"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+5. Replace `your-app.vercel.app` with your actual domain(s):
+   - Production: `https://ojo.vercel.app` (or custom domain)
+   - Staging: `https://ojo-staging.vercel.app`
+   - Development: `http://localhost:3000`
+
+6. Click "Save"
+
+**Note:** You can add multiple origins to support all environments.
+
+### 1.5.5 Get Endpoint URL
 
 Your R2 endpoint follows this pattern:
 ```
@@ -326,6 +359,21 @@ WHERE created_at > NOW() - INTERVAL '7 days';
   - Ensure R2 API token has Object Read & Write permissions
   - Check that `R2_PUBLIC_URL` matches your bucket's public access configuration
 
+### "Storage access denied (CORS)" or "Failed to fetch" on album/reel uploads
+
+This error indicates missing or incorrect CORS configuration on your R2 bucket:
+
+1. Go to Cloudflare Dashboard → R2 → `ojo-media` bucket → Settings → CORS policy
+2. Ensure your domain is in `AllowedOrigins` (e.g., `https://your-app.vercel.app`)
+3. Ensure `PUT` is in `AllowedMethods`
+4. Ensure `Content-Type` is in `AllowedHeaders`
+5. Test using the health check endpoint: `/api/r2-health`
+
+**Common mistakes:**
+- Missing `http://localhost:3000` for local development
+- Typo in domain name
+- Using `http://` instead of `https://` for production domains
+
 ### "Verification failed"
 
 - Check World ID App ID is correct
@@ -396,6 +444,8 @@ WHERE schemaname = 'public';
 - [ ] Cloudflare R2 bucket created: `ojo-media`
 - [ ] R2 API token created with read/write permissions
 - [ ] R2 public access configured
+- [ ] R2 CORS policy configured (see section 1.5.4)
+- [ ] R2 health check passes (`/api/r2-health`)
 - [ ] Vercel project deployed successfully
 - [ ] Environment variables configured in Vercel (including R2)
 - [ ] App loads at Vercel URL
