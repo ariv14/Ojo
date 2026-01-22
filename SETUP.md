@@ -62,12 +62,12 @@ Albums and reels media are stored in Cloudflare R2 (S3-compatible storage).
 Option A: R2.dev subdomain (simpler)
 1. Go to bucket settings → Public access
 2. Enable "R2.dev subdomain"
-3. Use the provided URL as `R2_PUBLIC_URL`
+3. Use the provided URL as `NEXT_PUBLIC_R2_PUBLIC_URL`
 
 Option B: Custom domain (recommended for production)
 1. Go to bucket settings → Custom domains
 2. Add your domain (e.g., `media.yourdomain.com`)
-3. Use this as `R2_PUBLIC_URL`
+3. Use this as `NEXT_PUBLIC_R2_PUBLIC_URL`
 
 ### 1.5.4 Configure CORS Policy (REQUIRED)
 
@@ -140,7 +140,7 @@ Add all variables from `.env.local`:
 | `NEXT_PUBLIC_ADMIN_ID` | Your admin nullifier hash |
 | `R2_BUCKET` | `ojo-media` |
 | `R2_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
-| `R2_PUBLIC_URL` | Your R2 public URL or custom domain |
+| `NEXT_PUBLIC_R2_PUBLIC_URL` | Your R2 public URL or custom domain |
 | `R2_ACCESS_KEY_ID` | Your R2 API access key ID |
 | `R2_SECRET_ACCESS_KEY` | Your R2 API secret access key |
 
@@ -215,7 +215,7 @@ NEXT_PUBLIC_OWNER_WALLET=0x_staging_wallet
 NEXT_PUBLIC_ADMIN_ID=staging_admin_nullifier
 R2_BUCKET=ojo-media-staging
 R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
-R2_PUBLIC_URL=https://staging-media.yourdomain.com
+NEXT_PUBLIC_R2_PUBLIC_URL=https://staging-media.yourdomain.com
 R2_ACCESS_KEY_ID=staging-r2-access-key
 R2_SECRET_ACCESS_KEY=staging-r2-secret-key
 ```
@@ -229,7 +229,7 @@ NEXT_PUBLIC_OWNER_WALLET=0x_production_wallet
 NEXT_PUBLIC_ADMIN_ID=production_admin_nullifier
 R2_BUCKET=ojo-media
 R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
-R2_PUBLIC_URL=https://media.yourdomain.com
+NEXT_PUBLIC_R2_PUBLIC_URL=https://media.yourdomain.com
 R2_ACCESS_KEY_ID=prod-r2-access-key
 R2_SECRET_ACCESS_KEY=prod-r2-secret-key
 ```
@@ -357,7 +357,7 @@ WHERE created_at > NOW() - INTERVAL '7 days';
 - For albums/reels: Check R2 configuration:
   - Verify `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` are set
   - Ensure R2 API token has Object Read & Write permissions
-  - Check that `R2_PUBLIC_URL` matches your bucket's public access configuration
+  - Check that `NEXT_PUBLIC_R2_PUBLIC_URL` matches your bucket's public access configuration
 
 ### "Storage access denied (CORS)" or "Failed to fetch" on album/reel uploads
 

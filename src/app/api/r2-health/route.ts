@@ -16,7 +16,7 @@ export async function GET() {
   const envVars = {
     R2_BUCKET: process.env.R2_BUCKET,
     R2_ENDPOINT: process.env.R2_ENDPOINT,
-    R2_PUBLIC_URL: process.env.R2_PUBLIC_URL,
+    NEXT_PUBLIC_R2_PUBLIC_URL: process.env.NEXT_PUBLIC_R2_PUBLIC_URL,
     R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID ? '[SET]' : undefined,
     R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY ? '[SET]' : undefined,
   }
@@ -106,7 +106,7 @@ export async function GET() {
     checks.push({
       name: 'Public URL',
       status: 'fail',
-      message: 'R2_PUBLIC_URL is not configured',
+      message: 'NEXT_PUBLIC_R2_PUBLIC_URL is not configured',
     })
   }
 

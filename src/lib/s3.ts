@@ -4,7 +4,7 @@ import { S3Client } from '@aws-sdk/client-s3'
 export const s3Config = {
   bucket: process.env.R2_BUCKET || 'ojo-media',
   endpoint: process.env.R2_ENDPOINT || '',
-  publicUrl: process.env.R2_PUBLIC_URL || '',
+  publicUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '',
 }
 
 // Create S3-compatible client for Cloudflare R2 (server-side only)

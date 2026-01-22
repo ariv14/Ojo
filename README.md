@@ -186,7 +186,7 @@ NEXT_PUBLIC_ADMIN_ID=your_nullifier_hash_for_admin
 # Cloudflare R2 (for albums and reels)
 R2_BUCKET=ojo-media
 R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
-R2_PUBLIC_URL=https://your-r2-public-domain.com
+NEXT_PUBLIC_R2_PUBLIC_URL=https://your-r2-public-domain.com
 R2_ACCESS_KEY_ID=your-r2-access-key-id
 R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 ```

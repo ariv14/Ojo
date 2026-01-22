@@ -94,7 +94,7 @@ NEXT_PUBLIC_ADMIN_ID=            # Admin user's nullifier_hash
 # Cloudflare R2 (for albums and reels media storage)
 R2_BUCKET=                       # R2 bucket name (e.g., ojo-media)
 R2_ENDPOINT=                     # R2 endpoint URL
-R2_PUBLIC_URL=                   # Public URL for R2 assets
+NEXT_PUBLIC_R2_PUBLIC_URL=       # Public URL for R2 assets (must be NEXT_PUBLIC for client)
 R2_ACCESS_KEY_ID=                # R2 API access key ID
 R2_SECRET_ACCESS_KEY=            # R2 API secret access key
 ```
