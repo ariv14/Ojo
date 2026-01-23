@@ -5,12 +5,7 @@ import { createPortal } from 'react-dom'
 import Webcam from 'react-webcam'
 import { useMediaRecorder } from '@/hooks/useMediaRecorder'
 import { getPlatformInfo, getVideoFileExtension, getVideoMimeType } from '@/utils/platform'
-import {
-  acquireAudioStream,
-  mergeAudioToVideoStream,
-  validateStreamForRecording,
-  cleanupStream,
-} from '@/utils/audioMerger'
+import { validateStreamForRecording } from '@/utils/audioMerger'
 import { safeUnmuteVideo } from '@/utils/audioUnlock'
 
 interface ReelsCameraProps {
@@ -36,13 +31,10 @@ export default function ReelsCamera({
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false)
   const [recordingProgress, setRecordingProgress] = useState(0)
-  const [isAudioReady, setIsAudioReady] = useState(false)
-  const [audioAcquisitionFailed, setAudioAcquisitionFailed] = useState(false)
 
   // Preview state
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia | null>(null)
@@ -74,49 +66,19 @@ export default function ReelsCamera({
     }
   }, [capturedMedia?.previewUrl])
 
-  // Request audio permission upfront with retry logic
-  useEffect(() => {
-    let mounted = true
-
-    const initAudio = async () => {
-      const acquiredStream = await acquireAudioStream(3, 500)
-
-      if (!mounted) {
-        // Component unmounted before audio was ready, clean up
-        cleanupStream(acquiredStream)
-        return
-      }
-
-      if (acquiredStream) {
-        setAudioStream(acquiredStream)
-        setIsAudioReady(true)
-        setAudioAcquisitionFailed(false)
-      } else {
-        console.log('Audio acquisition failed after retries')
-        setIsAudioReady(true) // Allow recording without audio
-        setAudioAcquisitionFailed(true)
-      }
-    }
-
-    initAudio()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  // Cleanup audio stream when it changes or on unmount
-  useEffect(() => {
-    return () => {
-      cleanupStream(audioStream)
-    }
-  }, [audioStream])
-
-  // Handle stream from webcam
+  // Handle stream from webcam (includes both video and audio when audio={true})
   const handleUserMedia = useCallback((mediaStream: MediaStream) => {
     setStream(mediaStream)
     setHasPermission(true)
     setCameraError(null)
+
+    // Log audio status for debugging
+    const audioTracks = mediaStream.getAudioTracks()
+    if (audioTracks.length > 0) {
+      console.log('Audio track acquired:', audioTracks[0].label, 'state:', audioTracks[0].readyState)
+    } else {
+      console.warn('No audio tracks in stream - recording will be silent')
+    }
   }, [])
 
   // Handle camera errors
@@ -147,7 +109,7 @@ export default function ReelsCamera({
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
   }, [])
 
-  // Start video recording with proper audio merging and validation
+  // Start video recording (stream already has audio from Webcam with audio={true})
   const startVideoRecording = useCallback(() => {
     if (!isRecorderSupported) {
       onError('Video recording is not supported in this browser')
@@ -159,10 +121,7 @@ export default function ReelsCamera({
       return
     }
 
-    // Merge audio into video stream with validation
-    mergeAudioToVideoStream(stream, audioStream)
-
-    // Validate the merged stream before recording
+    // Validate the stream before recording
     const validation = validateStreamForRecording(stream)
     if (!validation.valid) {
       onError(`Stream not ready: ${validation.errors.join(', ')}`)
@@ -190,7 +149,7 @@ export default function ReelsCamera({
     recordingTimerRef.current = setTimeout(() => {
       stopVideoRecording()
     }, maxDuration * 1000)
-  }, [isRecorderSupported, maxDuration, onError, startRecording, stream, audioStream])
+  }, [isRecorderSupported, maxDuration, onError, startRecording, stream])
 
   // Stop video recording
   const stopVideoRecording = useCallback(async () => {
@@ -458,7 +417,7 @@ export default function ReelsCamera({
       <div className="flex-1 flex items-center justify-center overflow-hidden">
         <Webcam
           ref={webcamRef}
-          audio={false}
+          audio={true}
           videoConstraints={{
             facingMode: { ideal: facingMode },
           }}
@@ -478,12 +437,11 @@ export default function ReelsCamera({
       >
         {/* Recording hint with mic status */}
         <div className="flex items-center gap-2 mb-4">
-          {/* Mic status indicator */}
+          {/* Mic status indicator - green if stream has audio tracks, dim if not */}
           <div className={`flex items-center gap-1 ${
             isRecording ? 'text-red-400' :
-            audioStream ? 'text-green-400' :
-            audioAcquisitionFailed ? 'text-white/50' :
-            isAudioReady ? 'text-white/50' : 'text-yellow-400'
+            stream?.getAudioTracks().length ? 'text-green-400' :
+            stream ? 'text-white/50' : 'text-yellow-400'
           }`}>
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
@@ -491,8 +449,8 @@ export default function ReelsCamera({
           </div>
           <p className="text-white/70 text-sm">
             {isRecording ? 'Recording...' :
-             isAudioReady ? (audioAcquisitionFailed ? 'Hold to record (no mic)' : 'Hold to record') :
-             'Preparing audio...'}
+             stream ? (stream.getAudioTracks().length ? 'Hold to record' : 'Hold to record (no mic)') :
+             'Preparing camera...'}
           </p>
         </div>
 
