@@ -31,6 +31,18 @@ export default function ReelsCamera({
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [userGestureReceived, setUserGestureReceived] = useState(false)
+  const [cameraInitiated, setCameraInitiated] = useState(false)
+
+  // Debug state for Android WebView troubleshooting
+  const [debugLog, setDebugLog] = useState<string[]>([])
+  const [showDebug, setShowDebug] = useState(false)
+
+  // Helper to add debug log entries (keeps last 10)
+  const addDebugLog = (msg: string) => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    setDebugLog(prev => [...prev.slice(-9), `[${timestamp}] ${msg}`])
+    console.log(`[ReelsCamera] ${msg}`)
+  }
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -93,7 +105,7 @@ export default function ReelsCamera({
   const requestAudioWithGesture = useCallback(async () => {
     if (!stream) return
 
-    console.log('User gesture received, attempting to add audio track...')
+    addDebugLog('User gesture: requesting mic...')
     setUserGestureReceived(true)
 
     try {
@@ -110,36 +122,40 @@ export default function ReelsCamera({
 
       // Stop old stream's video track reference (it's now in combinedStream)
       setStream(combinedStream)
-      console.log('Audio track added successfully after user gesture')
+      addDebugLog('✓ Mic added via user gesture')
     } catch (err) {
       const e = err as DOMException
-      console.warn('Audio request failed even with user gesture:', e.name, e.message)
+      addDebugLog(`✗ Mic gesture failed: ${e.name}: ${e.message}`)
     }
   }, [stream])
 
   // Manual stream acquisition with audio fallback
   // This replaces react-webcam's automatic getUserMedia to handle mic permission denial gracefully
+  // Only runs when cameraInitiated is true (user clicked "Start Camera")
   useEffect(() => {
+    if (!cameraInitiated) return // Wait for user gesture to initiate camera
+
     let mounted = true
     let currentStream: MediaStream | null = null
 
     const acquireStream = async () => {
       const videoConstraints = { facingMode: { ideal: facingMode } }
+      addDebugLog(`Starting stream acquisition (facing: ${facingMode})`)
 
       // Check mic permission status first (if Permissions API available)
       try {
         if (navigator.permissions && navigator.permissions.query) {
           const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName })
-          console.log('Mic permission status:', micPermission.state)
+          addDebugLog(`Mic permission: ${micPermission.state}`)
         }
       } catch (e) {
-        console.log('Permissions API not available or mic query failed')
+        addDebugLog('Permissions API unavailable')
       }
 
       // Strategy 1: Try video + audio together with simple audio: true
       // This works best on Android WebView where complex constraints may fail
       try {
-        console.log('Attempting video+audio with audio: true')
+        addDebugLog('Strategy 1: video+audio together...')
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: true,
@@ -154,19 +170,20 @@ export default function ReelsCamera({
         setCameraError(null)
 
         const audioTracks = mediaStream.getAudioTracks()
-        console.log('Strategy 1 success - audio tracks:', audioTracks.length)
+        const videoTracks = mediaStream.getVideoTracks()
+        addDebugLog(`✓ Strategy 1 OK: ${videoTracks.length} video, ${audioTracks.length} audio`)
         if (audioTracks.length > 0) {
-          console.log('Audio track:', audioTracks[0].label, 'state:', audioTracks[0].readyState, 'enabled:', audioTracks[0].enabled)
+          addDebugLog(`Audio: ${audioTracks[0].label || 'unlabeled'} (${audioTracks[0].readyState})`)
         }
         return
       } catch (err) {
         const e = err as DOMException
-        console.warn('Strategy 1 failed (video+audio: true):', e.name, e.message)
+        addDebugLog(`✗ Strategy 1 failed: ${e.name}: ${e.message}`)
       }
 
       // Strategy 2: Get video first, then immediately try to add audio
       try {
-        console.log('Attempting video first, then auto-adding audio')
+        addDebugLog('Strategy 2: video first, then audio...')
         const videoStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: false,
@@ -178,6 +195,7 @@ export default function ReelsCamera({
 
         setHasPermission(true)
         setCameraError(null)
+        addDebugLog('✓ Video acquired, requesting audio...')
 
         // Immediately try to add audio (may work on some devices without gesture)
         try {
@@ -196,25 +214,25 @@ export default function ReelsCamera({
           ])
           currentStream = combinedStream
           setStream(combinedStream)
-          console.log('Strategy 2 success - video+audio combined')
+          addDebugLog('✓ Strategy 2 OK: video+audio combined')
           return
         } catch (audioErr) {
           // Audio failed - use video only, user can tap Enable Mic
           const e = audioErr as DOMException
-          console.warn('Audio auto-add failed:', e.name, e.message)
+          addDebugLog(`✗ Audio add failed: ${e.name}: ${e.message}`)
           currentStream = videoStream
           setStream(videoStream)
-          console.log('Video acquired - tap "Enable Mic" button to add audio')
+          addDebugLog('Video only - tap Enable Mic for audio')
           return
         }
       } catch (err) {
         const e = err as DOMException
-        console.warn('Video-only request failed:', e.name, e.message)
+        addDebugLog(`✗ Strategy 2 video failed: ${e.name}: ${e.message}`)
       }
 
       // Strategy 3: Last resort - video only
       try {
-        console.log('Attempting video only as last resort')
+        addDebugLog('Strategy 3: video only (last resort)...')
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: false,
@@ -227,10 +245,11 @@ export default function ReelsCamera({
         setStream(mediaStream)
         setHasPermission(true)
         setCameraError(null)
-        console.log('Strategy 3 success - video only')
+        addDebugLog('✓ Strategy 3 OK: video only')
       } catch (err) {
+        const e = err as DOMException
+        addDebugLog(`✗ All strategies failed: ${e.name}: ${e.message}`)
         if (mounted) {
-          console.error('All strategies failed:', err)
           handleUserMediaError(err as DOMException)
         }
       }
@@ -244,7 +263,7 @@ export default function ReelsCamera({
         currentStream.getTracks().forEach(t => t.stop())
       }
     }
-  }, [facingMode, handleUserMediaError])
+  }, [facingMode, handleUserMediaError, cameraInitiated])
 
   // Connect stream to video element
   useEffect(() => {
@@ -538,6 +557,48 @@ export default function ReelsCamera({
     )
   }
 
+  // Start screen - show before camera is initiated (requires user gesture for Android WebView)
+  if (!cameraInitiated) {
+    return createPortal(
+      <div className="fixed inset-0 bg-black z-[60] flex flex-col">
+        {/* Header with close button */}
+        <div className="flex items-center justify-between p-4">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Start button - centered */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-6">
+            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 className="text-white text-xl font-semibold mb-2">Record a Reel</h2>
+          <p className="text-gray-400 text-sm text-center mb-8">
+            Tap below to enable camera and microphone
+          </p>
+          <button
+            onClick={() => {
+              addDebugLog('User tapped Start Camera')
+              setCameraInitiated(true)
+            }}
+            className="w-full max-w-xs py-4 bg-red-500 text-white rounded-xl font-semibold text-lg active:bg-red-600 transition-colors"
+          >
+            Start Camera
+          </button>
+        </div>
+      </div>,
+      document.body
+    )
+  }
+
   // Camera view
   return createPortal(
     <div className="fixed inset-0 bg-black z-[60] flex flex-col">
@@ -561,6 +622,23 @@ export default function ReelsCamera({
           </svg>
         </button>
       </div>
+
+      {/* Debug overlay - toggleable for troubleshooting */}
+      {debugLog.length > 0 && (
+        <div className="absolute top-16 left-2 right-2 z-50">
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="bg-black/60 text-green-400 text-xs px-2 py-1 rounded mb-1"
+          >
+            {showDebug ? 'Hide' : 'Show'} Debug ({debugLog.length})
+          </button>
+          {showDebug && (
+            <pre className="bg-black/80 text-green-400 text-xs p-2 rounded max-h-40 overflow-auto font-mono">
+              {debugLog.join('\n')}
+            </pre>
+          )}
+        </div>
+      )}
 
       {/* Camera feed */}
       <div className="flex-1 flex items-center justify-center overflow-hidden">
