@@ -68,6 +68,9 @@ export default function ReelsCamera({
   // Handle camera errors
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera error:', error)
+    if (error instanceof DOMException) {
+      console.error('Error name:', error.name, 'Message:', error.message)
+    }
     setHasPermission(false)
 
     if (typeof error === 'string') {
@@ -78,6 +81,8 @@ export default function ReelsCamera({
       setCameraError('No camera found on this device.')
     } else if (error.name === 'NotReadableError') {
       setCameraError('Camera is in use by another application.')
+    } else if (error.name === 'OverconstrainedError') {
+      setCameraError('Camera does not support the requested settings. Please try again.')
     } else {
       setCameraError('Unable to access camera. Please try choosing from library instead.')
     }
@@ -115,10 +120,27 @@ export default function ReelsCamera({
   }, [onError])
 
   // Start video recording
-  const startVideoRecording = useCallback(() => {
+  const startVideoRecording = useCallback(async () => {
     if (!isRecorderSupported) {
       onError('Video recording is not supported in this browser')
       return
+    }
+
+    if (!stream) {
+      onError('No video stream available')
+      return
+    }
+
+    // Try to add audio track for recording
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const audioTrack = audioStream.getAudioTracks()[0]
+      if (audioTrack) {
+        stream.addTrack(audioTrack)
+      }
+    } catch (audioError) {
+      // Audio permission denied or unavailable - continue with video only
+      console.log('Audio unavailable for recording, continuing with video only:', audioError)
     }
 
     setIsRecording(true)
@@ -137,7 +159,7 @@ export default function ReelsCamera({
     recordingTimerRef.current = setTimeout(() => {
       stopVideoRecording()
     }, maxDuration * 1000)
-  }, [isRecorderSupported, maxDuration, onError, startRecording])
+  }, [isRecorderSupported, maxDuration, onError, startRecording, stream])
 
   // Stop video recording
   const stopVideoRecording = useCallback(async () => {
@@ -349,10 +371,12 @@ export default function ReelsCamera({
       <div className="flex-1 flex items-center justify-center overflow-hidden">
         <Webcam
           ref={webcamRef}
-          audio={true}
+          audio={false}
           videoConstraints={{
-            facingMode,
-            aspectRatio: 9 / 16,
+            facingMode: { ideal: facingMode },
+            aspectRatio: { ideal: 9 / 16 },
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
           }}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
