@@ -30,6 +30,7 @@ export default function ReelsCamera({
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
+  const [userGestureReceived, setUserGestureReceived] = useState(false)
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -88,6 +89,34 @@ export default function ReelsCamera({
     }
   }, [])
 
+  // Request audio with user gesture - Android WebView requires user interaction for mic
+  const requestAudioWithGesture = useCallback(async () => {
+    if (!stream) return
+
+    console.log('User gesture received, attempting to add audio track...')
+    setUserGestureReceived(true)
+
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: true,
+      })
+
+      // Combine existing video with new audio
+      const combinedStream = new MediaStream([
+        ...stream.getVideoTracks(),
+        ...audioStream.getAudioTracks(),
+      ])
+
+      // Stop old stream's video track reference (it's now in combinedStream)
+      setStream(combinedStream)
+      console.log('Audio track added successfully after user gesture')
+    } catch (err) {
+      const e = err as DOMException
+      console.warn('Audio request failed even with user gesture:', e.name, e.message)
+    }
+  }, [stream])
+
   // Manual stream acquisition with audio fallback
   // This replaces react-webcam's automatic getUserMedia to handle mic permission denial gracefully
   useEffect(() => {
@@ -96,6 +125,16 @@ export default function ReelsCamera({
 
     const acquireStream = async () => {
       const videoConstraints = { facingMode: { ideal: facingMode } }
+
+      // Check mic permission status first (if Permissions API available)
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+          console.log('Mic permission status:', micPermission.state)
+        }
+      } catch (e) {
+        console.log('Permissions API not available or mic query failed')
+      }
 
       // Strategy 1: Try video + audio together with simple audio: true
       // This works best on Android WebView where complex constraints may fail
@@ -121,13 +160,13 @@ export default function ReelsCamera({
         }
         return
       } catch (err) {
-        console.warn('Strategy 1 failed (video+audio: true):', err)
+        const e = err as DOMException
+        console.warn('Strategy 1 failed (video+audio: true):', e.name, e.message)
       }
 
-      // Strategy 2: Get video first, then add audio track separately
-      // Some Android WebViews handle separate requests better
+      // Strategy 2: Get video first, then try audio (will be retried with user gesture if needed)
       try {
-        console.log('Attempting video first, then audio separately')
+        console.log('Attempting video only first (audio will be requested on user gesture)')
         const videoStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: false,
@@ -137,43 +176,15 @@ export default function ReelsCamera({
           return
         }
 
-        // Try to get audio separately
-        try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: true,
-          })
-          if (!mounted) {
-            videoStream.getTracks().forEach(t => t.stop())
-            audioStream.getTracks().forEach(t => t.stop())
-            return
-          }
-
-          // Combine video and audio tracks into one stream
-          const combinedStream = new MediaStream([
-            ...videoStream.getVideoTracks(),
-            ...audioStream.getAudioTracks(),
-          ])
-
-          // Stop the original streams' references (tracks are now in combinedStream)
-          currentStream = combinedStream
-          setStream(combinedStream)
-          setHasPermission(true)
-          setCameraError(null)
-          console.log('Strategy 2 success - combined stream with audio')
-          return
-        } catch (audioErr) {
-          // Audio failed but video works - use video only
-          console.warn('Strategy 2 audio failed, using video only:', audioErr)
-          currentStream = videoStream
-          setStream(videoStream)
-          setHasPermission(true)
-          setCameraError(null)
-          console.log('Strategy 2 partial - video only (no audio)')
-          return
-        }
+        currentStream = videoStream
+        setStream(videoStream)
+        setHasPermission(true)
+        setCameraError(null)
+        console.log('Video acquired - tap "Enable Mic" button to add audio')
+        return
       } catch (err) {
-        console.warn('Strategy 2 failed completely:', err)
+        const e = err as DOMException
+        console.warn('Video-only request failed:', e.name, e.message)
       }
 
       // Strategy 3: Last resort - video only
@@ -543,13 +554,36 @@ export default function ReelsCamera({
         className="absolute bottom-0 left-0 right-0 pt-6 flex flex-col items-center"
         style={{ paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom) + 24px))' }}
       >
+        {/* No mic - show enable button or settings hint */}
+        {stream && !stream.getAudioTracks().length && !isRecording && (
+          <div className="mb-3 mx-4 max-w-xs">
+            {!userGestureReceived ? (
+              <button
+                onClick={requestAudioWithGesture}
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                </svg>
+                Tap to Enable Microphone
+              </button>
+            ) : (
+              <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg px-3 py-2">
+                <p className="text-yellow-200 text-xs text-center">
+                  Mic not available. Enable in Settings → Apps → World App → Permissions
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Recording hint with mic status */}
         <div className="flex items-center gap-2 mb-4">
           {/* Mic status indicator - green if stream has audio tracks, dim if not */}
           <div className={`flex items-center gap-1 ${
             isRecording ? 'text-red-400' :
             stream?.getAudioTracks().length ? 'text-green-400' :
-            stream ? 'text-white/50' : 'text-yellow-400'
+            stream ? 'text-yellow-400' : 'text-yellow-400'
           }`}>
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
