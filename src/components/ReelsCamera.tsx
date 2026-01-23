@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import Webcam from 'react-webcam'
 import { useMediaRecorder } from '@/hooks/useMediaRecorder'
 import { getPlatformInfo, getVideoFileExtension, getVideoMimeType } from '@/utils/platform'
 import { validateStreamForRecording } from '@/utils/audioMerger'
@@ -41,7 +40,7 @@ export default function ReelsCamera({
   const [previewMuted, setPreviewMuted] = useState(true)
 
   // Refs
-  const webcamRef = useRef<Webcam>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const previewVideoRef = useRef<HTMLVideoElement>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -66,21 +65,6 @@ export default function ReelsCamera({
     }
   }, [capturedMedia?.previewUrl])
 
-  // Handle stream from webcam (includes both video and audio when audio={true})
-  const handleUserMedia = useCallback((mediaStream: MediaStream) => {
-    setStream(mediaStream)
-    setHasPermission(true)
-    setCameraError(null)
-
-    // Log audio status for debugging
-    const audioTracks = mediaStream.getAudioTracks()
-    if (audioTracks.length > 0) {
-      console.log('Audio track acquired:', audioTracks[0].label, 'state:', audioTracks[0].readyState)
-    } else {
-      console.warn('No audio tracks in stream - recording will be silent')
-    }
-  }, [])
-
   // Handle camera errors
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera error:', error)
@@ -104,12 +88,86 @@ export default function ReelsCamera({
     }
   }, [])
 
+  // Manual stream acquisition with audio fallback
+  // This replaces react-webcam's automatic getUserMedia to handle mic permission denial gracefully
+  useEffect(() => {
+    let mounted = true
+    let currentStream: MediaStream | null = null
+
+    const acquireStream = async () => {
+      const videoConstraints = { facingMode: { ideal: facingMode } }
+
+      // Try video + audio first (single permission request is better on Android)
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        })
+        if (!mounted) {
+          mediaStream.getTracks().forEach(t => t.stop())
+          return
+        }
+        currentStream = mediaStream
+        setStream(mediaStream)
+        setHasPermission(true)
+        setCameraError(null)
+        console.log('Acquired stream with audio')
+
+        // Log audio status for debugging
+        const audioTracks = mediaStream.getAudioTracks()
+        if (audioTracks.length > 0) {
+          console.log('Audio track acquired:', audioTracks[0].label, 'state:', audioTracks[0].readyState)
+        }
+        return
+      } catch (err) {
+        console.warn('Video+audio failed, trying video only:', err)
+      }
+
+      // Fallback: video only (if mic permission denied but camera allowed)
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: false,
+        })
+        if (!mounted) {
+          mediaStream.getTracks().forEach(t => t.stop())
+          return
+        }
+        currentStream = mediaStream
+        setStream(mediaStream)
+        setHasPermission(true)
+        setCameraError(null)
+        console.log('Acquired stream without audio (fallback)')
+      } catch (err) {
+        if (mounted) {
+          handleUserMediaError(err as DOMException)
+        }
+      }
+    }
+
+    acquireStream()
+
+    return () => {
+      mounted = false
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop())
+      }
+    }
+  }, [facingMode, handleUserMediaError])
+
+  // Connect stream to video element
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream
+    }
+  }, [stream])
+
   // Switch camera
   const switchCamera = useCallback(() => {
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
   }, [])
 
-  // Start video recording (stream already has audio from Webcam with audio={true})
+  // Start video recording (stream may have audio if mic permission was granted)
   const startVideoRecording = useCallback(() => {
     if (!isRecorderSupported) {
       onError('Video recording is not supported in this browser')
@@ -415,18 +473,13 @@ export default function ReelsCamera({
 
       {/* Camera feed */}
       <div className="flex-1 flex items-center justify-center overflow-hidden">
-        <Webcam
-          ref={webcamRef}
-          audio={true}
-          videoConstraints={{
-            facingMode: { ideal: facingMode },
-          }}
-          onUserMedia={handleUserMedia}
-          onUserMediaError={handleUserMediaError}
-          screenshotFormat="image/jpeg"
-          screenshotQuality={1}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
           className="h-full w-full object-cover"
-          mirrored={facingMode === 'user'}
+          style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
         />
       </div>
 
