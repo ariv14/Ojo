@@ -26,6 +26,7 @@ export default function VideoTrimmer({
   const [error, setError] = useState<string | null>(null)
   const [startTime, setStartTime] = useState(0)
   const [previewTime, setPreviewTime] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const ffmpegRef = useRef<FFmpeg | null>(null)
@@ -81,10 +82,55 @@ export default function VideoTrimmer({
 
   // Sync video playback with preview time
   useEffect(() => {
-    if (videoRef.current && !isDraggingRef.current) {
+    if (videoRef.current && !isDraggingRef.current && !isPlaying) {
       videoRef.current.currentTime = previewTime
     }
-  }, [previewTime])
+  }, [previewTime, isPlaying])
+
+  // Handle timeupdate to loop within selected region
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleTimeUpdate = () => {
+      if (!isPlaying) return
+      const endTime = Math.min(startTime + maxDuration, duration)
+      if (video.currentTime >= endTime) {
+        video.currentTime = startTime
+      }
+    }
+
+    const handleEnded = () => {
+      if (isPlaying) {
+        video.currentTime = startTime
+        video.play()
+      }
+    }
+
+    video.addEventListener('timeupdate', handleTimeUpdate)
+    video.addEventListener('ended', handleEnded)
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate)
+      video.removeEventListener('ended', handleEnded)
+    }
+  }, [isPlaying, startTime, maxDuration, duration])
+
+  // Toggle play/pause
+  const togglePlayback = useCallback(() => {
+    const video = videoRef.current
+    if (!video || isLoading || isProcessing) return
+
+    if (isPlaying) {
+      video.pause()
+      setIsPlaying(false)
+    } else {
+      // Start playback from current selection start
+      video.currentTime = startTime
+      video.play()
+      setIsPlaying(true)
+    }
+  }, [isPlaying, isLoading, isProcessing, startTime])
 
   // Handle timeline drag
   const handleTimelineChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +139,13 @@ export default function VideoTrimmer({
     const clampedStart = Math.min(newStart, maxStart)
     setStartTime(clampedStart)
     setPreviewTime(clampedStart)
-  }, [duration, maxDuration])
+
+    // Pause playback when slider is moved
+    if (isPlaying && videoRef.current) {
+      videoRef.current.pause()
+      setIsPlaying(false)
+    }
+  }, [duration, maxDuration, isPlaying])
 
   const handleDragStart = useCallback(() => {
     isDraggingRef.current = true
@@ -200,13 +252,33 @@ export default function VideoTrimmer({
       {/* Video Preview */}
       <div className="flex-1 flex items-center justify-center overflow-hidden px-4">
         {videoUrlRef.current && (
-          <video
-            ref={videoRef}
-            src={videoUrlRef.current}
-            className="max-w-full max-h-full object-contain rounded-lg"
-            muted
-            playsInline
-          />
+          <div className="relative">
+            <video
+              ref={videoRef}
+              src={videoUrlRef.current}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              playsInline
+            />
+            {/* Play/Pause button overlay */}
+            {!isLoading && !isProcessing && (
+              <button
+                onClick={togglePlayback}
+                className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition"
+              >
+                <div className="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  {isPlaying ? (
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            )}
+          </div>
         )}
       </div>
 
