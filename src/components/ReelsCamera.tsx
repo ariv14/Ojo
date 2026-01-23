@@ -6,7 +6,7 @@ import Webcam from 'react-webcam'
 import { useMediaRecorder } from '@/hooks/useMediaRecorder'
 
 interface ReelsCameraProps {
-  onCapture: (file: File, type: 'video' | 'photo') => void
+  onCapture: (file: File, type: 'video') => void
   onClose: () => void
   onError: (error: string) => void
   maxDuration?: number
@@ -14,7 +14,6 @@ interface ReelsCameraProps {
 
 interface CapturedMedia {
   blob: Blob
-  type: 'video' | 'photo'
   previewUrl: string
 }
 
@@ -40,11 +39,9 @@ export default function ReelsCamera({
 
   // Refs
   const webcamRef = useRef<Webcam>(null)
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const recordingStartTimeRef = useRef<number>(0)
-  const isHoldingRef = useRef(false)
 
   // MediaRecorder hook
   const { start: startRecording, stop: stopRecording, isSupported: isRecorderSupported } = useMediaRecorder(stream)
@@ -52,7 +49,6 @@ export default function ReelsCamera({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
       if (recordingTimerRef.current) clearTimeout(recordingTimerRef.current)
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
       if (capturedMedia?.previewUrl) URL.revokeObjectURL(capturedMedia.previewUrl)
@@ -107,32 +103,6 @@ export default function ReelsCamera({
   const switchCamera = useCallback(() => {
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
   }, [])
-
-  // Take photo
-  const capturePhoto = useCallback(() => {
-    if (!webcamRef.current) return
-
-    const imageSrc = webcamRef.current.getScreenshot()
-    if (!imageSrc) {
-      onError('Failed to capture photo')
-      return
-    }
-
-    // Convert base64 to blob
-    fetch(imageSrc)
-      .then((res) => res.blob())
-      .then((blob) => {
-        const previewUrl = URL.createObjectURL(blob)
-        setCapturedMedia({
-          blob,
-          type: 'photo',
-          previewUrl,
-        })
-      })
-      .catch(() => {
-        onError('Failed to process photo')
-      })
-  }, [onError])
 
   // Start video recording (synchronous - audio is pre-acquired)
   const startVideoRecording = useCallback(() => {
@@ -191,13 +161,12 @@ export default function ReelsCamera({
       const previewUrl = URL.createObjectURL(blob)
       setCapturedMedia({
         blob,
-        type: 'video',
         previewUrl,
       })
     }
   }, [stopRecording])
 
-  // Handle press start (mouse/touch down)
+  // Handle press start (mouse/touch down) - start recording immediately
   const handlePressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     // Prevent default touch behavior to avoid interference
     if ('touches' in e) {
@@ -206,39 +175,20 @@ export default function ReelsCamera({
 
     if (capturedMedia || isRecording) return
 
-    isHoldingRef.current = true
-
-    // Start timer to differentiate tap vs hold
-    holdTimerRef.current = setTimeout(() => {
-      if (isHoldingRef.current) {
-        startVideoRecording()
-      }
-    }, 200)
+    startVideoRecording()
   }, [capturedMedia, isRecording, startVideoRecording])
 
-  // Handle press end (mouse/touch up)
+  // Handle press end (mouse/touch up) - stop recording
   const handlePressEnd = useCallback((e?: React.TouchEvent | React.MouseEvent) => {
     // Prevent default touch behavior
     if (e && 'touches' in e) {
       e.preventDefault()
     }
 
-    const wasHolding = isHoldingRef.current
-    isHoldingRef.current = false
-
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current)
-      holdTimerRef.current = null
-    }
-
     if (isRecording) {
-      // Was recording, stop it
       stopVideoRecording()
-    } else if (wasHolding && !capturedMedia) {
-      // Quick tap, take photo
-      capturePhoto()
     }
-  }, [isRecording, capturedMedia, stopVideoRecording, capturePhoto])
+  }, [isRecording, stopVideoRecording])
 
   // Handle retake
   const handleRetake = useCallback(() => {
@@ -252,12 +202,8 @@ export default function ReelsCamera({
   const handlePost = useCallback(() => {
     if (!capturedMedia) return
 
-    const extension = capturedMedia.type === 'video' ? 'webm' : 'jpg'
-    const mimeType = capturedMedia.type === 'video' ? 'video/webm' : 'image/jpeg'
-    const filename = `capture-${Date.now()}.${extension}`
-
-    const file = new File([capturedMedia.blob], filename, { type: mimeType })
-    onCapture(file, capturedMedia.type)
+    const file = new File([capturedMedia.blob], `capture-${Date.now()}.webm`, { type: 'video/webm' })
+    onCapture(file, 'video')
   }, [capturedMedia, onCapture])
 
   // Fallback UI component
@@ -315,22 +261,14 @@ export default function ReelsCamera({
       <div className="fixed inset-0 bg-black z-[60] flex flex-col">
         {/* Preview */}
         <div className="flex-1 flex items-center justify-center bg-black">
-          {capturedMedia.type === 'video' ? (
-            <video
-              src={capturedMedia.previewUrl}
-              className="max-w-full max-h-full object-contain"
-              autoPlay
-              loop
-              muted
-              playsInline
-            />
-          ) : (
-            <img
-              src={capturedMedia.previewUrl}
-              alt="Captured"
-              className="max-w-full max-h-full object-contain"
-            />
-          )}
+          <video
+            src={capturedMedia.previewUrl}
+            className="max-w-full max-h-full object-contain"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
         </div>
 
         {/* Actions */}
@@ -356,7 +294,7 @@ export default function ReelsCamera({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <span className="text-white text-sm">Use {capturedMedia.type}</span>
+            <span className="text-white text-sm">Use video</span>
           </button>
         </div>
       </div>,
@@ -409,7 +347,7 @@ export default function ReelsCamera({
       <div className="absolute bottom-0 left-0 right-0 pb-12 pt-6 flex flex-col items-center">
         {/* Recording hint */}
         <p className="text-white/70 text-sm mb-4">
-          {isRecording ? 'Recording...' : 'Tap for photo, hold for video'}
+          {isRecording ? 'Recording...' : 'Hold to record'}
         </p>
 
         {/* Capture button with progress ring */}

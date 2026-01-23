@@ -183,32 +183,19 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     video.src = URL.createObjectURL(file)
   }
 
-  const handleCameraCapture = async (file: File, type: 'video' | 'photo') => {
+  const handleCameraCapture = async (file: File, type: 'video') => {
     setShowCamera(false)
 
-    if (type === 'video') {
-      // Validate video duration
-      const isValid = await validateVideo(file)
-      if (!isValid) {
-        setError('Video must be 10 seconds or shorter')
-        return
-      }
-
-      setSelectedVideo(file)
-      setVideoPreview(URL.createObjectURL(file))
-      extractVideoThumbnail(file)
-    } else {
-      // Photo captured - convert to video is not needed, just use as thumbnail preview
-      // For now, we'll treat photo captures as single-frame videos by converting to video
-      // Or we can simply not support photo mode for reels and only do video
-      // Let's just use the photo as a static reel with 1 second duration
-      setSelectedVideo(file)
-      setVideoPreview(URL.createObjectURL(file))
-      setVideoDuration(1)
-      // Use the photo itself as thumbnail
-      const blob = await file.arrayBuffer().then((buf) => new Blob([buf], { type: file.type }))
-      setVideoThumbnail(blob)
+    // Validate video duration
+    const isValid = await validateVideo(file)
+    if (!isValid) {
+      setError('Video must be 10 seconds or shorter')
+      return
     }
+
+    setSelectedVideo(file)
+    setVideoPreview(URL.createObjectURL(file))
+    extractVideoThumbnail(file)
     setError('')
   }
 
