@@ -576,7 +576,7 @@ export default function ReelsCamera({
         ref={nativeInputRef}
         type="file"
         accept="video/*"
-        capture="environment"
+        capture
         onChange={handleNativeCapture}
         className="hidden"
       />
@@ -778,10 +778,21 @@ export default function ReelsCamera({
                 Tap to Enable Microphone
               </button>
             ) : (
-              <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg px-3 py-2">
-                <p className="text-yellow-200 text-xs text-center">
-                  Recording without audio (mic blocked)
-                </p>
+              <div className="space-y-2">
+                <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg px-3 py-2">
+                  <p className="text-yellow-200 text-xs text-center">
+                    Recording without audio (mic blocked)
+                  </p>
+                </div>
+                <button
+                  onClick={() => nativeInputRef.current?.click()}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                  </svg>
+                  Use System Camera (with audio)
+                </button>
               </div>
             )}
           </div>
@@ -858,6 +869,16 @@ export default function ReelsCamera({
           </button>
         </div>
       </div>
+
+      {/* Hidden native file input for system camera with audio */}
+      <input
+        ref={nativeInputRef}
+        type="file"
+        accept="video/*"
+        capture
+        onChange={handleNativeCapture}
+        className="hidden"
+      />
     </div>,
     document.body
   )
