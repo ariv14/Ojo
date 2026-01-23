@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { compressImage } from '@/utils/compress'
 import { ensureWalletConnected } from '@/lib/wallet'
+import ReelsCamera from '@/components/ReelsCamera'
 
 type MediaType = 'image' | 'album' | 'reel'
 
@@ -46,6 +47,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const [videoPreview, setVideoPreview] = useState<string | null>(null)
   const [videoDuration, setVideoDuration] = useState<number>(0)
   const [videoThumbnail, setVideoThumbnail] = useState<Blob | null>(null)
+  const [showCamera, setShowCamera] = useState(false)
 
   // Common state
   const [caption, setCaption] = useState('')
@@ -179,6 +181,35 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     }
 
     video.src = URL.createObjectURL(file)
+  }
+
+  const handleCameraCapture = async (file: File, type: 'video' | 'photo') => {
+    setShowCamera(false)
+
+    if (type === 'video') {
+      // Validate video duration
+      const isValid = await validateVideo(file)
+      if (!isValid) {
+        setError('Video must be 10 seconds or shorter')
+        return
+      }
+
+      setSelectedVideo(file)
+      setVideoPreview(URL.createObjectURL(file))
+      extractVideoThumbnail(file)
+    } else {
+      // Photo captured - convert to video is not needed, just use as thumbnail preview
+      // For now, we'll treat photo captures as single-frame videos by converting to video
+      // Or we can simply not support photo mode for reels and only do video
+      // Let's just use the photo as a static reel with 1 second duration
+      setSelectedVideo(file)
+      setVideoPreview(URL.createObjectURL(file))
+      setVideoDuration(1)
+      // Use the photo itself as thumbnail
+      const blob = await file.arrayBuffer().then((buf) => new Blob([buf], { type: file.type }))
+      setVideoThumbnail(blob)
+    }
+    setError('')
   }
 
   const removeAlbumImage = (index: number) => {
@@ -575,6 +606,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     setVideoPreview(null)
     setVideoDuration(0)
     setVideoThumbnail(null)
+    setShowCamera(false)
     setError('')
   }
 
@@ -805,7 +837,17 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           {/* Reel Upload */}
           {mediaType === 'reel' && (
             <>
-              {videoPreview ? (
+              {showCamera ? (
+                <ReelsCamera
+                  onCapture={handleCameraCapture}
+                  onClose={() => setShowCamera(false)}
+                  onError={(error) => {
+                    setError(error)
+                    setShowCamera(false)
+                  }}
+                  maxDuration={10}
+                />
+              ) : videoPreview ? (
                 <div className="space-y-4">
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
                     <video
@@ -850,14 +892,16 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                       />
                     </svg>
                     <p className="text-gray-500 text-center">
-                      Add a video
+                      Create a Reel
                       <br />
                       <span className="text-xs text-gray-400">Max 10 seconds</span>
                     </p>
                   </div>
+
+                  {/* Primary: Open Camera */}
                   <button
                     type="button"
-                    onClick={() => videoInputRef.current?.click()}
+                    onClick={() => setShowCamera(true)}
                     className="w-full py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -868,7 +912,31 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                         d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                       />
                     </svg>
-                    Add Video
+                    Open Camera
+                  </button>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-gray-300" />
+                    <span className="text-sm text-gray-400">or</span>
+                    <div className="flex-1 h-px bg-gray-300" />
+                  </div>
+
+                  {/* Secondary: Choose from Library */}
+                  <button
+                    type="button"
+                    onClick={() => videoInputRef.current?.click()}
+                    className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Choose from Library
                   </button>
                 </div>
               )}
