@@ -325,6 +325,41 @@ export default function AdminPage() {
     if (report.target_type !== 'post') return
     setProcessingReportId(report.id)
 
+    // Fetch the post to get its media URLs for R2 cleanup
+    const { data: postData } = await supabase
+      .from('posts')
+      .select('image_url, media_urls, thumbnail_url')
+      .eq('id', report.target_id)
+      .single()
+
+    // Clean up R2/Supabase storage before deleting from DB
+    if (postData) {
+      // Handle legacy Supabase Storage images
+      if (postData.image_url) {
+        const filename = postData.image_url.split('/photos/')[1]?.split('?')[0]
+        if (filename) {
+          await supabase.storage.from('photos').remove([filename])
+        }
+      }
+
+      // Handle R2 media (albums and reels)
+      if (postData.media_urls && postData.media_urls.length > 0) {
+        const keysToDelete = postData.media_urls.map((m: { key: string }) => m.key)
+        if (postData.thumbnail_url) {
+          keysToDelete.push(postData.thumbnail_url)
+        }
+        try {
+          await fetch('/api/s3-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keys: keysToDelete }),
+          })
+        } catch (error) {
+          console.error('Failed to delete R2 objects:', error)
+        }
+      }
+    }
+
     const { error: deleteError } = await supabase.from('posts').delete().eq('id', report.target_id)
     const { data: reportData, error: reportError } = await supabase
       .from('reports')
