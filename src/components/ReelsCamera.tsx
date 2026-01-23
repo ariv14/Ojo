@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Webcam from 'react-webcam'
 import { useMediaRecorder } from '@/hooks/useMediaRecorder'
 
@@ -218,7 +219,7 @@ export default function ReelsCamera({
 
   // Fallback UI component
   const FallbackUI = () => (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="fixed inset-0 bg-black z-[60] flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <button
@@ -262,13 +263,13 @@ export default function ReelsCamera({
 
   // Show fallback if camera error
   if (hasPermission === false || cameraError) {
-    return <FallbackUI />
+    return createPortal(<FallbackUI />, document.body)
   }
 
   // Preview screen
   if (capturedMedia) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    return createPortal(
+      <div className="fixed inset-0 bg-black z-[60] flex flex-col">
         {/* Preview */}
         <div className="flex-1 flex items-center justify-center bg-black">
           {capturedMedia.type === 'video' ? (
@@ -315,13 +316,14 @@ export default function ReelsCamera({
             <span className="text-white text-sm">Use {capturedMedia.type}</span>
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     )
   }
 
   // Camera view
-  return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+  return createPortal(
+    <div className="fixed inset-0 bg-black z-[60] flex flex-col">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
         <button
@@ -418,6 +420,7 @@ export default function ReelsCamera({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
