@@ -29,6 +29,7 @@ export default function ReelsCamera({
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -57,6 +58,20 @@ export default function ReelsCamera({
       if (capturedMedia?.previewUrl) URL.revokeObjectURL(capturedMedia.previewUrl)
     }
   }, [capturedMedia?.previewUrl])
+
+  // Request audio permission upfront (non-blocking)
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => setAudioStream(stream))
+      .catch(() => console.log('Audio unavailable for recording'))
+
+    return () => {
+      // Cleanup audio stream on unmount
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle stream from webcam
   const handleUserMedia = useCallback((mediaStream: MediaStream) => {
@@ -119,8 +134,8 @@ export default function ReelsCamera({
       })
   }, [onError])
 
-  // Start video recording
-  const startVideoRecording = useCallback(async () => {
+  // Start video recording (synchronous - audio is pre-acquired)
+  const startVideoRecording = useCallback(() => {
     if (!isRecorderSupported) {
       onError('Video recording is not supported in this browser')
       return
@@ -131,16 +146,12 @@ export default function ReelsCamera({
       return
     }
 
-    // Try to add audio track for recording
-    try {
-      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    // Add pre-acquired audio track if available
+    if (audioStream) {
       const audioTrack = audioStream.getAudioTracks()[0]
-      if (audioTrack) {
-        stream.addTrack(audioTrack)
+      if (audioTrack && !stream.getAudioTracks().length) {
+        stream.addTrack(audioTrack.clone())
       }
-    } catch (audioError) {
-      // Audio permission denied or unavailable - continue with video only
-      console.log('Audio unavailable for recording, continuing with video only:', audioError)
     }
 
     setIsRecording(true)
@@ -159,7 +170,7 @@ export default function ReelsCamera({
     recordingTimerRef.current = setTimeout(() => {
       stopVideoRecording()
     }, maxDuration * 1000)
-  }, [isRecorderSupported, maxDuration, onError, startRecording, stream])
+  }, [isRecorderSupported, maxDuration, onError, startRecording, stream, audioStream])
 
   // Stop video recording
   const stopVideoRecording = useCallback(async () => {
@@ -187,7 +198,12 @@ export default function ReelsCamera({
   }, [stopRecording])
 
   // Handle press start (mouse/touch down)
-  const handlePressStart = useCallback(() => {
+  const handlePressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    // Prevent default touch behavior to avoid interference
+    if ('touches' in e) {
+      e.preventDefault()
+    }
+
     if (capturedMedia || isRecording) return
 
     isHoldingRef.current = true
@@ -201,7 +217,12 @@ export default function ReelsCamera({
   }, [capturedMedia, isRecording, startVideoRecording])
 
   // Handle press end (mouse/touch up)
-  const handlePressEnd = useCallback(() => {
+  const handlePressEnd = useCallback((e?: React.TouchEvent | React.MouseEvent) => {
+    // Prevent default touch behavior
+    if (e && 'touches' in e) {
+      e.preventDefault()
+    }
+
     const wasHolding = isHoldingRef.current
     isHoldingRef.current = false
 
@@ -374,13 +395,11 @@ export default function ReelsCamera({
           audio={false}
           videoConstraints={{
             facingMode: { ideal: facingMode },
-            aspectRatio: { ideal: 9 / 16 },
-            width: { ideal: 1080 },
-            height: { ideal: 1920 },
           }}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
           screenshotFormat="image/jpeg"
+          screenshotQuality={1}
           className="h-full w-full object-cover"
           mirrored={facingMode === 'user'}
         />
