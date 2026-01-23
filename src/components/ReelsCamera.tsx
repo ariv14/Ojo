@@ -4,6 +4,14 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Webcam from 'react-webcam'
 import { useMediaRecorder } from '@/hooks/useMediaRecorder'
+import { getPlatformInfo, getVideoFileExtension, getVideoMimeType } from '@/utils/platform'
+import {
+  acquireAudioStream,
+  mergeAudioToVideoStream,
+  validateStreamForRecording,
+  cleanupStream,
+} from '@/utils/audioMerger'
+import { safeUnmuteVideo } from '@/utils/audioUnlock'
 
 interface ReelsCameraProps {
   onCapture: (file: File, type: 'video') => void
@@ -34,6 +42,7 @@ export default function ReelsCamera({
   const [isRecording, setIsRecording] = useState(false)
   const [recordingProgress, setRecordingProgress] = useState(0)
   const [isAudioReady, setIsAudioReady] = useState(false)
+  const [audioAcquisitionFailed, setAudioAcquisitionFailed] = useState(false)
 
   // Preview state
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia | null>(null)
@@ -65,23 +74,31 @@ export default function ReelsCamera({
     }
   }, [capturedMedia?.previewUrl])
 
-  // Request audio permission upfront (non-blocking)
+  // Request audio permission upfront with retry logic
   useEffect(() => {
     let mounted = true
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        if (mounted) {
-          setAudioStream(stream)
-          setIsAudioReady(true)
-        } else {
-          // Component unmounted before audio was ready, clean up
-          stream.getTracks().forEach(track => track.stop())
-        }
-      })
-      .catch(() => {
-        console.log('Audio unavailable for recording')
-        if (mounted) setIsAudioReady(true) // Allow recording without audio
-      })
+
+    const initAudio = async () => {
+      const acquiredStream = await acquireAudioStream(3, 500)
+
+      if (!mounted) {
+        // Component unmounted before audio was ready, clean up
+        cleanupStream(acquiredStream)
+        return
+      }
+
+      if (acquiredStream) {
+        setAudioStream(acquiredStream)
+        setIsAudioReady(true)
+        setAudioAcquisitionFailed(false)
+      } else {
+        console.log('Audio acquisition failed after retries')
+        setIsAudioReady(true) // Allow recording without audio
+        setAudioAcquisitionFailed(true)
+      }
+    }
+
+    initAudio()
 
     return () => {
       mounted = false
@@ -91,9 +108,7 @@ export default function ReelsCamera({
   // Cleanup audio stream when it changes or on unmount
   useEffect(() => {
     return () => {
-      if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop())
-      }
+      cleanupStream(audioStream)
     }
   }, [audioStream])
 
@@ -132,7 +147,7 @@ export default function ReelsCamera({
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
   }, [])
 
-  // Start video recording (synchronous - audio is pre-acquired)
+  // Start video recording with proper audio merging and validation
   const startVideoRecording = useCallback(() => {
     if (!isRecorderSupported) {
       onError('Video recording is not supported in this browser')
@@ -144,12 +159,19 @@ export default function ReelsCamera({
       return
     }
 
-    // Add pre-acquired audio track if available
-    if (audioStream) {
-      const audioTrack = audioStream.getAudioTracks()[0]
-      if (audioTrack && !stream.getAudioTracks().length) {
-        stream.addTrack(audioTrack.clone())
-      }
+    // Merge audio into video stream with validation
+    mergeAudioToVideoStream(stream, audioStream)
+
+    // Validate the merged stream before recording
+    const validation = validateStreamForRecording(stream)
+    if (!validation.valid) {
+      onError(`Stream not ready: ${validation.errors.join(', ')}`)
+      return
+    }
+
+    // Log audio status
+    if (!validation.audioTrackActive) {
+      console.warn('Recording will proceed without audio')
     }
 
     setIsRecording(true)
@@ -248,13 +270,16 @@ export default function ReelsCamera({
     setPreviewMuted(true) // Reset mute state for next recording
   }, [capturedMedia])
 
-  // Handle post
+  // Handle post with platform-aware file extension
   const handlePost = useCallback(() => {
     if (!capturedMedia) return
 
-    // Ensure valid MIME type - blob.type may be empty on some platforms (especially iOS WebView)
-    const mimeType = capturedMedia.blob.type || 'video/mp4'
-    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
+    const platform = getPlatformInfo()
+
+    // Get proper MIME type and extension for the platform
+    const mimeType = getVideoMimeType(capturedMedia.blob.type, platform)
+    const ext = getVideoFileExtension(capturedMedia.blob.type, platform)
+
     const file = new File(
       [capturedMedia.blob],
       `capture-${Date.now()}.${ext}`,
@@ -262,6 +287,28 @@ export default function ReelsCamera({
     )
     onCapture(file, 'video')
   }, [capturedMedia, onCapture])
+
+  // Handle preview unmute with iOS AudioContext unlock
+  const handlePreviewUnmute = useCallback(async () => {
+    if (previewVideoRef.current) {
+      const success = await safeUnmuteVideo(previewVideoRef.current)
+      if (success) {
+        setPreviewMuted(false)
+      }
+    }
+  }, [])
+
+  // Toggle preview mute
+  const togglePreviewMute = useCallback(() => {
+    if (previewMuted) {
+      handlePreviewUnmute()
+    } else {
+      if (previewVideoRef.current) {
+        previewVideoRef.current.muted = true
+      }
+      setPreviewMuted(true)
+    }
+  }, [previewMuted, handlePreviewUnmute])
 
   // Fallback UI component
   const FallbackUI = () => (
@@ -326,10 +373,11 @@ export default function ReelsCamera({
             loop
             muted={previewMuted}
             playsInline
+            webkit-playsinline="true"
           />
           {/* Mute toggle for preview */}
           <button
-            onClick={() => setPreviewMuted(!previewMuted)}
+            onClick={togglePreviewMute}
             className={`absolute bottom-4 right-4 bg-black/60 text-white p-3 rounded-full z-10 ${previewMuted ? 'animate-pulse' : ''}`}
           >
             {previewMuted ? (
@@ -431,13 +479,20 @@ export default function ReelsCamera({
         {/* Recording hint with mic status */}
         <div className="flex items-center gap-2 mb-4">
           {/* Mic status indicator */}
-          <div className={`flex items-center gap-1 ${isRecording ? 'text-red-400' : audioStream ? 'text-green-400' : isAudioReady ? 'text-white/50' : 'text-yellow-400'}`}>
+          <div className={`flex items-center gap-1 ${
+            isRecording ? 'text-red-400' :
+            audioStream ? 'text-green-400' :
+            audioAcquisitionFailed ? 'text-white/50' :
+            isAudioReady ? 'text-white/50' : 'text-yellow-400'
+          }`}>
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
             </svg>
           </div>
           <p className="text-white/70 text-sm">
-            {isRecording ? 'Recording...' : isAudioReady ? 'Hold to record' : 'Preparing audio...'}
+            {isRecording ? 'Recording...' :
+             isAudioReady ? (audioAcquisitionFailed ? 'Hold to record (no mic)' : 'Hold to record') :
+             'Preparing audio...'}
           </p>
         </div>
 

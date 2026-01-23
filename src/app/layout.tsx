@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MiniKitProvider from "@/components/MiniKitProvider";
+import AudioUnlockProvider from "@/components/AudioUnlockProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MiniKitProvider>{children}</MiniKitProvider>
+        <MiniKitProvider>
+          <AudioUnlockProvider>{children}</AudioUnlockProvider>
+        </MiniKitProvider>
       </body>
     </html>
   );

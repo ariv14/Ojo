@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { getS3PublicUrl } from '@/lib/s3'
+import SafeVideoPlayer, { SafeVideoPlayerRef } from '@/components/SafeVideoPlayer'
 
 interface MediaUrl {
   key: string
@@ -367,12 +368,13 @@ interface ReelPlayerProps {
 }
 
 function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, locked, hasWallet, onUnlock, onLoaded }: ReelPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoRef = useRef<SafeVideoPlayerRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [isVideoReady, setIsVideoReady] = useState(!!localVideoUrl)
   const [showMuteHint, setShowMuteHint] = useState(true)
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const hasCalledLoaded = useRef(false)
 
   // Use local URLs if available, otherwise use remote
@@ -396,19 +398,18 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
 
   // Auto-play when 50% visible using IntersectionObserver
   useEffect(() => {
-    if (locked || !videoRef.current) return
+    if (locked) return
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             videoRef.current?.play().catch(() => {
-              // Autoplay may be blocked, that's ok
+              // Autoplay may be blocked
+              setAutoplayBlocked(true)
             })
-            setIsPlaying(true)
           } else {
             videoRef.current?.pause()
-            setIsPlaying(false)
           }
         })
       },
@@ -434,25 +435,36 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   const togglePlay = () => {
     if (locked) return
 
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause()
-      } else {
-        videoRef.current.play()
-      }
-      setIsPlaying(!isPlaying)
+    if (isPlaying) {
+      videoRef.current?.pause()
+    } else {
+      videoRef.current?.play()
+      setAutoplayBlocked(false)
     }
   }
 
-  const toggleMute = (e: React.MouseEvent) => {
+  const handleToggleMute = async (e: React.MouseEvent) => {
     e.stopPropagation()
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
-      if (isMuted) {
+      const newMutedState = await videoRef.current.toggleMute()
+      setIsMuted(newMutedState)
+      if (!newMutedState) {
         setShowMuteHint(false) // Hide hint when user unmutes
       }
     }
+  }
+
+  const handlePlay = () => {
+    setIsPlaying(true)
+    setAutoplayBlocked(false)
+  }
+
+  const handlePause = () => {
+    setIsPlaying(false)
+  }
+
+  const handleAutoplayBlocked = () => {
+    setAutoplayBlocked(true)
   }
 
   return (
@@ -481,20 +493,22 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
           {/* Skeleton while video loads */}
           {!isVideoReady && <MediaSkeleton />}
 
-          <video
+          <SafeVideoPlayer
             ref={videoRef}
             src={displayVideoUrl}
             poster={displayThumbnailUrl}
             muted={isMuted}
             loop
-            playsInline
-            onCanPlay={handleVideoCanPlay}
             className={`w-full max-h-[450px] md:max-h-[600px] object-contain ${!isVideoReady ? 'hidden' : ''}`}
             onClick={togglePlay}
+            onCanPlay={handleVideoCanPlay}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onAutoplayBlocked={handleAutoplayBlocked}
           />
 
-          {/* Play/Pause overlay */}
-          {!isPlaying && isVideoReady && (
+          {/* Play/Pause overlay - show when paused or autoplay blocked */}
+          {((!isPlaying && isVideoReady) || autoplayBlocked) && (
             <button
               type="button"
               onClick={togglePlay}
@@ -512,7 +526,7 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
           {isVideoReady && (
             <button
               type="button"
-              onClick={toggleMute}
+              onClick={handleToggleMute}
               className={`absolute bottom-3 right-3 bg-black/60 text-white p-2 rounded-full z-10 ${
                 isMuted && isPlaying ? 'animate-pulse' : ''
               }`}
@@ -534,7 +548,7 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
           {isVideoReady && isMuted && isPlaying && showMuteHint && (
             <div
               className="absolute bottom-12 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded z-10 animate-pulse"
-              onClick={toggleMute}
+              onClick={handleToggleMute}
             >
               Tap to unmute
             </div>

@@ -1,6 +1,21 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { getPlatformInfo, getVideoMimeType } from '@/utils/platform'
+import { validateStreamForRecording, StreamValidation } from '@/utils/audioMerger'
+
+export interface RecordingDiagnostics {
+  mimeType: string
+  hasVideo: boolean
+  hasAudio: boolean
+  blobSize: number
+  durationMs: number
+  platform: {
+    isIOS: boolean
+    isAndroid: boolean
+    isWebView: boolean
+  }
+}
 
 interface UseMediaRecorderReturn {
   start: () => void
@@ -9,46 +24,26 @@ interface UseMediaRecorderReturn {
   isRecording: boolean
   isSupported: boolean
   error: string | null
+  diagnostics: RecordingDiagnostics | null
+  streamValidation: StreamValidation | null
 }
 
 function getSupportedMimeType(): string | null {
-  // Detect iOS/Safari - they don't support webm playback
-  const isIOS = typeof navigator !== 'undefined' && (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  )
-  const isSafari = typeof navigator !== 'undefined' &&
-    /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-  const needsMP4 = isIOS || isSafari
-
-  // iOS/Safari: MP4 only (webm won't play back)
-  // Android/Chrome: webm preferred (better compression), mp4 fallback
-  const types = needsMP4 ? [
-    'video/mp4',
-    'video/mp4;codecs=avc1',
-  ] : [
-    'video/webm;codecs=vp9',
-    'video/webm;codecs=vp8',
-    'video/webm',
-    'video/mp4',
-  ]
-
-  for (const type of types) {
-    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) {
-      return type
-    }
-  }
-  return null
+  const platform = getPlatformInfo()
+  return platform.supportedVideoMimeType
 }
 
 export function useMediaRecorder(stream: MediaStream | null): UseMediaRecorderReturn {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [diagnostics, setDiagnostics] = useState<RecordingDiagnostics | null>(null)
+  const [streamValidation, setStreamValidation] = useState<StreamValidation | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const stopResolveRef = useRef<((blob: Blob | null) => void) | null>(null)
+  const startTimeRef = useRef<number>(0)
 
   const isSupported = typeof MediaRecorder !== 'undefined' && getSupportedMimeType() !== null
 
@@ -78,10 +73,26 @@ export function useMediaRecorder(stream: MediaStream | null): UseMediaRecorderRe
       return
     }
 
+    // Validate stream before starting
+    const validation = validateStreamForRecording(stream)
+    setStreamValidation(validation)
+
+    if (!validation.valid) {
+      setError(`Stream not ready: ${validation.errors.join(', ')}`)
+      return
+    }
+
+    // Log audio status for debugging
+    if (!validation.audioTrackActive) {
+      console.warn('Recording will have no audio - audio track not active')
+    }
+
     try {
       chunksRef.current = []
       setRecordedBlob(null)
       setError(null)
+      setDiagnostics(null)
+      startTimeRef.current = Date.now()
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType })
       mediaRecorderRef.current = mediaRecorder
@@ -93,9 +104,31 @@ export function useMediaRecorder(stream: MediaStream | null): UseMediaRecorderRe
       }
 
       mediaRecorder.onstop = () => {
-        // Ensure we have a valid MIME type - fallback to mp4 if undefined
-        const mimeTypeBase = mimeType?.split(';')[0] || 'video/mp4'
-        const blob = new Blob(chunksRef.current, { type: mimeTypeBase })
+        const platform = getPlatformInfo()
+        const durationMs = Date.now() - startTimeRef.current
+
+        // Get proper MIME type - force video/mp4 on iOS
+        const finalMimeType = getVideoMimeType(mimeType, platform)
+        const blob = new Blob(chunksRef.current, { type: finalMimeType })
+
+        // Build diagnostics
+        const diag: RecordingDiagnostics = {
+          mimeType: finalMimeType,
+          hasVideo: stream.getVideoTracks().length > 0,
+          hasAudio: stream.getAudioTracks().some(
+            (t) => t.readyState === 'live' && t.enabled
+          ),
+          blobSize: blob.size,
+          durationMs,
+          platform: {
+            isIOS: platform.isIOS,
+            isAndroid: platform.isAndroid,
+            isWebView: platform.isWebView,
+          },
+        }
+
+        console.log('Recording complete:', diag)
+        setDiagnostics(diag)
         setRecordedBlob(blob)
         setIsRecording(false)
 
@@ -144,5 +177,7 @@ export function useMediaRecorder(stream: MediaStream | null): UseMediaRecorderRe
     isRecording,
     isSupported,
     error,
+    diagnostics,
+    streamValidation,
   }
 }
