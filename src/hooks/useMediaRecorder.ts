@@ -94,7 +94,11 @@ export function useMediaRecorder(stream: MediaStream | null): UseMediaRecorderRe
       setDiagnostics(null)
       startTimeRef.current = Date.now()
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType })
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128000,  // 128 kbps audio
+        videoBitsPerSecond: 2500000, // 2.5 Mbps video
+      })
       mediaRecorderRef.current = mediaRecorder
 
       mediaRecorder.ondataavailable = (event) => {

@@ -164,9 +164,9 @@ export default function ReelsCamera({
         console.warn('Strategy 1 failed (video+audio: true):', e.name, e.message)
       }
 
-      // Strategy 2: Get video first, then try audio (will be retried with user gesture if needed)
+      // Strategy 2: Get video first, then immediately try to add audio
       try {
-        console.log('Attempting video only first (audio will be requested on user gesture)')
+        console.log('Attempting video first, then auto-adding audio')
         const videoStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: false,
@@ -176,12 +176,37 @@ export default function ReelsCamera({
           return
         }
 
-        currentStream = videoStream
-        setStream(videoStream)
         setHasPermission(true)
         setCameraError(null)
-        console.log('Video acquired - tap "Enable Mic" button to add audio')
-        return
+
+        // Immediately try to add audio (may work on some devices without gesture)
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true,
+          })
+          if (!mounted) {
+            videoStream.getTracks().forEach(t => t.stop())
+            audioStream.getTracks().forEach(t => t.stop())
+            return
+          }
+          const combinedStream = new MediaStream([
+            ...videoStream.getVideoTracks(),
+            ...audioStream.getAudioTracks(),
+          ])
+          currentStream = combinedStream
+          setStream(combinedStream)
+          console.log('Strategy 2 success - video+audio combined')
+          return
+        } catch (audioErr) {
+          // Audio failed - use video only, user can tap Enable Mic
+          const e = audioErr as DOMException
+          console.warn('Audio auto-add failed:', e.name, e.message)
+          currentStream = videoStream
+          setStream(videoStream)
+          console.log('Video acquired - tap "Enable Mic" button to add audio')
+          return
+        }
       } catch (err) {
         const e = err as DOMException
         console.warn('Video-only request failed:', e.name, e.message)

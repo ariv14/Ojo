@@ -76,9 +76,9 @@ function getSupportedMimeType(needsMP4: boolean): string | null {
 
   // iOS/Safari: MP4 only (webm won't play back)
   // Android/Chrome: webm preferred (better compression), mp4 fallback
-  // Include audio codec (opus) to ensure audio is recorded properly
+  // Prioritize formats with explicit audio codec (mp4a.40.2 or aac) to ensure audio is recorded
   const types = needsMP4
-    ? ['video/mp4', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1']
+    ? ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,aac', 'video/mp4']
     : [
         'video/webm;codecs=vp9,opus',
         'video/webm;codecs=vp8,opus',
