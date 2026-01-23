@@ -572,9 +572,7 @@ export default function ReelsCamera({
       <input
         ref={nativeInputRef}
         type="file"
-        accept="video/*"
-        // @ts-expect-error - strictly force video camcorder intent for Android WebView
-        capture="camcorder"
+        accept="video/mp4,video/x-m4v,video/*"
         onChange={handleNativeCapture}
         className="hidden"
       />
