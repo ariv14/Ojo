@@ -47,6 +47,12 @@ interface Post {
   media_type?: 'image' | 'album' | 'reel'
   media_urls?: MediaUrl[]
   thumbnail_url?: string
+  localBlobs?: {
+    localImageUrl?: string
+    localMediaUrls?: string[]
+    localVideoUrl?: string
+    localThumbnailUrl?: string
+  }
 }
 
 function FeedContent() {
@@ -173,6 +179,20 @@ function FeedContent() {
       supabase.removeChannel(postsChannel)
     }
   }, [router])
+
+  // Cleanup blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      posts.forEach(post => {
+        if (post.localBlobs) {
+          if (post.localBlobs.localImageUrl) URL.revokeObjectURL(post.localBlobs.localImageUrl)
+          post.localBlobs.localMediaUrls?.forEach(url => URL.revokeObjectURL(url))
+          if (post.localBlobs.localVideoUrl) URL.revokeObjectURL(post.localBlobs.localVideoUrl)
+          if (post.localBlobs.localThumbnailUrl) URL.revokeObjectURL(post.localBlobs.localThumbnailUrl)
+        }
+      })
+    }
+  }, [])
 
   // Heartbeat to update presence
   useEffect(() => {
@@ -883,6 +903,21 @@ function FeedContent() {
     }
   }
 
+  // Clear local blob URLs after remote media loads (memory cleanup)
+  const clearLocalBlobs = useCallback((postId: string) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId && post.localBlobs) {
+        // Revoke URLs before clearing to free memory
+        if (post.localBlobs.localImageUrl) URL.revokeObjectURL(post.localBlobs.localImageUrl)
+        post.localBlobs.localMediaUrls?.forEach(url => URL.revokeObjectURL(url))
+        if (post.localBlobs.localVideoUrl) URL.revokeObjectURL(post.localBlobs.localVideoUrl)
+        if (post.localBlobs.localThumbnailUrl) URL.revokeObjectURL(post.localBlobs.localThumbnailUrl)
+        return { ...post, localBlobs: undefined }
+      }
+      return post
+    }))
+  }, [])
+
   const handleBoostPost = async (postId: string) => {
     setOpenMenuId(null)
 
@@ -1101,6 +1136,10 @@ function FeedContent() {
                 is_premium: newPost.is_premium,
                 has_access: true,
                 boosted_until: null,
+                media_type: newPost.media_type,
+                media_urls: newPost.media_urls,
+                thumbnail_url: newPost.thumbnail_url,
+                localBlobs: newPost.localBlobs,
               }
               // Prepend to the top of the feed
               setPosts(prev => [fullPost, ...prev])
@@ -1282,6 +1321,7 @@ function FeedContent() {
                   }
                 }}
                 onUnlock={() => setUnlockingPost(post)}
+                onMediaLoaded={clearLocalBlobs}
               />
 
               {/* Vote Buttons */}

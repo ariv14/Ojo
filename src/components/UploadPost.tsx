@@ -24,6 +24,12 @@ interface UploadPostProps {
     thumbnail_url?: string
     caption: string | null
     is_premium: boolean
+    localBlobs?: {
+      localImageUrl?: string
+      localMediaUrls?: string[]
+      localVideoUrl?: string
+      localThumbnailUrl?: string
+    }
   }) => void
 }
 
@@ -363,6 +369,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           media_type: 'image',
           caption: caption.trim() || null,
           is_premium: isPremium,
+          localBlobs: preview ? { localImageUrl: preview } : undefined,
         })
       } else if (mediaType === 'album') {
         // Album - use S3 with presigned URLs
@@ -472,6 +479,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           media_urls: mediaUrls,
           caption: caption.trim() || null,
           is_premium: isPremium,
+          localBlobs: albumPreviews.length > 0 ? { localMediaUrls: [...albumPreviews] } : undefined,
         })
       } else if (mediaType === 'reel') {
         // Reel - video upload to S3
@@ -579,6 +587,10 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           thumbnail_url: thumbnailKey || undefined,
           caption: caption.trim() || null,
           is_premium: isPremium,
+          localBlobs: videoPreview ? {
+            localVideoUrl: videoPreview,
+            localThumbnailUrl: videoThumbnail ? URL.createObjectURL(videoThumbnail) : undefined,
+          } : undefined,
         })
       }
     } catch (err) {

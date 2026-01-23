@@ -20,15 +20,34 @@ interface Post {
   users?: {
     wallet_address: string | null
   }
+  localBlobs?: {
+    localImageUrl?: string
+    localMediaUrls?: string[]
+    localVideoUrl?: string
+    localThumbnailUrl?: string
+  }
 }
 
 interface PostMediaProps {
   post: Post
   onImageClick?: (urls: string[], index: number) => void
   onUnlock?: (post: Post) => void
+  onMediaLoaded?: (postId: string) => void
 }
 
-export default function PostMedia({ post, onImageClick, onUnlock }: PostMediaProps) {
+// Skeleton loader for media
+function MediaSkeleton() {
+  return (
+    <div className="w-full aspect-square bg-gray-900 animate-pulse flex items-center justify-center min-h-[300px]">
+      <svg className="w-12 h-12 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    </div>
+  )
+}
+
+export default function PostMedia({ post, onImageClick, onUnlock, onMediaLoaded }: PostMediaProps) {
   const isPremiumLocked = post.is_premium && !post.has_access
   const hasWallet = post.users?.wallet_address
 
@@ -37,6 +56,7 @@ export default function PostMedia({ post, onImageClick, onUnlock }: PostMediaPro
     return (
       <SingleImage
         url={post.image_url || ''}
+        localUrl={post.localBlobs?.localImageUrl}
         caption={post.caption}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
@@ -46,6 +66,7 @@ export default function PostMedia({ post, onImageClick, onUnlock }: PostMediaPro
           }
         }}
         onUnlock={() => onUnlock?.(post)}
+        onLoaded={() => onMediaLoaded?.(post.id)}
       />
     )
   }
@@ -56,11 +77,13 @@ export default function PostMedia({ post, onImageClick, onUnlock }: PostMediaPro
     return (
       <AlbumCarousel
         mediaUrls={urls}
+        localUrls={post.localBlobs?.localMediaUrls}
         caption={post.caption}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
         onImageClick={(index) => onImageClick?.(urls, index)}
         onUnlock={() => onUnlock?.(post)}
+        onLoaded={() => onMediaLoaded?.(post.id)}
       />
     )
   }
@@ -72,10 +95,13 @@ export default function PostMedia({ post, onImageClick, onUnlock }: PostMediaPro
     return (
       <ReelPlayer
         videoUrl={videoUrl}
+        localVideoUrl={post.localBlobs?.localVideoUrl}
         thumbnailUrl={thumbnailUrl}
+        localThumbnailUrl={post.localBlobs?.localThumbnailUrl}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
         onUnlock={() => onUnlock?.(post)}
+        onLoaded={() => onMediaLoaded?.(post.id)}
       />
     )
   }
@@ -87,16 +113,34 @@ export default function PostMedia({ post, onImageClick, onUnlock }: PostMediaPro
 // Single Image Component
 interface SingleImageProps {
   url: string
+  localUrl?: string
   caption?: string | null
   locked: boolean
   hasWallet: boolean
   onImageClick: () => void
   onUnlock: () => void
+  onLoaded?: () => void
 }
 
-function SingleImage({ url, caption, locked, hasWallet, onImageClick, onUnlock }: SingleImageProps) {
+function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, onUnlock, onLoaded }: SingleImageProps) {
+  const [isLoading, setIsLoading] = useState(!localUrl)
+  const hasCalledLoaded = useRef(false)
+
+  const displayUrl = localUrl || url
+
+  const handleImageLoad = () => {
+    setIsLoading(false)
+    // Only call onLoaded when remote image loads (not local blob)
+    // This signals that CDN content is ready and local blob can be cleaned up
+    if (!localUrl && !hasCalledLoaded.current && onLoaded) {
+      hasCalledLoaded.current = true
+      onLoaded()
+    }
+  }
+
   return (
-    <div className="relative">
+    <div className="relative min-h-[300px] bg-black">
+      {isLoading && !localUrl && <MediaSkeleton />}
       <button
         type="button"
         onClick={() => {
@@ -105,13 +149,14 @@ function SingleImage({ url, caption, locked, hasWallet, onImageClick, onUnlock }
             onImageClick()
           }
         }}
-        className="w-full block"
+        className={`w-full block ${isLoading && !localUrl ? 'hidden' : ''}`}
       >
         <img
-          src={url}
+          src={displayUrl}
           alt={caption || 'Post image'}
           loading="lazy"
           decoding="async"
+          onLoad={handleImageLoad}
           className={`w-full max-h-[450px] md:max-h-[600px] object-contain bg-black ${
             locked ? 'blur-xl' : ''
           }`}
@@ -128,25 +173,48 @@ function SingleImage({ url, caption, locked, hasWallet, onImageClick, onUnlock }
 // Album Carousel Component
 interface AlbumCarouselProps {
   mediaUrls: string[]
+  localUrls?: string[]
   caption?: string | null
   locked: boolean
   hasWallet: boolean
   onImageClick: (index: number) => void
   onUnlock: () => void
+  onLoaded?: () => void
 }
 
 function AlbumCarousel({
   mediaUrls,
+  localUrls,
   caption,
   locked,
   hasWallet,
   onImageClick,
   onUnlock,
+  onLoaded,
 }: AlbumCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set(localUrls ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : []))
   const containerRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
+  const hasCalledLoaded = useRef(false)
+
+  // Get display URL for current index (prefer local if available)
+  const getDisplayUrl = (index: number) => {
+    if (localUrls && localUrls[index]) {
+      return localUrls[index]
+    }
+    return mediaUrls[index]
+  }
+
+  const handleImageLoad = (index: number) => {
+    setLoadedIndices(prev => new Set([...prev, index]))
+    // Call onLoaded when first remote image loads (signals CDN is ready)
+    if (!localUrls && !hasCalledLoaded.current && onLoaded) {
+      hasCalledLoaded.current = true
+      onLoaded()
+    }
+  }
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (locked) return
@@ -184,8 +252,10 @@ function AlbumCarousel({
     }
   }
 
+  const isCurrentLoaded = loadedIndices.has(currentIndex) || !!localUrls
+
   return (
-    <div className="relative">
+    <div className="relative min-h-[300px] bg-black">
       {/* Counter badge */}
       <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10">
         {currentIndex + 1}/{mediaUrls.length}
@@ -199,10 +269,13 @@ function AlbumCarousel({
         Album
       </div>
 
+      {/* Skeleton when loading */}
+      {!isCurrentLoaded && <MediaSkeleton />}
+
       {/* Image container */}
       <div
         ref={containerRef}
-        className="overflow-hidden"
+        className={`overflow-hidden ${!isCurrentLoaded ? 'hidden' : ''}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -218,10 +291,11 @@ function AlbumCarousel({
           className="w-full block"
         >
           <img
-            src={locked ? mediaUrls[0] : mediaUrls[currentIndex]}
+            src={locked ? getDisplayUrl(0) : getDisplayUrl(currentIndex)}
             alt={caption || `Album image ${currentIndex + 1}`}
             loading="lazy"
             decoding="async"
+            onLoad={() => handleImageLoad(currentIndex)}
             className={`w-full max-h-[450px] md:max-h-[600px] object-contain bg-black transition-opacity duration-200 ${
               locked ? 'blur-xl' : ''
             }`}
@@ -283,17 +357,26 @@ function AlbumCarousel({
 // Reel Player Component
 interface ReelPlayerProps {
   videoUrl: string
+  localVideoUrl?: string
   thumbnailUrl?: string
+  localThumbnailUrl?: string
   locked: boolean
   hasWallet: boolean
   onUnlock: () => void
+  onLoaded?: () => void
 }
 
-function ReelPlayer({ videoUrl, thumbnailUrl, locked, hasWallet, onUnlock }: ReelPlayerProps) {
+function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, locked, hasWallet, onUnlock, onLoaded }: ReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [isVideoReady, setIsVideoReady] = useState(!!localVideoUrl)
+  const hasCalledLoaded = useRef(false)
+
+  // Use local URLs if available, otherwise use remote
+  const displayVideoUrl = localVideoUrl || videoUrl
+  const displayThumbnailUrl = localThumbnailUrl || thumbnailUrl
 
   // Auto-play when 50% visible using IntersectionObserver
   useEffect(() => {
@@ -323,6 +406,15 @@ function ReelPlayer({ videoUrl, thumbnailUrl, locked, hasWallet, onUnlock }: Ree
     return () => observer.disconnect()
   }, [locked])
 
+  const handleVideoCanPlay = () => {
+    setIsVideoReady(true)
+    // Call onLoaded when remote video is ready (not local blob)
+    if (!localVideoUrl && !hasCalledLoaded.current && onLoaded) {
+      hasCalledLoaded.current = true
+      onLoaded()
+    }
+  }
+
   const togglePlay = () => {
     if (locked) return
 
@@ -345,7 +437,7 @@ function ReelPlayer({ videoUrl, thumbnailUrl, locked, hasWallet, onUnlock }: Ree
   }
 
   return (
-    <div ref={containerRef} className="relative bg-black">
+    <div ref={containerRef} className="relative bg-black min-h-[300px]">
       {/* Reel badge */}
       <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10 flex items-center gap-1">
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -358,7 +450,7 @@ function ReelPlayer({ videoUrl, thumbnailUrl, locked, hasWallet, onUnlock }: Ree
         // Show blurred thumbnail when locked - don't load video
         <div className="relative">
           <img
-            src={thumbnailUrl || ''}
+            src={displayThumbnailUrl || ''}
             alt="Reel thumbnail"
             className="w-full max-h-[450px] md:max-h-[600px] object-contain blur-xl"
           />
@@ -367,19 +459,23 @@ function ReelPlayer({ videoUrl, thumbnailUrl, locked, hasWallet, onUnlock }: Ree
       ) : (
         // Show video player when unlocked
         <div className="relative">
+          {/* Skeleton while video loads */}
+          {!isVideoReady && <MediaSkeleton />}
+
           <video
             ref={videoRef}
-            src={videoUrl}
-            poster={thumbnailUrl}
+            src={displayVideoUrl}
+            poster={displayThumbnailUrl}
             muted={isMuted}
             loop
             playsInline
-            className="w-full max-h-[450px] md:max-h-[600px] object-contain"
+            onCanPlay={handleVideoCanPlay}
+            className={`w-full max-h-[450px] md:max-h-[600px] object-contain ${!isVideoReady ? 'hidden' : ''}`}
             onClick={togglePlay}
           />
 
           {/* Play/Pause overlay */}
-          {!isPlaying && (
+          {!isPlaying && isVideoReady && (
             <button
               type="button"
               onClick={togglePlay}
@@ -394,22 +490,24 @@ function ReelPlayer({ videoUrl, thumbnailUrl, locked, hasWallet, onUnlock }: Ree
           )}
 
           {/* Mute toggle button */}
-          <button
-            type="button"
-            onClick={toggleMute}
-            className="absolute bottom-3 right-3 bg-black/60 text-white p-2 rounded-full z-10"
-          >
-            {isMuted ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
-            )}
-          </button>
+          {isVideoReady && (
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="absolute bottom-3 right-3 bg-black/60 text-white p-2 rounded-full z-10"
+            >
+              {isMuted ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              )}
+            </button>
+          )}
         </div>
       )}
     </div>
