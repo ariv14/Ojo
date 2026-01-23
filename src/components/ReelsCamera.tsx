@@ -43,9 +43,15 @@ export default function ReelsCamera({
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const recordingStartTimeRef = useRef<number>(0)
+  const isRecordingRef = useRef(false)
 
   // MediaRecorder hook
   const { start: startRecording, stop: stopRecording, isSupported: isRecorderSupported } = useMediaRecorder(stream)
+
+  // Sync ref with state for touch handlers (avoids stale closure bug)
+  useEffect(() => {
+    isRecordingRef.current = isRecording
+  }, [isRecording])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -181,19 +187,22 @@ export default function ReelsCamera({
   }, [isRecording, stopVideoRecording])
 
   // Handle touch events with passive: false for WebView compatibility
+  // Uses isRecordingRef instead of isRecording state to avoid stale closure bug:
+  // If isRecording was in deps, touchstart would trigger state change → effect re-runs →
+  // old listeners removed while finger still down → touchend never fires on new listener
   useEffect(() => {
     const button = buttonRef.current
     if (!button) return
 
     const onTouchStart = (e: TouchEvent) => {
       e.preventDefault()
-      if (capturedMedia || isRecording) return
+      if (capturedMedia || isRecordingRef.current) return
       startVideoRecording()
     }
 
     const onTouchEnd = (e: TouchEvent) => {
       e.preventDefault()
-      if (isRecording) {
+      if (isRecordingRef.current) {
         stopVideoRecording()
       }
     }
@@ -207,7 +216,7 @@ export default function ReelsCamera({
       button.removeEventListener('touchend', onTouchEnd)
       button.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [capturedMedia, isRecording, startVideoRecording, stopVideoRecording])
+  }, [capturedMedia, startVideoRecording, stopVideoRecording])
 
   // Handle retake
   const handleRetake = useCallback(() => {
@@ -371,10 +380,11 @@ export default function ReelsCamera({
 
         {/* Capture button with progress ring */}
         <div className="relative">
-          {/* Progress ring SVG */}
+          {/* Progress ring SVG - pointer-events: none to not intercept button touches */}
           <svg
             className="absolute -inset-2 w-24 h-24 -rotate-90"
             viewBox="0 0 100 100"
+            style={{ pointerEvents: 'none' }}
           >
             {/* Background ring */}
             <circle
