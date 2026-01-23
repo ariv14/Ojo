@@ -97,11 +97,13 @@ export default function ReelsCamera({
     const acquireStream = async () => {
       const videoConstraints = { facingMode: { ideal: facingMode } }
 
-      // Try video + audio first (single permission request is better on Android)
+      // Strategy 1: Try video + audio together with simple audio: true
+      // This works best on Android WebView where complex constraints may fail
       try {
+        console.log('Attempting video+audio with audio: true')
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          audio: true,
         })
         if (!mounted) {
           mediaStream.getTracks().forEach(t => t.stop())
@@ -111,20 +113,72 @@ export default function ReelsCamera({
         setStream(mediaStream)
         setHasPermission(true)
         setCameraError(null)
-        console.log('Acquired stream with audio')
 
-        // Log audio status for debugging
         const audioTracks = mediaStream.getAudioTracks()
+        console.log('Strategy 1 success - audio tracks:', audioTracks.length)
         if (audioTracks.length > 0) {
-          console.log('Audio track acquired:', audioTracks[0].label, 'state:', audioTracks[0].readyState)
+          console.log('Audio track:', audioTracks[0].label, 'state:', audioTracks[0].readyState, 'enabled:', audioTracks[0].enabled)
         }
         return
       } catch (err) {
-        console.warn('Video+audio failed, trying video only:', err)
+        console.warn('Strategy 1 failed (video+audio: true):', err)
       }
 
-      // Fallback: video only (if mic permission denied but camera allowed)
+      // Strategy 2: Get video first, then add audio track separately
+      // Some Android WebViews handle separate requests better
       try {
+        console.log('Attempting video first, then audio separately')
+        const videoStream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: false,
+        })
+        if (!mounted) {
+          videoStream.getTracks().forEach(t => t.stop())
+          return
+        }
+
+        // Try to get audio separately
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true,
+          })
+          if (!mounted) {
+            videoStream.getTracks().forEach(t => t.stop())
+            audioStream.getTracks().forEach(t => t.stop())
+            return
+          }
+
+          // Combine video and audio tracks into one stream
+          const combinedStream = new MediaStream([
+            ...videoStream.getVideoTracks(),
+            ...audioStream.getAudioTracks(),
+          ])
+
+          // Stop the original streams' references (tracks are now in combinedStream)
+          currentStream = combinedStream
+          setStream(combinedStream)
+          setHasPermission(true)
+          setCameraError(null)
+          console.log('Strategy 2 success - combined stream with audio')
+          return
+        } catch (audioErr) {
+          // Audio failed but video works - use video only
+          console.warn('Strategy 2 audio failed, using video only:', audioErr)
+          currentStream = videoStream
+          setStream(videoStream)
+          setHasPermission(true)
+          setCameraError(null)
+          console.log('Strategy 2 partial - video only (no audio)')
+          return
+        }
+      } catch (err) {
+        console.warn('Strategy 2 failed completely:', err)
+      }
+
+      // Strategy 3: Last resort - video only
+      try {
+        console.log('Attempting video only as last resort')
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: false,
@@ -137,9 +191,10 @@ export default function ReelsCamera({
         setStream(mediaStream)
         setHasPermission(true)
         setCameraError(null)
-        console.log('Acquired stream without audio (fallback)')
+        console.log('Strategy 3 success - video only')
       } catch (err) {
         if (mounted) {
+          console.error('All strategies failed:', err)
           handleUserMediaError(err as DOMException)
         }
       }
