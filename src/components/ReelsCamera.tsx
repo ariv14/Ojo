@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useRecordRTC } from '@/hooks/useRecordRTC'
+import { useMediaStreamRecorder } from '@/hooks/useMediaStreamRecorder'
 import { getPlatformInfo, getVideoFileExtension, getVideoMimeType } from '@/utils/platform'
 import { validateStreamForRecording } from '@/utils/audioMerger'
 import { safeUnmuteVideo } from '@/utils/audioUnlock'
@@ -65,8 +65,8 @@ export default function ReelsCamera({
   const recordingStartTimeRef = useRef<number>(0)
   const isRecordingRef = useRef(false)
 
-  // RecordRTC hook - more robust than native MediaRecorder for WebView environments
-  const { start: startRecording, stop: stopRecording, isSupported: isRecorderSupported } = useRecordRTC(stream)
+  // MediaStreamRecorder hook - lightweight cross-browser recording
+  const { start: startRecording, stop: stopRecording, isSupported: isRecorderSupported } = useMediaStreamRecorder(stream)
 
   // Sync ref with state for touch handlers (avoids stale closure bug)
   useEffect(() => {
@@ -184,22 +184,25 @@ export default function ReelsCamera({
         const e = err as DOMException
         addDebugLog(`✗ Strategy 1 failed: ${e.name}: ${e.message}`)
 
-        // Check if mic is specifically blocked (NotAllowedError) - offer system camera
+        // Check if mic is specifically blocked (NotAllowedError) - proceed with video-only
         if (e.name === 'NotAllowedError') {
           try {
-            // Test if video-only works (mic specifically blocked)
-            const testStream = await navigator.mediaDevices.getUserMedia({
+            // Try video-only since mic is blocked
+            const videoOnlyStream = await navigator.mediaDevices.getUserMedia({
               video: videoConstraints,
               audio: false,
             })
-            testStream.getTracks().forEach(t => t.stop())
-
-            // Video works, mic blocked by WebView sandbox - offer system camera
-            if (mounted) {
-              addDebugLog('Mic blocked by WebView, offering system camera')
-              setSystemCameraMode(true)
-              setHasPermission(true) // Not a full permission error
+            if (!mounted) {
+              videoOnlyStream.getTracks().forEach(t => t.stop())
+              return
             }
+
+            // Video works, mic blocked - proceed with video-only recording
+            currentStream = videoOnlyStream
+            setStream(videoOnlyStream)
+            setHasPermission(true)
+            setCameraError(null)
+            addDebugLog('✓ Mic blocked, proceeding with video-only recording')
             return
           } catch {
             // Both blocked - continue to next strategy
@@ -777,7 +780,7 @@ export default function ReelsCamera({
             ) : (
               <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg px-3 py-2">
                 <p className="text-yellow-200 text-xs text-center">
-                  Mic not available. Enable in Settings → Apps → World App → Permissions
+                  Recording without audio (mic blocked)
                 </p>
               </div>
             )}
