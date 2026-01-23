@@ -37,6 +37,10 @@ export default function ReelsCamera({
   const [debugLog, setDebugLog] = useState<string[]>([])
   const [showDebug, setShowDebug] = useState(false)
 
+  // System camera fallback state (when mic is blocked by WebView sandbox)
+  const [systemCameraMode, setSystemCameraMode] = useState(false)
+  const nativeInputRef = useRef<HTMLInputElement>(null)
+
   // Helper to add debug log entries (keeps last 10)
   const addDebugLog = (msg: string) => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -179,6 +183,29 @@ export default function ReelsCamera({
       } catch (err) {
         const e = err as DOMException
         addDebugLog(`✗ Strategy 1 failed: ${e.name}: ${e.message}`)
+
+        // Check if mic is specifically blocked (NotAllowedError) - offer system camera
+        if (e.name === 'NotAllowedError') {
+          try {
+            // Test if video-only works (mic specifically blocked)
+            const testStream = await navigator.mediaDevices.getUserMedia({
+              video: videoConstraints,
+              audio: false,
+            })
+            testStream.getTracks().forEach(t => t.stop())
+
+            // Video works, mic blocked by WebView sandbox - offer system camera
+            if (mounted) {
+              addDebugLog('Mic blocked by WebView, offering system camera')
+              setSystemCameraMode(true)
+              setHasPermission(true) // Not a full permission error
+            }
+            return
+          } catch {
+            // Both blocked - continue to next strategy
+            addDebugLog('Both video and audio blocked, continuing...')
+          }
+        }
       }
 
       // Strategy 2: Get video first, then immediately try to add audio
@@ -415,6 +442,13 @@ export default function ReelsCamera({
     onCapture(file, 'video')
   }, [capturedMedia, onCapture])
 
+  // Handle native system camera capture (fallback when mic is blocked)
+  const handleNativeCapture = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return // User cancelled - stay on system camera screen
+    onCapture(file, 'video')
+  }, [onCapture])
+
   // Handle preview unmute with iOS AudioContext unlock
   const handlePreviewUnmute = useCallback(async () => {
     if (previewVideoRef.current) {
@@ -480,6 +514,76 @@ export default function ReelsCamera({
       </div>
     </div>
   )
+
+  // System camera UI (when mic is blocked by WebView sandbox)
+  const SystemCameraUI = () => (
+    <div className="fixed inset-0 bg-black z-[60] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20"
+        >
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+        </div>
+        <h3 className="text-white text-lg font-semibold mb-2">In-App Audio Blocked</h3>
+        <p className="text-gray-400 text-sm mb-6">
+          Your browser restricts microphone access in this app.{'\n'}
+          Use your system camera to record with sound.
+        </p>
+
+        <button
+          onClick={() => nativeInputRef.current?.click()}
+          className="w-full max-w-xs py-4 bg-green-500 text-white rounded-xl font-semibold text-lg mb-3 active:bg-green-600 transition-colors"
+        >
+          Open System Camera
+        </button>
+
+        <button
+          onClick={() => {
+            setSystemCameraMode(false)
+            setCameraInitiated(false)
+          }}
+          className="w-full max-w-xs py-3 bg-white/10 text-white rounded-lg font-medium mb-3"
+        >
+          Try Again
+        </button>
+
+        <button
+          onClick={onClose}
+          className="text-gray-400 text-sm hover:text-gray-300"
+        >
+          Choose from Library
+        </button>
+      </div>
+
+      {/* Hidden native file input - opens system video camera for recording */}
+      <input
+        ref={nativeInputRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        onChange={handleNativeCapture}
+        className="hidden"
+      />
+    </div>
+  )
+
+  // Show system camera UI when mic is blocked
+  if (systemCameraMode) {
+    return createPortal(<SystemCameraUI />, document.body)
+  }
 
   // Show fallback if camera error
   if (hasPermission === false || cameraError) {

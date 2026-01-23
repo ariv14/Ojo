@@ -6,6 +6,7 @@ import { getSession } from '@/lib/session'
 import { compressImage } from '@/utils/compress'
 import { ensureWalletConnected } from '@/lib/wallet'
 import ReelsCamera from '@/components/ReelsCamera'
+import VideoTrimmer from '@/components/VideoTrimmer'
 
 type MediaType = 'image' | 'album' | 'reel'
 
@@ -54,6 +55,11 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const [videoDuration, setVideoDuration] = useState<number>(0)
   const [videoThumbnail, setVideoThumbnail] = useState<Blob | null>(null)
   const [showCamera, setShowCamera] = useState(false)
+
+  // Video trimmer state
+  const [showTrimmer, setShowTrimmer] = useState(false)
+  const [originalVideoFile, setOriginalVideoFile] = useState<File | null>(null)
+  const [originalVideoDuration, setOriginalVideoDuration] = useState(0)
 
   // Common state
   const [caption, setCaption] = useState('')
@@ -129,6 +135,13 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     // Validate video duration
     const validation = await validateVideo(file)
     if (!validation.valid) {
+      // Video too long - open trimmer instead of rejecting
+      if (validation.error === 'needs_trim' && validation.duration > 0) {
+        setOriginalVideoFile(file)
+        setOriginalVideoDuration(validation.duration)
+        setShowTrimmer(true)
+        return
+      }
       setError(validation.error || 'Invalid video')
       return
     }
@@ -141,31 +154,33 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     extractVideoThumbnail(file)
   }
 
-  const validateVideo = (file: File): Promise<{ valid: boolean; error?: string }> => {
+  const validateVideo = (file: File): Promise<{ valid: boolean; error?: string; duration: number }> => {
     return new Promise((resolve) => {
       const video = document.createElement('video')
       video.preload = 'metadata'
 
       const timeout = setTimeout(() => {
         URL.revokeObjectURL(video.src)
-        resolve({ valid: false, error: 'Video format not supported on this device' })
+        resolve({ valid: false, error: 'Video format not supported on this device', duration: 0 })
       }, 5000)
 
       video.onloadedmetadata = () => {
         clearTimeout(timeout)
         URL.revokeObjectURL(video.src)
-        setVideoDuration(video.duration)
-        if (video.duration > 10) {
-          resolve({ valid: false, error: 'Video must be 10 seconds or shorter' })
+        const dur = video.duration
+        setVideoDuration(dur)
+        if (dur > 10) {
+          // Return special error code to trigger trimmer
+          resolve({ valid: false, error: 'needs_trim', duration: dur })
         } else {
-          resolve({ valid: true })
+          resolve({ valid: true, duration: dur })
         }
       }
 
       video.onerror = () => {
         clearTimeout(timeout)
         URL.revokeObjectURL(video.src)
-        resolve({ valid: false, error: 'Video format not supported. Try recording again.' })
+        resolve({ valid: false, error: 'Video format not supported. Try recording again.', duration: 0 })
       }
 
       video.src = URL.createObjectURL(file)
@@ -209,14 +224,38 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const handleCameraCapture = async (file: File, type: 'video') => {
     setShowCamera(false)
 
-    // Camera-recorded videos are already duration-limited by maxDuration prop (10s)
-    // Skip validation to avoid format detection failures on mobile browsers
-    // where blob.type may be empty or unrecognized
+    // Check if this came from native system camera (may be longer than 10s)
+    // In-app camera is already duration-limited, but native camera is not
+    const validation = await validateVideo(file)
+    if (!validation.valid && validation.error === 'needs_trim' && validation.duration > 0) {
+      setOriginalVideoFile(file)
+      setOriginalVideoDuration(validation.duration)
+      setShowTrimmer(true)
+      return
+    }
+
     setSelectedVideo(file)
     setVideoPreview(URL.createObjectURL(file))
     extractVideoThumbnail(file)
-    setVideoDuration(10) // Max duration enforced by camera
+    setVideoDuration(validation.duration || 10) // Use actual duration or fallback
     setError('')
+  }
+
+  const handleTrimComplete = (trimmedFile: File) => {
+    setShowTrimmer(false)
+    setOriginalVideoFile(null)
+    setOriginalVideoDuration(0)
+    setSelectedVideo(trimmedFile)
+    setVideoPreview(URL.createObjectURL(trimmedFile))
+    setVideoDuration(10) // Trimmed to max duration
+    extractVideoThumbnail(trimmedFile)
+    setError('')
+  }
+
+  const handleTrimCancel = () => {
+    setShowTrimmer(false)
+    setOriginalVideoFile(null)
+    setOriginalVideoDuration(0)
   }
 
   const removeAlbumImage = (index: number) => {
@@ -1025,6 +1064,16 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
         </div>
       </div>
 
+      {/* Video Trimmer Modal */}
+      {showTrimmer && originalVideoFile && (
+        <VideoTrimmer
+          file={originalVideoFile}
+          duration={originalVideoDuration}
+          onComplete={handleTrimComplete}
+          onCancel={handleTrimCancel}
+          maxDuration={10}
+        />
+      )}
     </div>
   )
 }
