@@ -33,13 +33,16 @@ export default function ReelsCamera({
   // Recording state
   const [isRecording, setIsRecording] = useState(false)
   const [recordingProgress, setRecordingProgress] = useState(0)
+  const [isAudioReady, setIsAudioReady] = useState(false)
 
   // Preview state
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia | null>(null)
+  const [previewMuted, setPreviewMuted] = useState(true)
 
   // Refs
   const webcamRef = useRef<Webcam>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const previewVideoRef = useRef<HTMLVideoElement>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const recordingStartTimeRef = useRef<number>(0)
@@ -64,17 +67,35 @@ export default function ReelsCamera({
 
   // Request audio permission upfront (non-blocking)
   useEffect(() => {
+    let mounted = true
     navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => setAudioStream(stream))
-      .catch(() => console.log('Audio unavailable for recording'))
+      .then(stream => {
+        if (mounted) {
+          setAudioStream(stream)
+          setIsAudioReady(true)
+        } else {
+          // Component unmounted before audio was ready, clean up
+          stream.getTracks().forEach(track => track.stop())
+        }
+      })
+      .catch(() => {
+        console.log('Audio unavailable for recording')
+        if (mounted) setIsAudioReady(true) // Allow recording without audio
+      })
 
     return () => {
-      // Cleanup audio stream on unmount
+      mounted = false
+    }
+  }, [])
+
+  // Cleanup audio stream when it changes or on unmount
+  useEffect(() => {
+    return () => {
       if (audioStream) {
         audioStream.getTracks().forEach(track => track.stop())
       }
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audioStream])
 
   // Handle stream from webcam
   const handleUserMedia = useCallback((mediaStream: MediaStream) => {
@@ -224,6 +245,7 @@ export default function ReelsCamera({
       URL.revokeObjectURL(capturedMedia.previewUrl)
     }
     setCapturedMedia(null)
+    setPreviewMuted(true) // Reset mute state for next recording
   }, [capturedMedia])
 
   // Handle post
@@ -295,15 +317,38 @@ export default function ReelsCamera({
     return createPortal(
       <div className="fixed inset-0 bg-black z-[60] flex flex-col">
         {/* Preview */}
-        <div className="flex-1 flex items-center justify-center bg-black">
+        <div className="flex-1 flex items-center justify-center bg-black relative">
           <video
+            ref={previewVideoRef}
             src={capturedMedia.previewUrl}
             className="max-w-full max-h-full object-contain"
             autoPlay
             loop
-            muted
+            muted={previewMuted}
             playsInline
           />
+          {/* Mute toggle for preview */}
+          <button
+            onClick={() => setPreviewMuted(!previewMuted)}
+            className={`absolute bottom-4 right-4 bg-black/60 text-white p-3 rounded-full z-10 ${previewMuted ? 'animate-pulse' : ''}`}
+          >
+            {previewMuted ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+            )}
+          </button>
+          {/* Tap to unmute hint */}
+          {previewMuted && (
+            <div className="absolute bottom-16 right-4 bg-black/60 text-white text-xs px-2 py-1 rounded animate-pulse">
+              Tap to hear audio
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -383,10 +428,18 @@ export default function ReelsCamera({
         className="absolute bottom-0 left-0 right-0 pt-6 flex flex-col items-center"
         style={{ paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom) + 24px))' }}
       >
-        {/* Recording hint */}
-        <p className="text-white/70 text-sm mb-4">
-          {isRecording ? 'Recording...' : 'Hold to record'}
-        </p>
+        {/* Recording hint with mic status */}
+        <div className="flex items-center gap-2 mb-4">
+          {/* Mic status indicator */}
+          <div className={`flex items-center gap-1 ${isRecording ? 'text-red-400' : audioStream ? 'text-green-400' : isAudioReady ? 'text-white/50' : 'text-yellow-400'}`}>
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <p className="text-white/70 text-sm">
+            {isRecording ? 'Recording...' : isAudioReady ? 'Hold to record' : 'Preparing audio...'}
+          </p>
+        </div>
 
         {/* Capture button with progress ring */}
         <div className="relative">

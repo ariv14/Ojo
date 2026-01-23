@@ -372,11 +372,27 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [isVideoReady, setIsVideoReady] = useState(!!localVideoUrl)
+  const [showMuteHint, setShowMuteHint] = useState(true)
   const hasCalledLoaded = useRef(false)
 
   // Use local URLs if available, otherwise use remote
   const displayVideoUrl = localVideoUrl || videoUrl
   const displayThumbnailUrl = localThumbnailUrl || thumbnailUrl
+
+  // Hide mute hint after 3 seconds when video is playing
+  useEffect(() => {
+    if (showMuteHint && isVideoReady && isPlaying) {
+      const timer = setTimeout(() => setShowMuteHint(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showMuteHint, isVideoReady, isPlaying])
+
+  // Reset mute hint when video starts playing again after being paused
+  useEffect(() => {
+    if (isPlaying && isMuted) {
+      setShowMuteHint(true)
+    }
+  }, [isPlaying, isMuted])
 
   // Auto-play when 50% visible using IntersectionObserver
   useEffect(() => {
@@ -433,6 +449,9 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
     if (videoRef.current) {
       videoRef.current.muted = !isMuted
       setIsMuted(!isMuted)
+      if (isMuted) {
+        setShowMuteHint(false) // Hide hint when user unmutes
+      }
     }
   }
 
@@ -494,7 +513,9 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
             <button
               type="button"
               onClick={toggleMute}
-              className="absolute bottom-3 right-3 bg-black/60 text-white p-2 rounded-full z-10"
+              className={`absolute bottom-3 right-3 bg-black/60 text-white p-2 rounded-full z-10 ${
+                isMuted && isPlaying ? 'animate-pulse' : ''
+              }`}
             >
               {isMuted ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -507,6 +528,16 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
                 </svg>
               )}
             </button>
+          )}
+
+          {/* Tap to unmute hint */}
+          {isVideoReady && isMuted && isPlaying && showMuteHint && (
+            <div
+              className="absolute bottom-12 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded z-10 animate-pulse"
+              onClick={toggleMute}
+            >
+              Tap to unmute
+            </div>
           )}
         </div>
       )}
