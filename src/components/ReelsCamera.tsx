@@ -576,7 +576,6 @@ export default function ReelsCamera({
         ref={nativeInputRef}
         type="file"
         accept="video/*"
-        capture
         onChange={handleNativeCapture}
         className="hidden"
       />
@@ -875,7 +874,6 @@ export default function ReelsCamera({
         ref={nativeInputRef}
         type="file"
         accept="video/*"
-        capture
         onChange={handleNativeCapture}
         className="hidden"
       />
