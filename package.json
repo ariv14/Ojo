@@ -14,12 +14,14 @@
     "@ffmpeg/ffmpeg": "^0.12.6",
     "@ffmpeg/util": "^0.12.1",
     "@supabase/supabase-js": "^2.90.1",
+    "@types/recordrtc": "^5.6.15",
     "@worldcoin/minikit-js": "^1.9.9",
     "browser-image-compression": "^2.0.2",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-webcam": "^7.2.0"
+    "react-webcam": "^7.2.0",
+    "recordrtc": "^5.6.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

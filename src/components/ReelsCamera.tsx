@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useMediaRecorder } from '@/hooks/useMediaRecorder'
+import { useRecordRTC } from '@/hooks/useRecordRTC'
 import { getPlatformInfo, getVideoFileExtension, getVideoMimeType } from '@/utils/platform'
 import { validateStreamForRecording } from '@/utils/audioMerger'
 import { safeUnmuteVideo } from '@/utils/audioUnlock'
@@ -65,8 +65,8 @@ export default function ReelsCamera({
   const recordingStartTimeRef = useRef<number>(0)
   const isRecordingRef = useRef(false)
 
-  // MediaRecorder hook
-  const { start: startRecording, stop: stopRecording, isSupported: isRecorderSupported } = useMediaRecorder(stream)
+  // RecordRTC hook - more robust than native MediaRecorder for WebView environments
+  const { start: startRecording, stop: stopRecording, isSupported: isRecorderSupported } = useRecordRTC(stream)
 
   // Sync ref with state for touch handlers (avoids stale closure bug)
   useEffect(() => {
