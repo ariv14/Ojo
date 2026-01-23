@@ -12,7 +12,21 @@ interface UseMediaRecorderReturn {
 }
 
 function getSupportedMimeType(): string | null {
-  const types = [
+  // Detect iOS/Safari - they don't support webm playback
+  const isIOS = typeof navigator !== 'undefined' && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+  const isSafari = typeof navigator !== 'undefined' &&
+    /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  const needsMP4 = isIOS || isSafari
+
+  // iOS/Safari: MP4 only (webm won't play back)
+  // Android/Chrome: webm preferred (better compression), mp4 fallback
+  const types = needsMP4 ? [
+    'video/mp4',
+    'video/mp4;codecs=avc1',
+  ] : [
     'video/webm;codecs=vp9',
     'video/webm;codecs=vp8',
     'video/webm',

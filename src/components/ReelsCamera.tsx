@@ -230,7 +230,9 @@ export default function ReelsCamera({
   const handlePost = useCallback(() => {
     if (!capturedMedia) return
 
-    const file = new File([capturedMedia.blob], `capture-${Date.now()}.webm`, { type: 'video/webm' })
+    // Use the actual recorded format (mp4 on iOS/Safari, webm on Chrome/Android)
+    const ext = capturedMedia.blob.type.includes('mp4') ? 'mp4' : 'webm'
+    const file = new File([capturedMedia.blob], `capture-${Date.now()}.${ext}`, { type: capturedMedia.blob.type })
     onCapture(file, 'video')
   }, [capturedMedia, onCapture])
 
@@ -372,7 +374,10 @@ export default function ReelsCamera({
       </div>
 
       {/* Controls */}
-      <div className="absolute bottom-0 left-0 right-0 pb-12 pt-6 flex flex-col items-center">
+      <div
+        className="absolute bottom-0 left-0 right-0 pt-6 flex flex-col items-center"
+        style={{ paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom) + 24px))' }}
+      >
         {/* Recording hint */}
         <p className="text-white/70 text-sm mb-4">
           {isRecording ? 'Recording...' : 'Hold to record'}

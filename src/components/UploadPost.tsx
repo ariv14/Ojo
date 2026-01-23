@@ -121,9 +121,9 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     }
 
     // Validate video duration
-    const isValid = await validateVideo(file)
-    if (!isValid) {
-      setError('Video must be 10 seconds or shorter')
+    const validation = await validateVideo(file)
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid video')
       return
     }
 
@@ -135,16 +135,33 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     extractVideoThumbnail(file)
   }
 
-  const validateVideo = (file: File): Promise<boolean> => {
+  const validateVideo = (file: File): Promise<{ valid: boolean; error?: string }> => {
     return new Promise((resolve) => {
       const video = document.createElement('video')
       video.preload = 'metadata'
+
+      const timeout = setTimeout(() => {
+        URL.revokeObjectURL(video.src)
+        resolve({ valid: false, error: 'Video format not supported on this device' })
+      }, 5000)
+
       video.onloadedmetadata = () => {
+        clearTimeout(timeout)
         URL.revokeObjectURL(video.src)
         setVideoDuration(video.duration)
-        resolve(video.duration <= 10)
+        if (video.duration > 10) {
+          resolve({ valid: false, error: 'Video must be 10 seconds or shorter' })
+        } else {
+          resolve({ valid: true })
+        }
       }
-      video.onerror = () => resolve(false)
+
+      video.onerror = () => {
+        clearTimeout(timeout)
+        URL.revokeObjectURL(video.src)
+        resolve({ valid: false, error: 'Video format not supported. Try recording again.' })
+      }
+
       video.src = URL.createObjectURL(file)
     })
   }
@@ -187,9 +204,9 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     setShowCamera(false)
 
     // Validate video duration
-    const isValid = await validateVideo(file)
-    if (!isValid) {
-      setError('Video must be 10 seconds or shorter')
+    const validation = await validateVideo(file)
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid video')
       return
     }
 
