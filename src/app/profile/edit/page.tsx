@@ -126,18 +126,18 @@ export default function EditProfilePage() {
 
     setIsDeleting(true)
 
-    // 1. Get all user's post images
+    // 1. Get all user's post images, albums, and reels
     const { data: userPosts } = await supabase
       .from('posts')
-      .select('image_url')
+      .select('image_url, media_urls, thumbnail_url')
       .eq('user_id', nullifierHash)
 
     // 2. Prepare storage cleanup tasks
     const storageCleanupTasks: Promise<unknown>[] = []
 
-    // Delete all post images from storage
+    // Delete all post images from Supabase storage (single photos)
     const filenames = userPosts?.map(p =>
-      p.image_url.split('/photos/')[1]?.split('?')[0]
+      p.image_url?.split('/photos/')[1]?.split('?')[0]
     ).filter(Boolean) || []
     if (filenames.length > 0) {
       storageCleanupTasks.push(
@@ -155,13 +155,43 @@ export default function EditProfilePage() {
       }
     }
 
-    // 3. Run all storage deletes in parallel
+    // 3. Run all Supabase storage deletes in parallel
     await Promise.all(storageCleanupTasks)
 
-    // Clear session
+    // 4. Collect R2 keys from albums and reels
+    const r2PublicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''
+    const r2Keys: string[] = []
+    userPosts?.forEach(post => {
+      // Album media URLs
+      if (post.media_urls?.length) {
+        post.media_urls.forEach((url: string) => {
+          if (url && r2PublicUrl) {
+            const key = url.replace(r2PublicUrl + '/', '')
+            if (key && key !== url) r2Keys.push(key)
+          }
+        })
+      }
+      // Reel thumbnail URLs
+      if (post.thumbnail_url && r2PublicUrl) {
+        const thumbKey = post.thumbnail_url.replace(r2PublicUrl + '/', '')
+        if (thumbKey && thumbKey !== post.thumbnail_url) r2Keys.push(thumbKey)
+      }
+    })
+
+    // 5. Delete R2 media in batches (API allows max 15 keys per request)
+    for (let i = 0; i < r2Keys.length; i += 15) {
+      const batch = r2Keys.slice(i, i + 15)
+      await fetch('/api/s3-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: batch })
+      })
+    }
+
+    // 6. Clear session
     localStorage.removeItem('ojo_user')
 
-    // 4. Delete user (cascades to all related data)
+    // 7. Delete user (cascades to all related data)
     await supabase
       .from('users')
       .delete()
