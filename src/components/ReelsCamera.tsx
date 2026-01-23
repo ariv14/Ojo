@@ -39,6 +39,7 @@ export default function ReelsCamera({
 
   // Refs
   const webcamRef = useRef<Webcam>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const recordingStartTimeRef = useRef<number>(0)
@@ -166,29 +167,47 @@ export default function ReelsCamera({
     }
   }, [stopRecording])
 
-  // Handle press start (mouse/touch down) - start recording immediately
-  const handlePressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    // Prevent default touch behavior to avoid interference
-    if ('touches' in e) {
-      e.preventDefault()
-    }
-
+  // Handle press start (mouse only) - start recording immediately
+  const handlePressStart = useCallback(() => {
     if (capturedMedia || isRecording) return
-
     startVideoRecording()
   }, [capturedMedia, isRecording, startVideoRecording])
 
-  // Handle press end (mouse/touch up) - stop recording
-  const handlePressEnd = useCallback((e?: React.TouchEvent | React.MouseEvent) => {
-    // Prevent default touch behavior
-    if (e && 'touches' in e) {
-      e.preventDefault()
-    }
-
+  // Handle press end (mouse only) - stop recording
+  const handlePressEnd = useCallback(() => {
     if (isRecording) {
       stopVideoRecording()
     }
   }, [isRecording, stopVideoRecording])
+
+  // Handle touch events with passive: false for WebView compatibility
+  useEffect(() => {
+    const button = buttonRef.current
+    if (!button) return
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault()
+      if (capturedMedia || isRecording) return
+      startVideoRecording()
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      e.preventDefault()
+      if (isRecording) {
+        stopVideoRecording()
+      }
+    }
+
+    button.addEventListener('touchstart', onTouchStart, { passive: false })
+    button.addEventListener('touchend', onTouchEnd, { passive: false })
+    button.addEventListener('touchcancel', onTouchEnd, { passive: false })
+
+    return () => {
+      button.removeEventListener('touchstart', onTouchStart)
+      button.removeEventListener('touchend', onTouchEnd)
+      button.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [capturedMedia, isRecording, startVideoRecording, stopVideoRecording])
 
   // Handle retake
   const handleRetake = useCallback(() => {
@@ -384,14 +403,14 @@ export default function ReelsCamera({
 
           {/* Capture button */}
           <button
+            ref={buttonRef}
             onMouseDown={handlePressStart}
             onMouseUp={handlePressEnd}
             onMouseLeave={handlePressEnd}
-            onTouchStart={handlePressStart}
-            onTouchEnd={handlePressEnd}
             className={`w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all ${
               isRecording ? 'bg-red-500 scale-90' : 'bg-white/20'
             }`}
+            style={{ touchAction: 'none', userSelect: 'none' }}
           >
             {isRecording ? (
               <div className="w-8 h-8 rounded bg-white" />
