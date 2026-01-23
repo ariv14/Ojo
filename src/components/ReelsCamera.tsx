@@ -230,9 +230,14 @@ export default function ReelsCamera({
   const handlePost = useCallback(() => {
     if (!capturedMedia) return
 
-    // Use the actual recorded format (mp4 on iOS/Safari, webm on Chrome/Android)
-    const ext = capturedMedia.blob.type.includes('mp4') ? 'mp4' : 'webm'
-    const file = new File([capturedMedia.blob], `capture-${Date.now()}.${ext}`, { type: capturedMedia.blob.type })
+    // Ensure valid MIME type - blob.type may be empty on some platforms (especially iOS WebView)
+    const mimeType = capturedMedia.blob.type || 'video/mp4'
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
+    const file = new File(
+      [capturedMedia.blob],
+      `capture-${Date.now()}.${ext}`,
+      { type: mimeType }
+    )
     onCapture(file, 'video')
   }, [capturedMedia, onCapture])
 

@@ -93,7 +93,8 @@ export function useMediaRecorder(stream: MediaStream | null): UseMediaRecorderRe
       }
 
       mediaRecorder.onstop = () => {
-        const mimeTypeBase = mimeType.split(';')[0]
+        // Ensure we have a valid MIME type - fallback to mp4 if undefined
+        const mimeTypeBase = mimeType?.split(';')[0] || 'video/mp4'
         const blob = new Blob(chunksRef.current, { type: mimeTypeBase })
         setRecordedBlob(blob)
         setIsRecording(false)

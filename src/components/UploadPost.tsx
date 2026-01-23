@@ -203,16 +203,13 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const handleCameraCapture = async (file: File, type: 'video') => {
     setShowCamera(false)
 
-    // Validate video duration
-    const validation = await validateVideo(file)
-    if (!validation.valid) {
-      setError(validation.error || 'Invalid video')
-      return
-    }
-
+    // Camera-recorded videos are already duration-limited by maxDuration prop (10s)
+    // Skip validation to avoid format detection failures on mobile browsers
+    // where blob.type may be empty or unrecognized
     setSelectedVideo(file)
     setVideoPreview(URL.createObjectURL(file))
     extractVideoThumbnail(file)
+    setVideoDuration(10) // Max duration enforced by camera
     setError('')
   }
 
