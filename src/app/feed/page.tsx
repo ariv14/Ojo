@@ -1089,7 +1089,7 @@ function FeedContent() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 animated-gradient-header text-white z-10">
+      <header className="fixed top-0 left-0 right-0 animated-gradient-header text-white z-40">
         <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-xl font-bold flex items-center">
             <span className="relative">
@@ -1223,7 +1223,7 @@ function FeedContent() {
       )}
 
       {/* Feed */}
-      <main className="w-full md:max-w-2xl mx-auto">
+      <main className="w-full md:max-w-2xl mx-auto pt-14">
         {posts.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             No posts yet. Be the first to share!
