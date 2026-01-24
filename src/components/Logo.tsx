@@ -71,7 +71,7 @@ export default function Logo({ size = 'lg', animated = true, className = '' }: L
       <span className="absolute inset-0 flex items-center justify-center">
         {/* Outer ring - dark with cyan border and glow */}
         <span
-          className={`${config.eyeOuter} rounded-full flex items-center justify-center relative ${shouldAnimate ? 'cyber-ring-glow' : ''}`}
+          className={`${config.eyeOuter} rounded-full flex items-center justify-center relative ${shouldAnimate ? `cyber-ring-glow ${delayed ? 'cyber-blink-delayed' : 'cyber-blink'}` : ''}`}
           style={{
             background: 'linear-gradient(135deg, #0A1628 0%, #1E3A8A 100%)',
             border: '2px solid #00FFFF',

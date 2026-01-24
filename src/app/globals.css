@@ -64,6 +64,12 @@ input, textarea {
 
 /* OJO Logo Cybernetic Animations */
 
+/* Eye blink - human-like */
+@keyframes cyber-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
 /* Scanning arc rotation */
 @keyframes cyber-scan {
   0% { rotate: 0deg; }
@@ -95,6 +101,16 @@ input, textarea {
 }
 
 /* Animation classes */
+.cyber-blink {
+  animation: cyber-blink 4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.cyber-blink-delayed {
+  animation: cyber-blink 4s ease-in-out 0.15s infinite;
+  transform-origin: center;
+}
+
 .cyber-scan {
   animation: cyber-scan 3s linear infinite;
 }
@@ -112,6 +128,8 @@ input, textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cyber-blink,
+  .cyber-blink-delayed,
   .cyber-scan,
   .cyber-core-pulse,
   .cyber-ring-glow,
