@@ -409,34 +409,44 @@ function FeedContent() {
     const postIds = filteredPostsData.map(p => p.id)
 
     // Fetch all related data in parallel for better performance
-    const [
-      { data: allVotes },
-      { data: userVotes },
-      { data: tipTotals },
-      { data: accessData }
-    ] = await Promise.all([
-      // All votes for these posts
-      supabase
-        .from('post_votes')
-        .select('post_id, vote_type')
-        .in('post_id', postIds),
-      // Current user's votes
-      supabase
-        .from('post_votes')
-        .select('post_id, vote_type')
-        .eq('user_id', session.nullifier_hash)
-        .in('post_id', postIds),
-      // Tip totals for posts
-      supabase
-        .from('tips')
-        .select('post_id, amount')
-        .in('post_id', postIds),
-      // User's post access (for premium posts)
-      supabase
-        .from('post_access')
-        .select('post_id')
-        .eq('user_id', session.nullifier_hash)
-    ])
+    let allVotes: { post_id: string; vote_type: string }[] | null = null
+    let userVotes: { post_id: string; vote_type: string }[] | null = null
+    let tipTotals: { post_id: string; amount: number }[] | null = null
+    let accessData: { post_id: string }[] | null = null
+
+    try {
+      const results = await Promise.all([
+        // All votes for these posts
+        supabase
+          .from('post_votes')
+          .select('post_id, vote_type')
+          .in('post_id', postIds),
+        // Current user's votes
+        supabase
+          .from('post_votes')
+          .select('post_id, vote_type')
+          .eq('user_id', session.nullifier_hash)
+          .in('post_id', postIds),
+        // Tip totals for posts
+        supabase
+          .from('tips')
+          .select('post_id, amount')
+          .in('post_id', postIds),
+        // User's post access (for premium posts)
+        supabase
+          .from('post_access')
+          .select('post_id')
+          .eq('user_id', session.nullifier_hash)
+      ])
+
+      allVotes = results[0].data
+      userVotes = results[1].data
+      tipTotals = results[2].data as { post_id: string; amount: number }[] | null
+      accessData = results[3].data
+    } catch (error) {
+      console.error('Error fetching post metadata:', error)
+      // Continue with empty metadata - posts will still display
+    }
 
     // Process user votes into a map
     const userVotesMap: Record<string, 'like' | 'dislike'> = {}
