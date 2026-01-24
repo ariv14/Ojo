@@ -39,7 +39,7 @@ interface PostMediaProps {
 // Skeleton loader for media
 function MediaSkeleton() {
   return (
-    <div className="w-full aspect-square bg-gray-900 animate-pulse flex items-center justify-center min-h-[300px]">
+    <div className="absolute inset-0 bg-gray-900 animate-pulse flex items-center justify-center">
       <svg className="w-12 h-12 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
           d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -143,8 +143,18 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, 
   }
 
   return (
-    <div className="relative min-h-[300px] bg-black">
+    <div className="relative w-full aspect-[4/5] bg-gray-900 flex items-center justify-center overflow-hidden">
       {isLoading && !localUrl && <MediaSkeleton />}
+
+      {/* Background blur layer */}
+      {!isLoading && (
+        <img
+          src={displayUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110"
+        />
+      )}
+
       <button
         type="button"
         onClick={() => {
@@ -153,7 +163,7 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, 
             onImageClick()
           }
         }}
-        className={`w-full block ${isLoading && !localUrl ? 'hidden' : ''}`}
+        className={`relative z-10 w-full h-full flex items-center justify-center ${isLoading && !localUrl ? 'hidden' : ''}`}
       >
         <img
           src={displayUrl}
@@ -161,9 +171,7 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, 
           loading="lazy"
           decoding="async"
           onLoad={handleImageLoad}
-          className={`w-full max-h-[450px] md:max-h-[600px] object-contain bg-black ${
-            locked ? 'blur-xl' : ''
-          }`}
+          className={`w-full h-full object-contain ${locked ? 'blur-xl' : ''}`}
         />
       </button>
 
@@ -319,14 +327,14 @@ function AlbumCarousel({
   const isCurrentLoaded = loadedIndices.has(currentIndex) || !!localUrls
 
   return (
-    <div className="relative min-h-[300px] bg-black">
+    <div className="relative w-full aspect-[4/5] bg-gray-900 flex items-center justify-center overflow-hidden">
       {/* Counter badge */}
-      <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10">
+      <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-20">
         {currentIndex + 1}/{mediaKeys.length}
       </div>
 
       {/* Album badge */}
-      <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10 flex items-center gap-1">
+      <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-20 flex items-center gap-1">
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
           <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
         </svg>
@@ -339,11 +347,18 @@ function AlbumCarousel({
       {/* Image container */}
       <div
         ref={containerRef}
-        className={`overflow-hidden ${!isCurrentLoaded ? 'hidden' : ''}`}
+        className={`absolute inset-0 ${!isCurrentLoaded ? 'hidden' : ''}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Background blur layer */}
+        <img
+          src={locked ? getDisplayUrl(0) : getDisplayUrl(currentIndex)}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110"
+        />
+
         <button
           type="button"
           onClick={() => {
@@ -352,7 +367,7 @@ function AlbumCarousel({
               onImageClick(currentIndex)
             }
           }}
-          className="w-full block"
+          className="relative z-10 w-full h-full flex items-center justify-center"
         >
           <img
             src={locked ? getDisplayUrl(0) : getDisplayUrl(currentIndex)}
@@ -360,7 +375,7 @@ function AlbumCarousel({
             loading="lazy"
             decoding="async"
             onLoad={() => handleImageLoad(currentIndex)}
-            className={`w-full max-h-[450px] md:max-h-[600px] object-contain bg-black transition-opacity duration-200 ${
+            className={`w-full h-full object-contain transition-opacity duration-200 ${
               locked ? 'blur-xl' : ''
             }`}
           />
@@ -374,7 +389,7 @@ function AlbumCarousel({
             <button
               type="button"
               onClick={goToPrevious}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition z-20"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -385,7 +400,7 @@ function AlbumCarousel({
             <button
               type="button"
               onClick={goToNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition z-20"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -397,7 +412,7 @@ function AlbumCarousel({
 
       {/* Dot indicators */}
       {mediaKeys.length > 1 && !locked && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
           {mediaKeys.map((_, idx) => (
             <button
               key={idx}
@@ -531,9 +546,9 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   }
 
   return (
-    <div ref={containerRef} className="relative bg-black min-h-[300px]">
+    <div ref={containerRef} className="relative w-full aspect-[4/5] bg-gray-900 flex items-center justify-center overflow-hidden">
       {/* Reel badge */}
-      <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10 flex items-center gap-1">
+      <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-20 flex items-center gap-1">
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
           <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
         </svg>
@@ -542,17 +557,33 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
 
       {locked ? (
         // Show blurred thumbnail when locked - don't load video
-        <div className="relative">
+        <div className="absolute inset-0">
+          {/* Background blur layer */}
+          <img
+            src={displayThumbnailUrl || ''}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110"
+          />
+          {/* Foreground blurred thumbnail */}
           <img
             src={displayThumbnailUrl || ''}
             alt="Reel thumbnail"
-            className="w-full max-h-[450px] md:max-h-[600px] object-contain blur-xl"
+            className="relative z-10 w-full h-full object-contain blur-xl"
           />
           <PremiumOverlay hasWallet={hasWallet} onUnlock={onUnlock} />
         </div>
       ) : (
         // Show video player when unlocked
-        <div className="relative">
+        <div className="absolute inset-0">
+          {/* Background blur layer - using thumbnail */}
+          {displayThumbnailUrl && (
+            <img
+              src={displayThumbnailUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110"
+            />
+          )}
+
           {/* Skeleton while video loads */}
           {!isVideoReady && <MediaSkeleton />}
 
@@ -562,7 +593,7 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
             poster={displayThumbnailUrl}
             muted={isMuted}
             loop
-            className={`w-full max-h-[450px] md:max-h-[600px] object-contain ${!isVideoReady ? 'hidden' : ''}`}
+            className={`relative z-10 w-full h-full object-contain ${!isVideoReady ? 'hidden' : ''}`}
             onClick={togglePlay}
             onCanPlay={handleVideoCanPlay}
             onPlay={handlePlay}
@@ -575,7 +606,7 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
             <button
               type="button"
               onClick={togglePlay}
-              className="absolute inset-0 flex items-center justify-center bg-black/20"
+              className="absolute inset-0 flex items-center justify-center bg-black/20 z-20"
             >
               <div className="bg-black/60 rounded-full p-4">
                 <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -590,7 +621,7 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
             <button
               type="button"
               onClick={handleToggleMute}
-              className={`absolute bottom-3 right-3 bg-black/60 text-white p-2 rounded-full z-10 ${
+              className={`absolute bottom-3 right-3 bg-black/60 text-white p-2 rounded-full z-20 ${
                 isMuted && isPlaying ? 'animate-pulse' : ''
               }`}
             >
@@ -610,7 +641,7 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
           {/* Tap to unmute hint */}
           {isVideoReady && isMuted && isPlaying && showMuteHint && (
             <div
-              className="absolute bottom-12 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded z-10 animate-pulse"
+              className="absolute bottom-12 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded z-20 animate-pulse"
               onClick={handleToggleMute}
             >
               Tap to unmute
@@ -630,7 +661,7 @@ interface PremiumOverlayProps {
 
 function PremiumOverlay({ hasWallet, onUnlock }: PremiumOverlayProps) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+    <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-30">
       {hasWallet ? (
         <button
           onClick={onUnlock}
