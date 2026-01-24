@@ -18,6 +18,7 @@ import ReportModal from '@/components/ReportModal'
 import ImageViewer from '@/components/ImageViewer'
 import ConfirmationModal from '@/components/ConfirmationModal'
 import PostMedia from '@/components/PostMedia'
+import Logo from '@/components/Logo'
 
 interface MediaUrl {
   key: string
@@ -1024,20 +1025,8 @@ function FeedContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-2 flex items-center justify-center">
-            <span className="relative">
-              O
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="w-2.5 h-2.5 bg-current rounded-full"></span>
-              </span>
-            </span>
-            <span>J</span>
-            <span className="relative">
-              O
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="w-2.5 h-2.5 bg-current rounded-full"></span>
-              </span>
-            </span>
+          <h1 className="mb-2 flex items-center justify-center">
+            <Logo size="lg" />
           </h1>
           <p className="text-gray-500">Keep an eye on what is real</p>
         </div>
@@ -1091,20 +1080,8 @@ function FeedContent() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 animated-gradient-header text-white z-40">
         <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold flex items-center">
-            <span className="relative">
-              O
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
-              </span>
-            </span>
-            <span>J</span>
-            <span className="relative">
-              O
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
-              </span>
-            </span>
+          <h1 className="flex items-center">
+            <Logo size="sm" />
           </h1>
           <div className="flex items-center gap-3">
             <button

@@ -61,3 +61,36 @@ input, textarea {
   background-size: 300% 100%;
   animation: gradient-shift 12s ease infinite;
 }
+
+/* OJO Logo eye animations */
+@keyframes blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+@keyframes pupil-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.eye-blink {
+  animation: blink 4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.eye-blink-delayed {
+  animation: blink 4s ease-in-out 0.1s infinite;
+  transform-origin: center;
+}
+
+.pupil-pulse {
+  animation: pupil-pulse 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eye-blink,
+  .eye-blink-delayed,
+  .pupil-pulse {
+    animation: none;
+  }
+}
