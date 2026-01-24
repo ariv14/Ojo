@@ -86,7 +86,17 @@ export default function Logo({ size = 'lg', animated = true, className = '' }: L
   return (
     <span className={`${config.text} font-bold flex items-center ${className}`}>
       <Eye delayed={false} />
-      <span className="mx-[-0.1em]">J</span>
+      <span
+        className={`mx-1 ${animated ? 'j-jitter' : ''}`}
+        style={{
+          background: 'linear-gradient(180deg, #2563eb 0%, #3b82f6 50%, #1e3a5f 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}
+      >
+        J
+      </span>
       <Eye delayed={true} />
     </span>
   )
