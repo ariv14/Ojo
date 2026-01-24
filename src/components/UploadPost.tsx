@@ -943,8 +943,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                 ref={videoInputRef}
                 type="file"
                 accept="video/*"
-                // @ts-expect-error - camcorder is valid on Android but not in TS types
-                capture="camcorder"
+                capture="environment"
                 onChange={handleVideoSelect}
                 className="hidden"
               />
