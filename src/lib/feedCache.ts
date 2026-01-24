@@ -1,5 +1,7 @@
 const FEED_CACHE_KEY = 'ojo_feed_cache'
 const FEED_CACHE_VERSION = 2 // Bumped for albums & reels support
+const CACHE_STALE_MS = 5 * 60 * 1000 // 5 minutes - show cached but refresh in background
+const CACHE_EXPIRED_MS = 30 * 60 * 1000 // 30 minutes - don't show cached data at all
 
 interface MediaUrl {
   key: string
@@ -83,6 +85,22 @@ export function setFeedCache(cache: FeedCache): void {
 export function clearFeedCache(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(FEED_CACHE_KEY)
+}
+
+/**
+ * Check if cache is stale (older than 5 minutes)
+ * Stale cache can still be shown, but should trigger background refresh
+ */
+export function isCacheStale(cache: FeedCache): boolean {
+  return Date.now() - cache.timestamp > CACHE_STALE_MS
+}
+
+/**
+ * Check if cache is expired (older than 30 minutes)
+ * Expired cache should not be shown at all
+ */
+export function isCacheExpired(cache: FeedCache): boolean {
+  return Date.now() - cache.timestamp > CACHE_EXPIRED_MS
 }
 
 export { FEED_CACHE_VERSION }

@@ -204,17 +204,20 @@ function AlbumCarousel({
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
   const hasCalledLoaded = useRef(false)
+  const allPreloaded = useRef(false)
 
-  // Lazily transform URLs for current and adjacent slides only
+  // Lazily transform URLs for current and ±2 adjacent slides for smoother swiping
   useEffect(() => {
     const indicesToLoad = [currentIndex]
-    // Preload next slide for smooth transitions
-    if (currentIndex < mediaKeys.length - 1) {
-      indicesToLoad.push(currentIndex + 1)
-    }
-    // Preload previous slide
-    if (currentIndex > 0) {
-      indicesToLoad.push(currentIndex - 1)
+
+    // Preload ±2 slides for smoother swiping experience
+    for (let offset = 1; offset <= 2; offset++) {
+      if (currentIndex + offset < mediaKeys.length) {
+        indicesToLoad.push(currentIndex + offset)
+      }
+      if (currentIndex - offset >= 0) {
+        indicesToLoad.push(currentIndex - offset)
+      }
     }
 
     setTransformedUrls(prev => {
@@ -229,6 +232,35 @@ function AlbumCarousel({
       return changed ? updated : prev
     })
   }, [currentIndex, mediaKeys])
+
+  // Preload ALL remaining slides after 3 seconds for seamless swiping through entire album
+  useEffect(() => {
+    // Skip if already preloaded, using local URLs, or album is small (5 or fewer)
+    if (allPreloaded.current || localUrls || mediaKeys.length <= 5) return
+
+    const timer = setTimeout(() => {
+      allPreloaded.current = true
+
+      // Transform and cache all URLs
+      setTransformedUrls(prev => {
+        const updated = new Map(prev)
+        mediaKeys.forEach((media, idx) => {
+          if (!updated.has(idx)) {
+            updated.set(idx, getS3PublicUrl(media.key))
+          }
+        })
+        return updated
+      })
+
+      // Preload all images in browser cache
+      mediaKeys.forEach((media) => {
+        const img = new Image()
+        img.src = getS3PublicUrl(media.key)
+      })
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [mediaKeys, localUrls])
 
   // Get display URL for current index (prefer local if available)
   const getDisplayUrl = (index: number) => {

@@ -4,7 +4,8 @@ import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession, clearSession, UserSession } from '@/lib/session'
-import { getFeedCache, setFeedCache, FEED_CACHE_VERSION } from '@/lib/feedCache'
+import { getFeedCache, setFeedCache, isCacheStale, isCacheExpired, FEED_CACHE_VERSION } from '@/lib/feedCache'
+import { preloadPostImages, clearPreloadCache } from '@/lib/imagePreloader'
 import { ensureWalletConnected } from '@/lib/wallet'
 import UploadPost from '@/components/UploadPost'
 import ChatButton from '@/components/ChatButton'
@@ -104,7 +105,9 @@ function FeedContent() {
 
       // Try to load from cache first for instant display
       const cache = getFeedCache(session.nullifier_hash)
-      if (cache && cache.posts.length > 0) {
+      const hasValidCache = cache && cache.posts.length > 0 && !isCacheExpired(cache)
+
+      if (hasValidCache) {
         setPosts(cache.posts)
         setHiddenUsers(new Set(cache.hiddenUsers))
         setFollowedUsers(new Set(cache.followedUsers))
@@ -126,8 +129,17 @@ function FeedContent() {
       }
 
       setCurrentSession(session)
-      // Fetch fresh data (will update cache when done)
-      fetchPosts(session)
+
+      // Stale-while-revalidate: if cache is stale, fetch silently in background
+      // If no cache or expired, fetch with loading state (already showing)
+      if (hasValidCache && isCacheStale(cache)) {
+        // Silent background refresh - don't show loading state
+        fetchPosts(session)
+      } else if (!hasValidCache) {
+        // No cache or expired - fetch with loading state
+        fetchPosts(session)
+      }
+
       fetchUnreadCount(session.nullifier_hash)
     }
 
@@ -236,6 +248,38 @@ function FeedContent() {
       }
     }
   }, [searchParams, posts])
+
+  // Scroll-based image preloading for upcoming posts
+  useEffect(() => {
+    if (posts.length === 0) return
+
+    const handleScroll = () => {
+      // Estimate visible post index based on scroll position
+      const scrollTop = window.scrollY
+      const postHeight = 500 // Approximate height per post
+      const visibleIndex = Math.floor(scrollTop / postHeight)
+
+      // Preload next 3 posts
+      preloadPostImages(posts, visibleIndex, 3)
+    }
+
+    // Debounce scroll handler for performance
+    let timeoutId: ReturnType<typeof setTimeout>
+    const debouncedHandler = () => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(handleScroll, 100)
+    }
+
+    window.addEventListener('scroll', debouncedHandler, { passive: true })
+
+    // Preload first 5 posts on initial load
+    preloadPostImages(posts, -1, 5)
+
+    return () => {
+      window.removeEventListener('scroll', debouncedHandler)
+      clearTimeout(timeoutId)
+    }
+  }, [posts])
 
   // Handle Android back button for image viewer
   useEffect(() => {
