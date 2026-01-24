@@ -954,10 +954,35 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                     </p>
                   </div>
 
-                  {/* Record Video - triggers native camera directly */}
+                  {/* Record Video - uses World Media API for system camera */}
                   <button
                     type="button"
-                    onClick={() => cameraInputRef.current?.click()}
+                    onClick={async () => {
+                      try {
+                        // Use World Media API to open system video camera with audio
+                        const result = await (window as unknown as { world: { media: { record: (opts: { video: boolean; audio: boolean; maxDuration: number }) => Promise<{ file: Blob; mimeType: string }> } } }).world.media.record({
+                          video: true,
+                          audio: true,
+                          maxDuration: 60
+                        })
+
+                        if (result?.file) {
+                          // Convert Blob to File for our existing handler
+                          const file = new File([result.file], `reel-${Date.now()}.mp4`, {
+                            type: result.mimeType || 'video/mp4'
+                          })
+                          // Create a synthetic event for handleVideoSelect
+                          const syntheticEvent = {
+                            target: { files: [file] }
+                          } as unknown as React.ChangeEvent<HTMLInputElement>
+                          handleVideoSelect(syntheticEvent)
+                        }
+                      } catch (err) {
+                        console.error('World video record failed:', err)
+                        // Fallback to in-app camera if World API not available
+                        setShowCamera(true)
+                      }
+                    }}
                     className="w-full py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -970,16 +995,6 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                     </svg>
                     Record Video
                   </button>
-
-                  {/* Hidden native camera input - exactly as in test code */}
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="video/*"
-                    capture="environment"
-                    onChange={handleVideoSelect}
-                    style={{ display: 'none' }}
-                  />
 
                   {/* Choose from Gallery */}
                   <button
