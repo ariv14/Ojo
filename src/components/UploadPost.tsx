@@ -942,7 +942,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
               <input
                 ref={videoInputRef}
                 type="file"
-                accept="video/*,android/allowCamera"
+                accept="video/*"
                 onChange={handleVideoSelect}
                 className="hidden"
               />
