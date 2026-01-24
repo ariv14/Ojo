@@ -2,16 +2,16 @@
 
 import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { clearFeedCache } from '@/lib/feedCache'
 import Logo from './Logo'
 
 interface HeaderProps {
   showBackButton?: boolean
   onBack?: () => void
   rightContent?: ReactNode
+  isFeedPage?: boolean
 }
 
-export default function Header({ showBackButton = false, onBack, rightContent }: HeaderProps) {
+export default function Header({ showBackButton = false, onBack, rightContent, isFeedPage = false }: HeaderProps) {
   const router = useRouter()
 
   const handleBack = () => {
@@ -23,8 +23,9 @@ export default function Header({ showBackButton = false, onBack, rightContent }:
   }
 
   const handleLogoClick = () => {
-    clearFeedCache()
-    router.push('/feed')
+    if (!isFeedPage) {
+      router.push('/feed')
+    }
   }
 
   return (
@@ -41,9 +42,15 @@ export default function Header({ showBackButton = false, onBack, rightContent }:
               </svg>
             </button>
           )}
-          <button onClick={handleLogoClick} className="flex items-center">
-            <Logo size="sm" />
-          </button>
+          {isFeedPage ? (
+            <div className="flex items-center">
+              <Logo size="sm" />
+            </div>
+          ) : (
+            <button onClick={handleLogoClick} className="flex items-center">
+              <Logo size="sm" />
+            </button>
+          )}
         </div>
         {rightContent && (
           <div className="flex items-center gap-3">

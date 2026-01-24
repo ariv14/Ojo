@@ -1080,6 +1080,7 @@ function FeedContent() {
 
       {/* Header */}
       <Header
+        isFeedPage={true}
         rightContent={
           <>
             <button
