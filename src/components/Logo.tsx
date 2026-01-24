@@ -2,20 +2,6 @@
 
 import { useState, useEffect } from 'react'
 
-// All the fun animations the J can do
-const jAnimations = [
-  'j-jitter',  // nervous shake
-  'j-bounce',  // bouncing up and down
-  'j-spin',    // 360° rotation
-  'j-squish',  // cartoon squash and stretch
-  'j-wave',    // tilting side to side
-  'j-lean',    // leaning away from eyes
-  'j-wiggle',  // side to side dance
-  'j-flip',    // horizontal flip
-  'j-pulse',   // scale up and down
-  'j-peek',    // drops down then pops back up
-]
-
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   animated?: boolean
@@ -25,82 +11,106 @@ interface LogoProps {
 const sizeConfig = {
   sm: {
     text: 'text-xl',
-    eyeSize: 'w-5 h-5',
-    irisSize: 'w-4 h-4',
-    pupilSize: 'w-1.5 h-1.5',
-    reflectionSize: 'w-0.5 h-0.5',
-    reflectionOffset: '-top-0.5 -right-0.5',
+    eyeOuter: 'w-5 h-5',
+    eyeMiddle: 'w-3.5 h-3.5',
+    eyeInner: 'w-2 h-2',
+    coreSize: 'w-1 h-1',
+    arcWidth: '2px',
+    glowSize: '4px',
   },
   md: {
     text: 'text-2xl',
-    eyeSize: 'w-6 h-6',
-    irisSize: 'w-5 h-5',
-    pupilSize: 'w-2 h-2',
-    reflectionSize: 'w-0.5 h-0.5',
-    reflectionOffset: '-top-0.5 -right-0.5',
+    eyeOuter: 'w-6 h-6',
+    eyeMiddle: 'w-4 h-4',
+    eyeInner: 'w-2.5 h-2.5',
+    coreSize: 'w-1.5 h-1.5',
+    arcWidth: '2px',
+    glowSize: '6px',
   },
   lg: {
     text: 'text-4xl',
-    eyeSize: 'w-8 h-8',
-    irisSize: 'w-6 h-6',
-    pupilSize: 'w-2.5 h-2.5',
-    reflectionSize: 'w-1 h-1',
-    reflectionOffset: '-top-0.5 -right-0.5',
+    eyeOuter: 'w-9 h-9',
+    eyeMiddle: 'w-6 h-6',
+    eyeInner: 'w-3.5 h-3.5',
+    coreSize: 'w-2 h-2',
+    arcWidth: '3px',
+    glowSize: '8px',
   },
   xl: {
     text: 'text-6xl',
-    eyeSize: 'w-12 h-12',
-    irisSize: 'w-9 h-9',
-    pupilSize: 'w-4 h-4',
-    reflectionSize: 'w-1.5 h-1.5',
-    reflectionOffset: '-top-1 -right-1',
+    eyeOuter: 'w-14 h-14',
+    eyeMiddle: 'w-9 h-9',
+    eyeInner: 'w-5 h-5',
+    coreSize: 'w-3 h-3',
+    arcWidth: '4px',
+    glowSize: '12px',
   },
 }
 
 export default function Logo({ size = 'lg', animated = true, className = '' }: LogoProps) {
   const config = sizeConfig[size]
-  const [currentAnimation, setCurrentAnimation] = useState(0)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
-  // Cycle through animations every 2 seconds
   useEffect(() => {
-    if (!animated) return
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPrefersReducedMotion(mediaQuery.matches)
 
-    const interval = setInterval(() => {
-      setCurrentAnimation(prev => (prev + 1) % jAnimations.length)
-    }, 2000)
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+    mediaQuery.addEventListener('change', handler)
+    return () => mediaQuery.removeEventListener('change', handler)
+  }, [])
 
-    return () => clearInterval(interval)
-  }, [animated])
+  const shouldAnimate = animated && !prefersReducedMotion
 
-  const Eye = ({ delayed = false }: { delayed?: boolean }) => (
+  const CyberEye = ({ delayed = false }: { delayed?: boolean }) => (
     <span className="relative inline-flex items-center justify-center">
-      {/* The letter O as the sclera outline */}
+      {/* Hidden O for spacing */}
       <span className="opacity-0">O</span>
 
-      {/* Eye container - positioned over the O */}
+      {/* Eye container */}
       <span className="absolute inset-0 flex items-center justify-center">
-        {/* Sclera (white of the eye) - animation applied here */}
+        {/* Outer ring - dark with cyan border and glow */}
         <span
-          className={`${config.eyeSize} rounded-full bg-white flex items-center justify-center shadow-inner ${animated ? (delayed ? 'eye-blink-delayed' : 'eye-blink') : ''}`}
+          className={`${config.eyeOuter} rounded-full flex items-center justify-center relative ${shouldAnimate ? 'cyber-ring-glow' : ''}`}
           style={{
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1)'
+            background: 'linear-gradient(135deg, #0A1628 0%, #1E3A8A 100%)',
+            border: '2px solid #00FFFF',
+            boxShadow: `0 0 ${config.glowSize} rgba(0, 255, 255, 0.5), inset 0 0 ${config.glowSize} rgba(0, 255, 255, 0.2)`,
           }}
         >
-          {/* Iris with gradient rings */}
+          {/* Scanning arc - rotating */}
           <span
-            className={`${config.irisSize} rounded-full flex items-center justify-center`}
+            className={`absolute inset-0 rounded-full ${shouldAnimate ? 'cyber-scan' : ''}`}
             style={{
-              background: 'radial-gradient(circle at center, #1e3a5f 0%, #2563eb 30%, #3b82f6 50%, #60a5fa 70%, #93c5fd 85%, #2563eb 100%)',
-              boxShadow: 'inset 0 0 3px rgba(0,0,0,0.3)'
+              background: 'conic-gradient(from 0deg, transparent 0deg, rgba(0, 255, 255, 0.8) 30deg, transparent 60deg)',
+              animationDelay: delayed ? '1.5s' : '0s',
+            }}
+          />
+
+          {/* Middle ring - blue gradient */}
+          <span
+            className={`${config.eyeMiddle} rounded-full flex items-center justify-center relative z-10`}
+            style={{
+              background: 'radial-gradient(circle at center, #0080FF 0%, #1E3A8A 70%, #0A1628 100%)',
+              boxShadow: 'inset 0 0 4px rgba(0, 128, 255, 0.5)',
             }}
           >
-            {/* Pupil */}
+            {/* Inner iris - bright cyan */}
             <span
-              className={`${config.pupilSize} rounded-full bg-black ${animated ? 'pupil-pulse' : ''} relative`}
+              className={`${config.eyeInner} rounded-full flex items-center justify-center`}
+              style={{
+                background: 'radial-gradient(circle at center, #00FFFF 0%, #0080FF 60%, #1E3A8A 100%)',
+                boxShadow: '0 0 6px rgba(0, 255, 255, 0.6)',
+              }}
             >
-              {/* Light reflection */}
+              {/* Core - pulsing bright point */}
               <span
-                className={`absolute ${config.reflectionSize} ${config.reflectionOffset} bg-white rounded-full opacity-90`}
+                className={`${config.coreSize} rounded-full ${shouldAnimate ? 'cyber-core-pulse' : ''}`}
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #00FFFF 50%, transparent 100%)',
+                  boxShadow: '0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px rgba(0, 255, 255, 0.6)',
+                  animationDelay: delayed ? '1s' : '0s',
+                }}
               />
             </span>
           </span>
@@ -111,19 +121,42 @@ export default function Logo({ size = 'lg', animated = true, className = '' }: L
 
   return (
     <span className={`${config.text} font-bold flex items-center ${className}`}>
-      <Eye delayed={false} />
-      <span
-        className={`mx-1 ${animated ? jAnimations[currentAnimation] : ''}`}
-        style={{
-          background: 'linear-gradient(180deg, #2563eb 0%, #3b82f6 50%, #1e3a5f 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-        }}
-      >
-        J
+      <CyberEye delayed={false} />
+
+      {/* J with shimmer effect */}
+      <span className="mx-1 relative inline-block">
+        {/* Base J with gradient */}
+        <span
+          style={{
+            background: 'linear-gradient(180deg, #00FFFF 0%, #0080FF 50%, #8B5CF6 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            filter: 'drop-shadow(0 0 8px rgba(0, 255, 255, 0.5))',
+          }}
+        >
+          J
+        </span>
+
+        {/* Shimmer overlay */}
+        {shouldAnimate && (
+          <span
+            className="absolute inset-0 cyber-shimmer pointer-events-none"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%)',
+              backgroundSize: '200% 100%',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              mixBlendMode: 'overlay',
+            }}
+          >
+            J
+          </span>
+        )}
       </span>
-      <Eye delayed={true} />
+
+      <CyberEye delayed={true} />
     </span>
   )
 }
