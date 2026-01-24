@@ -896,27 +896,32 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                   </button>
                 </div>
               ) : (
-                <div
-                  onClick={() => videoInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
-                >
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="space-y-3">
+                  <div
+                    onClick={() => videoInputRef.current?.click()}
+                    className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <p className="text-gray-500 text-center">
-                    Tap to select video
-                    <br />
-                    <span className="text-xs text-gray-400">Max 10 seconds</span>
+                    <svg
+                      className="w-12 h-12 text-gray-400 mb-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <p className="text-gray-500 text-center">
+                      Tap to select video
+                      <br />
+                      <span className="text-xs text-gray-400">Max 10 seconds</span>
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500 text-center bg-gray-100 rounded-lg py-2 px-3">
+                    Select <span className="font-semibold">Browse files</span> to choose a video from your gallery
                   </p>
                 </div>
               )}
