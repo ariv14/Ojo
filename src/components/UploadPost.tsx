@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { compressImage } from '@/utils/compress'
 import { ensureWalletConnected } from '@/lib/wallet'
-import ReelsCamera from '@/components/ReelsCamera'
+// ReelsCamera removed - using gallery upload only due to WebView mic restrictions
 import VideoTrimmer from '@/components/VideoTrimmer'
 
 type MediaType = 'image' | 'album' | 'reel'
@@ -37,7 +37,6 @@ interface UploadPostProps {
 export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   // Media type selection
   const [mediaType, setMediaType] = useState<MediaType>('image')
@@ -55,7 +54,6 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const [videoPreview, setVideoPreview] = useState<string | null>(null)
   const [videoDuration, setVideoDuration] = useState<number>(0)
   const [videoThumbnail, setVideoThumbnail] = useState<Blob | null>(null)
-  const [showCamera, setShowCamera] = useState(false)
 
   // Video trimmer state
   const [showTrimmer, setShowTrimmer] = useState(false)
@@ -222,25 +220,6 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     video.src = URL.createObjectURL(file)
   }
 
-  const handleCameraCapture = async (file: File, type: 'video') => {
-    setShowCamera(false)
-
-    // Check if this came from native system camera (may be longer than 10s)
-    // In-app camera is already duration-limited, but native camera is not
-    const validation = await validateVideo(file)
-    if (!validation.valid && validation.error === 'needs_trim' && validation.duration > 0) {
-      setOriginalVideoFile(file)
-      setOriginalVideoDuration(validation.duration)
-      setShowTrimmer(true)
-      return
-    }
-
-    setSelectedVideo(file)
-    setVideoPreview(URL.createObjectURL(file))
-    extractVideoThumbnail(file)
-    setVideoDuration(validation.duration || 10) // Use actual duration or fallback
-    setError('')
-  }
 
   const handleTrimComplete = (trimmedFile: File) => {
     setShowTrimmer(false)
@@ -659,7 +638,6 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     setVideoPreview(null)
     setVideoDuration(0)
     setVideoThumbnail(null)
-    setShowCamera(false)
     setError('')
   }
 
@@ -887,27 +865,16 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
             </>
           )}
 
-          {/* Reel Upload */}
+          {/* Reel Upload - Gallery only */}
           {mediaType === 'reel' && (
             <>
-              {showCamera ? (
-                <ReelsCamera
-                  onCapture={handleCameraCapture}
-                  onClose={() => setShowCamera(false)}
-                  onError={(error) => {
-                    setError(error)
-                    setShowCamera(false)
-                  }}
-                  maxDuration={10}
-                />
-              ) : videoPreview ? (
+              {videoPreview ? (
                 <div className="space-y-4">
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
                     <video
                       src={videoPreview}
                       className="w-full h-full object-contain"
                       controls
-                      muted
                       playsInline
                     />
                   </div>
@@ -954,62 +921,11 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                     </p>
                   </div>
 
-                  {/* Record Video - uses World Media API for system camera */}
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      // Check if World API is available
-                      const worldApi = (window as unknown as { world?: { media?: { record?: (opts: { video: boolean; audio: boolean; maxDuration: number }) => Promise<{ file: Blob; mimeType: string }> } } }).world
-
-                      if (worldApi?.media?.record) {
-                        try {
-                          console.log('[World API] Calling world.media.record()')
-                          const result = await worldApi.media.record({
-                            video: true,
-                            audio: true,
-                            maxDuration: 60
-                          })
-
-                          console.log('[World API] Result:', result)
-
-                          if (result?.file) {
-                            const file = new File([result.file], `reel-${Date.now()}.mp4`, {
-                              type: result.mimeType || 'video/mp4'
-                            })
-                            const syntheticEvent = {
-                              target: { files: [file] }
-                            } as unknown as React.ChangeEvent<HTMLInputElement>
-                            handleVideoSelect(syntheticEvent)
-                          }
-                        } catch (err) {
-                          console.error('[World API] Record failed:', err)
-                          setError('Recording failed. Please try again.')
-                        }
-                      } else {
-                        console.log('[World API] Not available, using in-app camera')
-                        console.log('[World API] window.world =', (window as unknown as { world?: unknown }).world)
-                        // Fallback to in-app camera
-                        setShowCamera(true)
-                      }
-                    }}
-                    className="w-full py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Record Video
-                  </button>
-
                   {/* Choose from Gallery */}
                   <button
                     type="button"
                     onClick={() => videoInputRef.current?.click()}
-                    className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
