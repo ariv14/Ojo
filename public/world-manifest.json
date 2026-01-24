@@ -1,0 +1,18 @@
+{
+  "app": {
+    "name": "Ojo Staging",
+    "version": "1.0.0"
+  },
+
+  "permissions": {
+    "camera": true,
+    "microphone": true
+  },
+
+  "media": {
+    "record": {
+      "audio": true,
+      "video": true
+    }
+  }
+}
