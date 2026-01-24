@@ -78,12 +78,10 @@ export default function Logo({ size = 'lg', animated = true, className = '' }: L
       <span className="opacity-0">O</span>
 
       {/* Eye container - positioned over the O */}
-      <span
-        className={`absolute inset-0 flex items-center justify-center ${animated ? (delayed ? 'eye-blink-delayed' : 'eye-blink') : ''}`}
-      >
-        {/* Sclera (white of the eye) */}
+      <span className="absolute inset-0 flex items-center justify-center">
+        {/* Sclera (white of the eye) - animation applied here */}
         <span
-          className={`${config.eyeSize} rounded-full bg-white flex items-center justify-center shadow-inner`}
+          className={`${config.eyeSize} rounded-full bg-white flex items-center justify-center shadow-inner ${animated ? (delayed ? 'eye-blink-delayed' : 'eye-blink') : ''}`}
           style={{
             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1)'
           }}
