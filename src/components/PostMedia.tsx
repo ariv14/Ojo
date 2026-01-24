@@ -74,15 +74,18 @@ export default function PostMedia({ post, onImageClick, onUnlock, onMediaLoaded 
 
   // Album with carousel
   if (post.media_type === 'album' && post.media_urls) {
-    const urls = post.media_urls.map((m) => getS3PublicUrl(m.key))
     return (
       <AlbumCarousel
-        mediaUrls={urls}
+        mediaKeys={post.media_urls}
         localUrls={post.localBlobs?.localMediaUrls}
         caption={post.caption}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
-        onImageClick={(index) => onImageClick?.(urls, index)}
+        onImageClick={(index) => {
+          // Transform URLs only when needed for image viewer
+          const urls = post.media_urls!.map((m) => getS3PublicUrl(m.key))
+          onImageClick?.(urls, index)
+        }}
         onUnlock={() => onUnlock?.(post)}
         onLoaded={() => onMediaLoaded?.(post.id)}
       />
@@ -173,7 +176,7 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, 
 
 // Album Carousel Component
 interface AlbumCarouselProps {
-  mediaUrls: string[]
+  mediaKeys: MediaUrl[]
   localUrls?: string[]
   caption?: string | null
   locked: boolean
@@ -184,7 +187,7 @@ interface AlbumCarouselProps {
 }
 
 function AlbumCarousel({
-  mediaUrls,
+  mediaKeys,
   localUrls,
   caption,
   locked,
@@ -195,17 +198,45 @@ function AlbumCarousel({
 }: AlbumCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set(localUrls ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : []))
+  // Cache transformed URLs to avoid re-computing
+  const [transformedUrls, setTransformedUrls] = useState<Map<number, string>>(new Map())
   const containerRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
   const hasCalledLoaded = useRef(false)
+
+  // Lazily transform URLs for current and adjacent slides only
+  useEffect(() => {
+    const indicesToLoad = [currentIndex]
+    // Preload next slide for smooth transitions
+    if (currentIndex < mediaKeys.length - 1) {
+      indicesToLoad.push(currentIndex + 1)
+    }
+    // Preload previous slide
+    if (currentIndex > 0) {
+      indicesToLoad.push(currentIndex - 1)
+    }
+
+    setTransformedUrls(prev => {
+      const updated = new Map(prev)
+      let changed = false
+      for (const idx of indicesToLoad) {
+        if (!updated.has(idx)) {
+          updated.set(idx, getS3PublicUrl(mediaKeys[idx].key))
+          changed = true
+        }
+      }
+      return changed ? updated : prev
+    })
+  }, [currentIndex, mediaKeys])
 
   // Get display URL for current index (prefer local if available)
   const getDisplayUrl = (index: number) => {
     if (localUrls && localUrls[index]) {
       return localUrls[index]
     }
-    return mediaUrls[index]
+    // Return cached transformed URL or transform on demand
+    return transformedUrls.get(index) || getS3PublicUrl(mediaKeys[index].key)
   }
 
   const handleImageLoad = (index: number) => {
@@ -233,7 +264,7 @@ function AlbumCarousel({
     const threshold = 50
 
     if (Math.abs(diff) > threshold) {
-      if (diff > 0 && currentIndex < mediaUrls.length - 1) {
+      if (diff > 0 && currentIndex < mediaKeys.length - 1) {
         setCurrentIndex((prev) => prev + 1)
       } else if (diff < 0 && currentIndex > 0) {
         setCurrentIndex((prev) => prev - 1)
@@ -248,7 +279,7 @@ function AlbumCarousel({
   }
 
   const goToNext = () => {
-    if (!locked && currentIndex < mediaUrls.length - 1) {
+    if (!locked && currentIndex < mediaKeys.length - 1) {
       setCurrentIndex((prev) => prev + 1)
     }
   }
@@ -259,7 +290,7 @@ function AlbumCarousel({
     <div className="relative min-h-[300px] bg-black">
       {/* Counter badge */}
       <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10">
-        {currentIndex + 1}/{mediaUrls.length}
+        {currentIndex + 1}/{mediaKeys.length}
       </div>
 
       {/* Album badge */}
@@ -305,7 +336,7 @@ function AlbumCarousel({
       </div>
 
       {/* Navigation arrows (hidden when locked) */}
-      {!locked && mediaUrls.length > 1 && (
+      {!locked && mediaKeys.length > 1 && (
         <>
           {currentIndex > 0 && (
             <button
@@ -318,7 +349,7 @@ function AlbumCarousel({
               </svg>
             </button>
           )}
-          {currentIndex < mediaUrls.length - 1 && (
+          {currentIndex < mediaKeys.length - 1 && (
             <button
               type="button"
               onClick={goToNext}
@@ -333,9 +364,9 @@ function AlbumCarousel({
       )}
 
       {/* Dot indicators */}
-      {mediaUrls.length > 1 && !locked && (
+      {mediaKeys.length > 1 && !locked && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-          {mediaUrls.map((_, idx) => (
+          {mediaKeys.map((_, idx) => (
             <button
               key={idx}
               type="button"

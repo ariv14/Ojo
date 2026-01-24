@@ -89,7 +89,7 @@ function FeedContent() {
   const lastFetchTime = useRef<string | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const POSTS_PER_PAGE = 10
+  const POSTS_PER_PAGE = 5
   const MAX_POSTS = 100 // Limit posts in memory for performance
   const PULL_THRESHOLD = 80
   const SCROLL_TOLERANCE = 10 // pixels - allows pull-to-refresh when near top
@@ -559,7 +559,7 @@ function FeedContent() {
         }
       },
       {
-        rootMargin: '200px', // Start loading 200px before the element is visible
+        rootMargin: '100px', // Start loading 100px before the element is visible
         threshold: 0,
       }
     )
