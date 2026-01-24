@@ -87,7 +87,9 @@ input, textarea {
   animation: pupil-pulse 3s ease-in-out infinite;
 }
 
-/* Jittery shake animation for the "J" - nervous between two watching eyes */
+/* J Animation Library - multiple fun animations that cycle */
+
+/* 1. Jittery shake - nervous between two watching eyes */
 @keyframes j-jitter {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
   10% { transform: translate(-1px, 0) rotate(-1deg); }
@@ -101,8 +103,118 @@ input, textarea {
   90% { transform: translate(1px, 0) rotate(0deg); }
 }
 
+/* 2. Bounce - bouncing up and down */
+@keyframes j-bounce {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-6px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-3px); }
+}
+
+/* 3. Spin - 360° rotation */
+@keyframes j-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 4. Squish - cartoon squash and stretch */
+@keyframes j-squish {
+  0%, 100% { transform: scale(1, 1); }
+  25% { transform: scale(1.2, 0.8); }
+  50% { transform: scale(0.9, 1.1); }
+  75% { transform: scale(1.1, 0.9); }
+}
+
+/* 5. Wave - tilting side to side like waving */
+@keyframes j-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-15deg); }
+}
+
+/* 6. Lean away - leaning away from eyes like scared */
+@keyframes j-lean {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  50% { transform: translateX(4px) rotate(12deg); }
+}
+
+/* 7. Wiggle - side to side dance */
+@keyframes j-wiggle {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+}
+
+/* 8. Flip - horizontal flip */
+@keyframes j-flip {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(-1); }
+}
+
+/* 9. Grow pulse - scale up and down */
+@keyframes j-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+/* 10. Peek - drops down then pops back up */
+@keyframes j-peek {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(8px); }
+  60% { transform: translateY(8px); }
+  80% { transform: translateY(-4px); }
+}
+
+/* Animation classes */
 .j-jitter {
   animation: j-jitter 0.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-bounce {
+  animation: j-bounce 0.6s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-spin {
+  animation: j-spin 1s linear infinite;
+  display: inline-block;
+}
+
+.j-squish {
+  animation: j-squish 0.6s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-wave {
+  animation: j-wave 0.8s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-lean {
+  animation: j-lean 1s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-wiggle {
+  animation: j-wiggle 0.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-flip {
+  animation: j-flip 1.2s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-pulse {
+  animation: j-pulse 0.8s ease-in-out infinite;
+  display: inline-block;
+}
+
+.j-peek {
+  animation: j-peek 1s ease-in-out infinite;
   display: inline-block;
 }
 
@@ -110,7 +222,16 @@ input, textarea {
   .eye-blink,
   .eye-blink-delayed,
   .pupil-pulse,
-  .j-jitter {
+  .j-jitter,
+  .j-bounce,
+  .j-spin,
+  .j-squish,
+  .j-wave,
+  .j-lean,
+  .j-wiggle,
+  .j-flip,
+  .j-pulse,
+  .j-peek {
     animation: none;
   }
 }

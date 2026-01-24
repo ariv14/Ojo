@@ -1,5 +1,21 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+
+// All the fun animations the J can do
+const jAnimations = [
+  'j-jitter',  // nervous shake
+  'j-bounce',  // bouncing up and down
+  'j-spin',    // 360° rotation
+  'j-squish',  // cartoon squash and stretch
+  'j-wave',    // tilting side to side
+  'j-lean',    // leaning away from eyes
+  'j-wiggle',  // side to side dance
+  'j-flip',    // horizontal flip
+  'j-pulse',   // scale up and down
+  'j-peek',    // drops down then pops back up
+]
+
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   animated?: boolean
@@ -43,6 +59,18 @@ const sizeConfig = {
 
 export default function Logo({ size = 'lg', animated = true, className = '' }: LogoProps) {
   const config = sizeConfig[size]
+  const [currentAnimation, setCurrentAnimation] = useState(0)
+
+  // Cycle through animations every 2 seconds
+  useEffect(() => {
+    if (!animated) return
+
+    const interval = setInterval(() => {
+      setCurrentAnimation(prev => (prev + 1) % jAnimations.length)
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [animated])
 
   const Eye = ({ delayed = false }: { delayed?: boolean }) => (
     <span className="relative inline-flex items-center justify-center">
@@ -87,7 +115,7 @@ export default function Logo({ size = 'lg', animated = true, className = '' }: L
     <span className={`${config.text} font-bold flex items-center ${className}`}>
       <Eye delayed={false} />
       <span
-        className={`mx-1 ${animated ? 'j-jitter' : ''}`}
+        className={`mx-1 ${animated ? jAnimations[currentAnimation] : ''}`}
         style={{
           background: 'linear-gradient(180deg, #2563eb 0%, #3b82f6 50%, #1e3a5f 100%)',
           WebkitBackgroundClip: 'text',
