@@ -21,6 +21,10 @@ export function getS3Client(): S3Client {
 
 // Generate public URL from R2 key
 export function getS3PublicUrl(key: string): string {
+  if (!s3Config.publicUrl) {
+    console.error('NEXT_PUBLIC_R2_PUBLIC_URL is not configured')
+    return ''
+  }
   return `${s3Config.publicUrl}/${key}`
 }
 

@@ -159,22 +159,17 @@ export default function EditProfilePage() {
     await Promise.all(storageCleanupTasks)
 
     // 4. Collect R2 keys from albums and reels
-    const r2PublicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''
     const r2Keys: string[] = []
     userPosts?.forEach(post => {
-      // Album media URLs
+      // Album media URLs (stored as array of {key, type} objects)
       if (post.media_urls?.length) {
-        post.media_urls.forEach((url: string) => {
-          if (url && r2PublicUrl) {
-            const key = url.replace(r2PublicUrl + '/', '')
-            if (key && key !== url) r2Keys.push(key)
-          }
+        post.media_urls.forEach((m: { key: string; type: string }) => {
+          if (m.key) r2Keys.push(m.key)
         })
       }
-      // Reel thumbnail URLs
-      if (post.thumbnail_url && r2PublicUrl) {
-        const thumbKey = post.thumbnail_url.replace(r2PublicUrl + '/', '')
-        if (thumbKey && thumbKey !== post.thumbnail_url) r2Keys.push(thumbKey)
+      // Reel thumbnail URLs (stored as key directly)
+      if (post.thumbnail_url) {
+        r2Keys.push(post.thumbnail_url)
       }
     })
 
