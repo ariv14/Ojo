@@ -958,28 +958,37 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                   <button
                     type="button"
                     onClick={async () => {
-                      try {
-                        // Use World Media API to open system video camera with audio
-                        const result = await (window as unknown as { world: { media: { record: (opts: { video: boolean; audio: boolean; maxDuration: number }) => Promise<{ file: Blob; mimeType: string }> } } }).world.media.record({
-                          video: true,
-                          audio: true,
-                          maxDuration: 60
-                        })
+                      // Check if World API is available
+                      const worldApi = (window as unknown as { world?: { media?: { record?: (opts: { video: boolean; audio: boolean; maxDuration: number }) => Promise<{ file: Blob; mimeType: string }> } } }).world
 
-                        if (result?.file) {
-                          // Convert Blob to File for our existing handler
-                          const file = new File([result.file], `reel-${Date.now()}.mp4`, {
-                            type: result.mimeType || 'video/mp4'
+                      if (worldApi?.media?.record) {
+                        try {
+                          console.log('[World API] Calling world.media.record()')
+                          const result = await worldApi.media.record({
+                            video: true,
+                            audio: true,
+                            maxDuration: 60
                           })
-                          // Create a synthetic event for handleVideoSelect
-                          const syntheticEvent = {
-                            target: { files: [file] }
-                          } as unknown as React.ChangeEvent<HTMLInputElement>
-                          handleVideoSelect(syntheticEvent)
+
+                          console.log('[World API] Result:', result)
+
+                          if (result?.file) {
+                            const file = new File([result.file], `reel-${Date.now()}.mp4`, {
+                              type: result.mimeType || 'video/mp4'
+                            })
+                            const syntheticEvent = {
+                              target: { files: [file] }
+                            } as unknown as React.ChangeEvent<HTMLInputElement>
+                            handleVideoSelect(syntheticEvent)
+                          }
+                        } catch (err) {
+                          console.error('[World API] Record failed:', err)
+                          setError('Recording failed. Please try again.')
                         }
-                      } catch (err) {
-                        console.error('World video record failed:', err)
-                        // Fallback to in-app camera if World API not available
+                      } else {
+                        console.log('[World API] Not available, using in-app camera')
+                        console.log('[World API] window.world =', (window as unknown as { world?: unknown }).world)
+                        // Fallback to in-app camera
                         setShowCamera(true)
                       }
                     }}
