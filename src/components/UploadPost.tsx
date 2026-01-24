@@ -923,7 +923,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
               <input
                 ref={videoInputRef}
                 type="file"
-                accept="video/*"
+                accept="video/mp4,video/webm,video/quicktime,video/3gpp,video/x-m4v"
                 onChange={handleVideoSelect}
                 className="hidden"
               />
