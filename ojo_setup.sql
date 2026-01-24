@@ -215,6 +215,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_hidden ON posts(is_hidden);
 CREATE INDEX IF NOT EXISTS idx_posts_boosted ON posts(boosted_until);
 CREATE INDEX IF NOT EXISTS idx_posts_media_type ON posts(media_type);
 CREATE INDEX IF NOT EXISTS idx_posts_media_urls ON posts USING GIN (media_urls);
+CREATE INDEX IF NOT EXISTS idx_posts_hidden_created ON posts(is_hidden, created_at DESC);
 
 -- Messages indexes
 CREATE INDEX IF NOT EXISTS idx_messages_connection_id ON messages(connection_id);
