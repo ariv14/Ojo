@@ -48,6 +48,32 @@ function MediaSkeleton() {
   )
 }
 
+// Retry overlay for failed images
+interface RetryOverlayProps {
+  onRetry: () => void
+}
+
+function RetryOverlay({ onRetry }: RetryOverlayProps) {
+  return (
+    <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-20">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onRetry()
+        }}
+        className="bg-white/20 hover:bg-white/30 rounded-full p-4 transition mb-2"
+      >
+        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+      <span className="text-sm text-white/80">Tap to retry</span>
+    </div>
+  )
+}
+
 export default function PostMedia({ post, onImageClick, onUnlock, onMediaLoaded }: PostMediaProps) {
   const isPremiumLocked = post.is_premium && !post.has_access
   const hasWallet = post.users?.wallet_address
@@ -128,12 +154,17 @@ interface SingleImageProps {
 
 function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, onUnlock, onLoaded }: SingleImageProps) {
   const [isLoading, setIsLoading] = useState(!localUrl)
+  const [hasError, setHasError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
   const hasCalledLoaded = useRef(false)
 
-  const displayUrl = localUrl || url
+  // Build display URL with cache-busting on retry
+  const baseUrl = localUrl || url
+  const displayUrl = retryKey > 0 && !localUrl ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : baseUrl
 
   const handleImageLoad = () => {
     setIsLoading(false)
+    setHasError(false)
     // Only call onLoaded when remote image loads (not local blob)
     // This signals that CDN content is ready and local blob can be cleaned up
     if (!localUrl && !hasCalledLoaded.current && onLoaded) {
@@ -142,12 +173,26 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, 
     }
   }
 
+  const handleImageError = () => {
+    setIsLoading(false)
+    setHasError(true)
+  }
+
+  const handleRetry = () => {
+    setHasError(false)
+    setIsLoading(true)
+    setRetryKey((prev) => prev + 1)
+  }
+
   return (
     <div className="relative w-full aspect-[4/5] bg-gray-900 flex items-center justify-center overflow-hidden">
       {isLoading && !localUrl && <MediaSkeleton />}
 
+      {/* Error retry overlay */}
+      {hasError && !locked && <RetryOverlay onRetry={handleRetry} />}
+
       {/* Background blur layer */}
-      {!isLoading && (
+      {!isLoading && !hasError && (
         <img
           src={displayUrl}
           alt=""
@@ -158,19 +203,21 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, 
       <button
         type="button"
         onClick={() => {
-          if (!locked) {
+          if (!locked && !hasError) {
             window.history.pushState(null, '', '#view')
             onImageClick()
           }
         }}
-        className={`relative z-10 w-full h-full flex items-center justify-center ${isLoading && !localUrl ? 'hidden' : ''}`}
+        className={`relative z-10 w-full h-full flex items-center justify-center ${isLoading && !localUrl ? 'hidden' : ''} ${hasError ? 'hidden' : ''}`}
       >
         <img
+          key={retryKey}
           src={displayUrl}
           alt={caption || 'Post image'}
           loading="lazy"
           decoding="async"
           onLoad={handleImageLoad}
+          onError={handleImageError}
           className={`w-full h-full object-contain ${locked ? 'blur-xl' : ''}`}
         />
       </button>
@@ -206,6 +253,8 @@ function AlbumCarousel({
 }: AlbumCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set(localUrls ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : []))
+  const [errorIndices, setErrorIndices] = useState<Set<number>>(new Set())
+  const [retryKeys, setRetryKeys] = useState<Map<number, number>>(new Map())
   // Cache transformed URLs to avoid re-computing
   const [transformedUrls, setTransformedUrls] = useState<Map<number, string>>(new Map())
   const containerRef = useRef<HTMLDivElement>(null)
@@ -276,16 +325,43 @@ function AlbumCarousel({
       return localUrls[index]
     }
     // Return cached transformed URL or transform on demand
-    return transformedUrls.get(index) || getS3PublicUrl(mediaKeys[index].key)
+    const baseUrl = transformedUrls.get(index) || getS3PublicUrl(mediaKeys[index].key)
+    const retryKey = retryKeys.get(index) || 0
+    // Add cache-busting on retry
+    return retryKey > 0 ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : baseUrl
   }
 
   const handleImageLoad = (index: number) => {
     setLoadedIndices(prev => new Set([...prev, index]))
+    setErrorIndices(prev => {
+      const next = new Set(prev)
+      next.delete(index)
+      return next
+    })
     // Call onLoaded when first remote image loads (signals CDN is ready)
     if (!localUrls && !hasCalledLoaded.current && onLoaded) {
       hasCalledLoaded.current = true
       onLoaded()
     }
+  }
+
+  const handleImageError = (index: number) => {
+    setLoadedIndices(prev => new Set([...prev, index])) // Stop showing skeleton
+    setErrorIndices(prev => new Set([...prev, index]))
+  }
+
+  const handleRetry = (index: number) => {
+    setErrorIndices(prev => {
+      const next = new Set(prev)
+      next.delete(index)
+      return next
+    })
+    setLoadedIndices(prev => {
+      const next = new Set(prev)
+      next.delete(index)
+      return next
+    })
+    setRetryKeys(prev => new Map(prev).set(index, (prev.get(index) || 0) + 1))
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -325,6 +401,7 @@ function AlbumCarousel({
   }
 
   const isCurrentLoaded = loadedIndices.has(currentIndex) || !!localUrls
+  const hasCurrentError = errorIndices.has(currentIndex)
 
   return (
     <div className="relative w-full aspect-[4/5] bg-gray-900 flex items-center justify-center overflow-hidden">
@@ -344,10 +421,13 @@ function AlbumCarousel({
       {/* Skeleton when loading */}
       {!isCurrentLoaded && <MediaSkeleton />}
 
+      {/* Error retry overlay */}
+      {hasCurrentError && !locked && <RetryOverlay onRetry={() => handleRetry(currentIndex)} />}
+
       {/* Image container */}
       <div
         ref={containerRef}
-        className={`absolute inset-0 ${!isCurrentLoaded ? 'hidden' : ''}`}
+        className={`absolute inset-0 ${!isCurrentLoaded ? 'hidden' : ''} ${hasCurrentError ? 'hidden' : ''}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -362,7 +442,7 @@ function AlbumCarousel({
         <button
           type="button"
           onClick={() => {
-            if (!locked) {
+            if (!locked && !hasCurrentError) {
               window.history.pushState(null, '', '#view')
               onImageClick(currentIndex)
             }
@@ -370,11 +450,13 @@ function AlbumCarousel({
           className="relative z-10 w-full h-full flex items-center justify-center"
         >
           <img
+            key={retryKeys.get(currentIndex) || 0}
             src={locked ? getDisplayUrl(0) : getDisplayUrl(currentIndex)}
             alt={caption || `Album image ${currentIndex + 1}`}
             loading="lazy"
             decoding="async"
             onLoad={() => handleImageLoad(currentIndex)}
+            onError={() => handleImageError(currentIndex)}
             className={`w-full h-full object-contain transition-opacity duration-200 ${
               locked ? 'blur-xl' : ''
             }`}
@@ -453,11 +535,28 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   const [isVideoReady, setIsVideoReady] = useState(!!localVideoUrl)
   const [showMuteHint, setShowMuteHint] = useState(true)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
+  const [thumbnailError, setThumbnailError] = useState(false)
+  const [thumbnailRetryKey, setThumbnailRetryKey] = useState(0)
   const hasCalledLoaded = useRef(false)
 
   // Use local URLs if available, otherwise use remote
   const displayVideoUrl = localVideoUrl || videoUrl
-  const displayThumbnailUrl = localThumbnailUrl || thumbnailUrl
+  const baseThumbnailUrl = localThumbnailUrl || thumbnailUrl
+  // Add cache-busting on retry for thumbnail
+  const displayThumbnailUrl = baseThumbnailUrl
+    ? (thumbnailRetryKey > 0 && !localThumbnailUrl
+        ? `${baseThumbnailUrl}${baseThumbnailUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+        : baseThumbnailUrl)
+    : undefined
+
+  const handleThumbnailError = () => {
+    setThumbnailError(true)
+  }
+
+  const handleThumbnailRetry = () => {
+    setThumbnailError(false)
+    setThumbnailRetryKey((prev) => prev + 1)
+  }
 
   // Hide mute hint after 3 seconds when video is playing
   useEffect(() => {
@@ -558,18 +657,31 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
       {locked ? (
         // Show blurred thumbnail when locked - don't load video
         <div className="absolute inset-0">
-          {/* Background blur layer */}
-          <img
-            src={displayThumbnailUrl || ''}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110"
-          />
-          {/* Foreground blurred thumbnail */}
-          <img
-            src={displayThumbnailUrl || ''}
-            alt="Reel thumbnail"
-            className="relative z-10 w-full h-full object-contain blur-xl"
-          />
+          {/* Error retry overlay for thumbnail */}
+          {thumbnailError && (
+            <RetryOverlay onRetry={handleThumbnailRetry} />
+          )}
+
+          {!thumbnailError && (
+            <>
+              {/* Background blur layer */}
+              <img
+                key={`bg-${thumbnailRetryKey}`}
+                src={displayThumbnailUrl || ''}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110"
+                onError={handleThumbnailError}
+              />
+              {/* Foreground blurred thumbnail */}
+              <img
+                key={`fg-${thumbnailRetryKey}`}
+                src={displayThumbnailUrl || ''}
+                alt="Reel thumbnail"
+                className="relative z-10 w-full h-full object-contain blur-xl"
+                onError={handleThumbnailError}
+              />
+            </>
+          )}
           <PremiumOverlay hasWallet={hasWallet} onUnlock={onUnlock} />
         </div>
       ) : (

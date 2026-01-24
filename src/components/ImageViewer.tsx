@@ -15,18 +15,37 @@ export default function ImageViewer({ imageUrls, currentIndex = 0, alt, onClose 
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [imageError, setImageError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const lastTouchDistance = useRef<number | null>(null)
   const lastTapTime = useRef<number>(0)
 
   const isAlbum = imageUrls.length > 1
-  const currentUrl = imageUrls[activeIndex]
+  const baseUrl = imageUrls[activeIndex]
+  // Add cache-busting on retry
+  const currentUrl = retryKey > 0 ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : baseUrl
 
   // Reset zoom and position when changing images
   const resetZoom = useCallback(() => {
     setScale(1)
     setPosition({ x: 0, y: 0 })
   }, [])
+
+  // Reset error state when changing images
+  useEffect(() => {
+    setImageError(false)
+    setRetryKey(0)
+  }, [activeIndex])
+
+  const handleImageError = () => {
+    setImageError(true)
+  }
+
+  const handleRetry = () => {
+    setImageError(false)
+    setRetryKey((prev) => prev + 1)
+  }
 
   // Reset position when scale changes to 1
   useEffect(() => {
@@ -237,16 +256,37 @@ export default function ImageViewer({ imageUrls, currentIndex = 0, alt, onClose 
         onTouchEnd={handleTouchEnd}
         onDoubleClick={handleDoubleClick}
       >
-        <img
-          src={currentUrl}
-          alt={alt || `Image ${activeIndex + 1}`}
-          className="max-w-full max-h-full object-contain select-none"
-          style={{
-            transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
-            transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-          }}
-          draggable={false}
-        />
+        {imageError ? (
+          <div className="flex flex-col items-center justify-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRetry()
+              }}
+              className="bg-white/20 hover:bg-white/30 rounded-full p-4 transition mb-2"
+            >
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <span className="text-sm text-white/80">Tap to retry</span>
+          </div>
+        ) : (
+          <img
+            key={retryKey}
+            src={currentUrl}
+            alt={alt || `Image ${activeIndex + 1}`}
+            className="max-w-full max-h-full object-contain select-none"
+            style={{
+              transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
+              transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+            }}
+            draggable={false}
+            onError={handleImageError}
+          />
+        )}
       </div>
 
       {/* Navigation arrows for albums */}
