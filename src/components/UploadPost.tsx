@@ -943,6 +943,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                 ref={videoInputRef}
                 type="file"
                 accept="video/*"
+                capture="camcorder"
                 onChange={handleVideoSelect}
                 className="hidden"
               />
