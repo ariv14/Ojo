@@ -74,12 +74,12 @@ input, textarea {
 }
 
 .eye-blink {
-  animation: blink 4s ease-in-out infinite;
+  animation: blink 10s ease-in-out infinite;
   transform-origin: center;
 }
 
 .eye-blink-delayed {
-  animation: blink 4s ease-in-out 0.1s infinite;
+  animation: blink 10s ease-in-out 0.1s infinite;
   transform-origin: center;
 }
 

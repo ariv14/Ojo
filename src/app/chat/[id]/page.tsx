@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { hapticLight } from '@/lib/haptics'
 import { sendNotification } from '@/lib/notify'
+import Header from '@/components/Header'
 
 interface Message {
   id: string
@@ -383,21 +384,11 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 pt-14">
       {/* Header */}
-      <header className="sticky top-0 animated-gradient-header text-white z-10">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => router.push('/feed')}
-            className="text-white/80 hover:text-white"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="font-semibold flex-1">Chat</h1>
-
-          {/* Settings Button */}
+      <Header
+        showBackButton
+        rightContent={
           <div className="relative">
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -443,8 +434,8 @@ export default function ChatPage() {
               </div>
             )}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Blocked Banner */}
       {isBlocked && (

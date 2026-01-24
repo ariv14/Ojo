@@ -19,6 +19,7 @@ import ImageViewer from '@/components/ImageViewer'
 import ConfirmationModal from '@/components/ConfirmationModal'
 import PostMedia from '@/components/PostMedia'
 import Logo from '@/components/Logo'
+import Header from '@/components/Header'
 
 interface MediaUrl {
   key: string
@@ -1078,12 +1079,9 @@ function FeedContent() {
       )}
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 animated-gradient-header text-white z-40">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="flex items-center">
-            <Logo size="sm" />
-          </h1>
-          <div className="flex items-center gap-3">
+      <Header
+        rightContent={
+          <>
             <button
               onClick={() => router.push('/discover')}
               className="p-2"
@@ -1134,9 +1132,9 @@ function FeedContent() {
                 showStatus={false}
               />
             </button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Upload Modal */}
       {showUpload && (

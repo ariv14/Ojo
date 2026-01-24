@@ -9,6 +9,7 @@ import { getDiscoverCache, setDiscoverCache, DISCOVER_CACHE_VERSION } from '@/li
 import { hapticMedium, hapticLight } from '@/lib/haptics'
 import { sendNotification } from '@/lib/notify'
 import UserAvatar from '@/components/UserAvatar'
+import Header from '@/components/Header'
 
 interface User {
   nullifier_hash: string
@@ -353,19 +354,12 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-14">
       {/* Header */}
-      <header className="sticky top-0 animated-gradient-header text-white z-10">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="text-white/80 hover:text-white"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="text-xl font-bold flex-1">Discover</h1>
+      <Header
+        showBackButton
+        onBack={() => router.back()}
+        rightContent={
           <button
             onClick={handleInviteFriends}
             className="flex items-center gap-1 px-3 py-1.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition"
@@ -375,8 +369,8 @@ export default function DiscoverPage() {
             </svg>
             Invite
           </button>
-        </div>
-      </header>
+        }
+      />
 
       {/* Referral Stats Card */}
       {referralStats && (referralStats.completed > 0 || referralStats.signed_up > 0 || referralStats.pending > 0) && (
