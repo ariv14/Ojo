@@ -472,8 +472,16 @@ export default function ProfilePage() {
           </div>
 
           {/* Name */}
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold flex items-center gap-1.5">
             {user.first_name} {user.last_name}
+            <svg
+              className="w-5 h-5 text-blue-500"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-label="Orb Verified"
+            >
+              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.707 7.707a1 1 0 00-1.414-1.414L11 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l5-5z" clipRule="evenodd" />
+            </svg>
           </h2>
 
           {/* Country */}
