@@ -20,6 +20,8 @@ export interface UseMediaRecorderResult {
   startRecording: () => void
   stopRecording: () => void
   reset: () => void
+  setStream: (stream: MediaStream) => void
+  setHasAudio: (hasAudio: boolean) => void
 }
 
 /**
@@ -299,5 +301,7 @@ export function useMediaRecorder({
     startRecording,
     stopRecording,
     reset,
+    setStream,
+    setHasAudio,
   }
 }

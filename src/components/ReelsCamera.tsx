@@ -24,6 +24,8 @@ export default function ReelsCamera({ onCapture, onClose }: ReelsCameraProps) {
     startRecording,
     stopRecording,
     reset,
+    setStream,
+    setHasAudio,
   } = useMediaRecorder({ maxDuration: MAX_DURATION })
 
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
@@ -79,9 +81,8 @@ export default function ReelsCamera({ onCapture, onClose }: ReelsCameraProps) {
     if (state === 'recording') return
 
     const newFacing = facingMode === 'user' ? 'environment' : 'user'
-    setFacingMode(newFacing)
 
-    // Stop current stream
+    // Stop current stream tracks
     if (stream) {
       stream.getTracks().forEach(track => track.stop())
     }
@@ -97,13 +98,37 @@ export default function ReelsCamera({ onCapture, onClose }: ReelsCameraProps) {
         audio: true,
       })
 
+      // Critical fix: Update the hook's stream state so recording uses the new camera
+      setStream(newStream)
+      setHasAudio(true)
+      setFacingMode(newFacing)
+
       if (videoRef.current) {
         videoRef.current.srcObject = newStream
       }
     } catch (err) {
-      console.error('Failed to switch camera:', err)
+      // Fallback: try video only if audio fails
+      try {
+        const videoOnlyStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: newFacing,
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
+          },
+        })
+
+        setStream(videoOnlyStream)
+        setHasAudio(false)
+        setFacingMode(newFacing)
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = videoOnlyStream
+        }
+      } catch (fallbackErr) {
+        console.error('Failed to switch camera:', err, fallbackErr)
+      }
     }
-  }, [facingMode, state, stream])
+  }, [facingMode, state, stream, setStream, setHasAudio])
 
   /**
    * Handle capture button press (start recording)
@@ -122,6 +147,24 @@ export default function ReelsCamera({ onCapture, onClose }: ReelsCameraProps) {
       stopRecording()
     }
   }, [state, stopRecording])
+
+  /**
+   * Touch event handlers with preventDefault to fix Android responsiveness
+   */
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault() // Prevent ghost clicks and browser touch handling
+    handleCapturePress()
+  }, [handleCapturePress])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
+    handleCaptureRelease()
+  }, [handleCaptureRelease])
+
+  const handleTouchCancel = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
+    handleCaptureRelease()
+  }, [handleCaptureRelease])
 
   /**
    * Toggle preview audio
@@ -374,11 +417,11 @@ export default function ReelsCamera({ onCapture, onClose }: ReelsCameraProps) {
 
       {/* Controls */}
       <div className="p-4 pb-8 shrink-0 flex flex-col items-center">
-        {/* Capture button with progress ring */}
-        <div className="relative">
+        {/* Capture button with progress ring - larger touch target for small screens */}
+        <div className="relative touch-none" style={{ touchAction: 'none' }}>
           {/* Progress ring SVG */}
           <svg
-            className="absolute inset-0 w-[84px] h-[84px] -rotate-90"
+            className="absolute inset-0 w-[84px] h-[84px] -rotate-90 pointer-events-none"
             viewBox="0 0 84 84"
           >
             {/* Background circle */}
@@ -407,20 +450,22 @@ export default function ReelsCamera({ onCapture, onClose }: ReelsCameraProps) {
             )}
           </svg>
 
-          {/* Button */}
+          {/* Button with improved touch handling for Android */}
           <button
-            onTouchStart={handleCapturePress}
-            onTouchEnd={handleCaptureRelease}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
             onMouseDown={handleCapturePress}
             onMouseUp={handleCaptureRelease}
             onMouseLeave={state === 'recording' ? handleCaptureRelease : undefined}
             disabled={state !== 'ready' && state !== 'recording'}
-            className={`w-[84px] h-[84px] rounded-full flex items-center justify-center transition-transform ${
+            className={`w-[84px] h-[84px] rounded-full flex items-center justify-center transition-transform select-none ${
               state === 'recording' ? 'scale-90' : ''
             } disabled:opacity-50`}
+            style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
           >
             <div
-              className={`rounded-full transition-all ${
+              className={`rounded-full transition-all pointer-events-none ${
                 state === 'recording'
                   ? 'w-8 h-8 bg-red-500 rounded-lg'
                   : 'w-[68px] h-[68px] bg-white'
