@@ -437,6 +437,19 @@ export default function ChatPage() {
         }
       />
 
+      {/* Back to Inbox Navigation */}
+      <div className="bg-white border-b border-gray-200 px-4 py-2">
+        <button
+          onClick={() => router.push('/inbox')}
+          className="flex items-center gap-1 text-sm text-blue-500 font-medium"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Inbox
+        </button>
+      </div>
+
       {/* Blocked Banner */}
       {isBlocked && (
         <div className="bg-red-50 text-red-600 text-center py-2 text-sm">
