@@ -244,7 +244,7 @@ const holidays: Holiday[] = [
 const defaultHoliday: Holiday = {
   id: 'default',
   name: 'OJO',
-  description: 'OJO is watching over what is real',
+  description: 'Real people. Real connections.',
   themeId: 'default',
   startMonth: 0,
   startDay: 0,
