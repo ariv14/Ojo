@@ -1474,7 +1474,7 @@ function FeedContent() {
                   <span>reshared</span>
                   <span className="text-gray-300">•</span>
                   <button
-                    onClick={() => router.push(`/profile/${effectiveUserId}`)}
+                    onClick={() => router.push(`/feed?scrollTo=${effectivePostId}`)}
                     className="text-blue-500 hover:underline"
                   >
                     View original
