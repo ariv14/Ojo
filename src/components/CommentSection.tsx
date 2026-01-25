@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { sendNotification } from '@/lib/notify'
@@ -32,9 +32,9 @@ export default function CommentSection({
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage] = useState(0)
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null)
   const session = getSession()
+  const pageRef = useRef(0)
 
   const fetchComments = useCallback(async (loadMore = false) => {
     if (!isExpanded) return
@@ -43,11 +43,11 @@ export default function CommentSection({
       setIsLoadingMore(true)
     } else {
       setIsLoading(true)
-      setPage(0)
+      pageRef.current = 0
       setHasMore(true)
     }
 
-    const currentPage = loadMore ? page + 1 : 0
+    const currentPage = loadMore ? pageRef.current + 1 : 0
     const from = currentPage * COMMENTS_PER_PAGE
     const to = from + COMMENTS_PER_PAGE - 1
 
@@ -189,7 +189,7 @@ export default function CommentSection({
 
       if (loadMore) {
         setComments(prev => [...prev, ...newRootComments])
-        setPage(currentPage)
+        pageRef.current = currentPage
       } else {
         setComments(newRootComments)
       }
@@ -199,7 +199,7 @@ export default function CommentSection({
       setIsLoading(false)
       setIsLoadingMore(false)
     }
-  }, [postId, isExpanded, session, page])
+  }, [postId, isExpanded, session])
 
   const loadMoreComments = useCallback(() => {
     if (!hasMore || isLoadingMore) return
@@ -360,7 +360,7 @@ export default function CommentSection({
           {/* Scrollable comments area */}
           <div className="flex-1 overflow-y-auto px-4 py-2">
             {isLoading && comments.length === 0 ? (
-              <div className="text-center py-4 text-gray-500 text-sm">
+              <div className="text-center py-4 text-gray-500 text-sm animate-pulse">
                 Loading comments...
               </div>
             ) : comments.length === 0 ? (
@@ -369,7 +369,7 @@ export default function CommentSection({
               </div>
             ) : (
               <>
-                <div className="space-y-3">
+                <div className="space-y-3 transition-opacity duration-150">
                   {comments.map(comment => (
                     <CommentItem
                       key={comment.id}

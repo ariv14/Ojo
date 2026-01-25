@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
@@ -34,7 +34,7 @@ interface CommentItemProps {
   isReply?: boolean
 }
 
-export default function CommentItem({
+function CommentItem({
   comment,
   onReply,
   onDelete,
@@ -52,6 +52,13 @@ export default function CommentItem({
   const [userVote, setUserVote] = useState(comment.user_vote)
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Sync local vote state when props change
+  useEffect(() => {
+    setLikeCount(comment.like_count)
+    setDislikeCount(comment.dislike_count)
+    setUserVote(comment.user_vote)
+  }, [comment.like_count, comment.dislike_count, comment.user_vote])
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
     if (!session) return
@@ -295,7 +302,7 @@ export default function CommentItem({
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-2">
               {comment.replies.map((reply) => (
-                <CommentItem
+                <MemoizedCommentItem
                   key={reply.id}
                   comment={reply}
                   onDelete={onDelete}
@@ -310,3 +317,17 @@ export default function CommentItem({
     </div>
   )
 }
+
+const MemoizedCommentItem = memo(CommentItem, (prevProps, nextProps) => {
+  return (
+    prevProps.comment.id === nextProps.comment.id &&
+    prevProps.comment.content === nextProps.comment.content &&
+    prevProps.comment.like_count === nextProps.comment.like_count &&
+    prevProps.comment.dislike_count === nextProps.comment.dislike_count &&
+    prevProps.comment.user_vote === nextProps.comment.user_vote &&
+    prevProps.comment.replies?.length === nextProps.comment.replies?.length &&
+    prevProps.isReply === nextProps.isReply
+  )
+})
+
+export default MemoizedCommentItem
