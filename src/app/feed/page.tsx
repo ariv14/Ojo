@@ -1292,7 +1292,7 @@ function FeedContent() {
                         {/* Dropdown Menu for other users' posts */}
                         {openOtherMenuId === post.id && (
                           <div
-                            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-20 min-w-[140px]"
+                            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-50 min-w-[140px]"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -1355,7 +1355,7 @@ function FeedContent() {
                       {/* Dropdown Menu */}
                       {openMenuId === post.id && (
                         <div
-                          className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-20 min-w-[140px]"
+                          className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-50 min-w-[140px]"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button

@@ -239,9 +239,9 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
     }
   }, [isLoading, retryKey, localUrl])
 
-  // Build display URL with cache-busting on retry
-  const baseUrl = localUrl || url
-  const displayUrl = retryKey > 0 && !localUrl ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : baseUrl
+  // Use URL directly - the key={retryKey} forces img element remount
+  // This mimics profile navigation behavior which works
+  const displayUrl = localUrl || url
 
   const handleImageLoad = () => {
     clearLoadingTimer()
@@ -487,10 +487,8 @@ function AlbumCarousel({
       return localUrls[index]
     }
     // Return cached transformed URL or transform on demand
-    const baseUrl = transformedUrls.get(index) || getS3PublicUrl(mediaKeys[index].key)
-    const retryKey = retryKeys.get(index) || 0
-    // Add cache-busting on retry
-    return retryKey > 0 ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : baseUrl
+    // key change forces img remount - no cache-busting needed
+    return transformedUrls.get(index) || getS3PublicUrl(mediaKeys[index].key)
   }
 
   const handleImageLoad = (index: number) => {
@@ -781,18 +779,9 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   }, [isVideoReady, videoError, videoRetryKey, localVideoUrl, locked])
 
   // Use local URLs if available, otherwise use remote
-  // Add cache-busting on retry for video
-  const baseVideoUrl = localVideoUrl || videoUrl
-  const displayVideoUrl = videoRetryKey > 0 && !localVideoUrl
-    ? `${baseVideoUrl}${baseVideoUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
-    : baseVideoUrl
-  const baseThumbnailUrl = localThumbnailUrl || thumbnailUrl
-  // Add cache-busting on retry for thumbnail
-  const displayThumbnailUrl = baseThumbnailUrl
-    ? (thumbnailRetryKey > 0 && !localThumbnailUrl
-        ? `${baseThumbnailUrl}${baseThumbnailUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
-        : baseThumbnailUrl)
-    : undefined
+  // key change forces element remount - no cache-busting needed
+  const displayVideoUrl = localVideoUrl || videoUrl
+  const displayThumbnailUrl = localThumbnailUrl || thumbnailUrl
 
   const handleThumbnailError = () => {
     setThumbnailError(true)
