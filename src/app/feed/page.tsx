@@ -103,6 +103,9 @@ function FeedContent() {
 
   useEffect(() => {
     const initFeed = async () => {
+      // Clear preload cache to ensure fresh image loading on navigation
+      clearPreloadCache()
+
       const session = getSession()
       if (!session) {
         router.push('/')
