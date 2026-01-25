@@ -17,6 +17,8 @@ interface CommentSectionProps {
   onCommentCountChange?: (delta: number) => void
 }
 
+const COMMENTS_PER_PAGE = 10
+
 export default function CommentSection({
   postId,
   postUserId,
@@ -28,118 +30,181 @@ export default function CommentSection({
 }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [page, setPage] = useState(0)
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null)
   const session = getSession()
 
-  const fetchComments = useCallback(async () => {
+  const fetchComments = useCallback(async (loadMore = false) => {
     if (!isExpanded) return
 
-    setIsLoading(true)
-
-    // Fetch comments with user data and votes
-    const { data: commentsData, error } = await supabase
-      .from('comments')
-      .select(`
-        id,
-        post_id,
-        user_id,
-        parent_comment_id,
-        content,
-        created_at,
-        updated_at,
-        users (
-          first_name,
-          last_name,
-          avatar_url
-        )
-      `)
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching comments:', error)
-      setIsLoading(false)
-      return
+    if (loadMore) {
+      setIsLoadingMore(true)
+    } else {
+      setIsLoading(true)
+      setPage(0)
+      setHasMore(true)
     }
 
-    if (!commentsData || commentsData.length === 0) {
-      setComments([])
-      setIsLoading(false)
-      return
-    }
+    const currentPage = loadMore ? page + 1 : 0
+    const from = currentPage * COMMENTS_PER_PAGE
+    const to = from + COMMENTS_PER_PAGE - 1
 
-    // Fetch all votes for these comments
-    const commentIds = commentsData.map(c => c.id)
-    const [allVotesRes, userVotesRes] = await Promise.all([
-      supabase
-        .from('comment_votes')
-        .select('comment_id, vote_type')
-        .in('comment_id', commentIds),
-      session
-        ? supabase
-            .from('comment_votes')
-            .select('comment_id, vote_type')
-            .eq('user_id', session.nullifier_hash)
-            .in('comment_id', commentIds)
-        : Promise.resolve({ data: [] }),
-    ])
+    try {
+      // Fetch root comments with user data (paginated)
+      const { data: rootCommentsData, error: rootError } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          post_id,
+          user_id,
+          parent_comment_id,
+          content,
+          created_at,
+          updated_at,
+          users (
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `)
+        .eq('post_id', postId)
+        .is('parent_comment_id', null)
+        .order('created_at', { ascending: true })
+        .range(from, to)
 
-    // Calculate vote counts
-    const voteCounts: Record<string, { likes: number; dislikes: number }> = {}
-    commentIds.forEach(id => {
-      voteCounts[id] = { likes: 0, dislikes: 0 }
-    })
-    allVotesRes.data?.forEach(v => {
-      if (v.vote_type === 'like') voteCounts[v.comment_id].likes++
-      else voteCounts[v.comment_id].dislikes++
-    })
-
-    // Map user votes
-    const userVotesMap: Record<string, 'like' | 'dislike'> = {}
-    userVotesRes.data?.forEach(v => {
-      userVotesMap[v.comment_id] = v.vote_type as 'like' | 'dislike'
-    })
-
-    // Transform data and organize into tree structure
-    const commentsMap = new Map<string, Comment>()
-    const rootComments: Comment[] = []
-
-    commentsData.forEach(c => {
-      // Handle Supabase returning users as array or object
-      const usersData = Array.isArray(c.users) ? c.users[0] : c.users
-      const comment: Comment = {
-        id: c.id,
-        post_id: c.post_id,
-        user_id: c.user_id,
-        parent_comment_id: c.parent_comment_id,
-        content: c.content,
-        created_at: c.created_at,
-        updated_at: c.updated_at,
-        users: usersData as Comment['users'],
-        like_count: voteCounts[c.id]?.likes || 0,
-        dislike_count: voteCounts[c.id]?.dislikes || 0,
-        user_vote: userVotesMap[c.id] || null,
-        replies: [],
+      if (rootError) {
+        console.error('Error fetching comments:', rootError)
+        return
       }
-      commentsMap.set(c.id, comment)
-    })
 
-    // Build tree structure
-    commentsMap.forEach(comment => {
-      if (comment.parent_comment_id) {
-        const parent = commentsMap.get(comment.parent_comment_id)
-        if (parent) {
-          parent.replies = parent.replies || []
-          parent.replies.push(comment)
+      if (!rootCommentsData || rootCommentsData.length === 0) {
+        if (!loadMore) {
+          setComments([])
         }
-      } else {
-        rootComments.push(comment)
+        setHasMore(false)
+        return
       }
-    })
 
-    setComments(rootComments)
-    setIsLoading(false)
-  }, [postId, isExpanded, session])
+      // Check if there are more comments to load
+      if (rootCommentsData.length < COMMENTS_PER_PAGE) {
+        setHasMore(false)
+      }
+
+      // Get IDs of root comments to fetch their replies
+      const rootIds = rootCommentsData.map(c => c.id)
+
+      // Fetch all replies for these root comments
+      const { data: repliesData } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          post_id,
+          user_id,
+          parent_comment_id,
+          content,
+          created_at,
+          updated_at,
+          users (
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `)
+        .eq('post_id', postId)
+        .in('parent_comment_id', rootIds)
+        .order('created_at', { ascending: true })
+
+      const allCommentsData = [...rootCommentsData, ...(repliesData || [])]
+
+      // Fetch all votes for these comments
+      const commentIds = allCommentsData.map(c => c.id)
+      const [allVotesRes, userVotesRes] = await Promise.all([
+        supabase
+          .from('comment_votes')
+          .select('comment_id, vote_type')
+          .in('comment_id', commentIds),
+        session
+          ? supabase
+              .from('comment_votes')
+              .select('comment_id, vote_type')
+              .eq('user_id', session.nullifier_hash)
+              .in('comment_id', commentIds)
+          : Promise.resolve({ data: [] }),
+      ])
+
+      // Calculate vote counts
+      const voteCounts: Record<string, { likes: number; dislikes: number }> = {}
+      commentIds.forEach(id => {
+        voteCounts[id] = { likes: 0, dislikes: 0 }
+      })
+      allVotesRes.data?.forEach(v => {
+        if (v.vote_type === 'like') voteCounts[v.comment_id].likes++
+        else voteCounts[v.comment_id].dislikes++
+      })
+
+      // Map user votes
+      const userVotesMap: Record<string, 'like' | 'dislike'> = {}
+      userVotesRes.data?.forEach(v => {
+        userVotesMap[v.comment_id] = v.vote_type as 'like' | 'dislike'
+      })
+
+      // Transform data and organize into tree structure
+      const commentsMap = new Map<string, Comment>()
+      const newRootComments: Comment[] = []
+
+      allCommentsData.forEach(c => {
+        // Handle Supabase returning users as array or object
+        const usersData = Array.isArray(c.users) ? c.users[0] : c.users
+        const comment: Comment = {
+          id: c.id,
+          post_id: c.post_id,
+          user_id: c.user_id,
+          parent_comment_id: c.parent_comment_id,
+          content: c.content,
+          created_at: c.created_at,
+          updated_at: c.updated_at,
+          users: usersData as Comment['users'],
+          like_count: voteCounts[c.id]?.likes || 0,
+          dislike_count: voteCounts[c.id]?.dislikes || 0,
+          user_vote: userVotesMap[c.id] || null,
+          replies: [],
+        }
+        commentsMap.set(c.id, comment)
+      })
+
+      // Build tree structure
+      commentsMap.forEach(comment => {
+        if (comment.parent_comment_id) {
+          const parent = commentsMap.get(comment.parent_comment_id)
+          if (parent) {
+            parent.replies = parent.replies || []
+            parent.replies.push(comment)
+          }
+        } else {
+          newRootComments.push(comment)
+        }
+      })
+
+      if (loadMore) {
+        setComments(prev => [...prev, ...newRootComments])
+        setPage(currentPage)
+      } else {
+        setComments(newRootComments)
+      }
+    } catch (err) {
+      console.error('Error fetching comments:', err)
+    } finally {
+      setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }, [postId, isExpanded, session, page])
+
+  const loadMoreComments = useCallback(() => {
+    if (!hasMore || isLoadingMore) return
+    fetchComments(true)
+  }, [hasMore, isLoadingMore, fetchComments])
 
   useEffect(() => {
     fetchComments()
@@ -291,9 +356,55 @@ export default function CommentSection({
 
       {/* Comments section */}
       {isExpanded && (
-        <div className="px-4 pb-4">
-          {/* Comment input */}
-          <div className="mb-4">
+        <div className="flex flex-col max-h-80">
+          {/* Scrollable comments area */}
+          <div className="flex-1 overflow-y-auto px-4 py-2">
+            {isLoading && comments.length === 0 ? (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                Loading comments...
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="text-center py-4 text-gray-400 text-sm">
+                No comments yet. Be the first!
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  {comments.map(comment => (
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      onReply={handleReply}
+                      onDelete={handleDeleteComment}
+                      onUpdate={handleUpdateComment}
+                    />
+                  ))}
+                </div>
+                {hasMore && (
+                  <button
+                    onClick={loadMoreComments}
+                    disabled={isLoadingMore}
+                    className="w-full mt-3 py-2 text-sm text-blue-500 hover:text-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading...
+                      </>
+                    ) : (
+                      'Load more comments'
+                    )}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Fixed input at bottom */}
+          <div className="border-t px-4 py-2 bg-white">
             <CommentInput
               postId={postId}
               parentCommentId={replyingTo?.commentId || null}
@@ -303,29 +414,6 @@ export default function CommentSection({
               autoFocus={!!replyingTo}
             />
           </div>
-
-          {/* Comments list */}
-          {isLoading ? (
-            <div className="text-center py-4 text-gray-500 text-sm">
-              Loading comments...
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="text-center py-4 text-gray-400 text-sm">
-              No comments yet. Be the first!
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {comments.map(comment => (
-                <CommentItem
-                  key={comment.id}
-                  comment={comment}
-                  onReply={handleReply}
-                  onDelete={handleDeleteComment}
-                  onUpdate={handleUpdateComment}
-                />
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>
