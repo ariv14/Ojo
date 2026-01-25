@@ -226,6 +226,24 @@ R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 
 ## Changelog
 
+### v1.3.0 - Comments, Reshares & Chat Improvements
+- Added full comments system with nested replies and voting
+- Added comment pagination (10 per page) with load more button
+- Fixed stuck "Loading comments..." indicator
+- Added reshare posts feature with attribution
+- Added unread message count badges to inbox
+- Added read receipts in chat (double checkmarks)
+- Added new messages indicator in chat
+- Fixed chat scroll behavior and made Back to Inbox sticky
+- Added Orb Verified badge on profile pages
+- Added animated OJO logo with cybernetic eye design and blink animation
+- Added shared Header component with OJO logo across all pages
+- Migrated images from Supabase Storage to Cloudflare R2
+- Added refresh option to post menus for failed images
+- Added 2-tier manual refresh with profile fallback
+- Improved media refresh handling with auto-retry
+- Added composite index for feed query optimization
+
 ### v1.2.0 - Albums, Reels & R2 Migration
 - Added albums support (upload 2-10 images per post)
 - Added reels support (10-second video posts with thumbnails)
