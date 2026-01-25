@@ -189,12 +189,9 @@ interface SingleImageProps {
 }
 
 // Loading timeout in milliseconds
-const LOAD_TIMEOUT = 15000       // 15s for images
-const VIDEO_LOAD_TIMEOUT = 30000 // 30s for videos (larger files)
-const AUTO_RETRY_TIMEOUT = 5000  // Silent auto-retry after 5s
-const VIDEO_AUTO_RETRY_TIMEOUT = 10000 // Silent auto-retry after 10s for videos
+const LOAD_TIMEOUT = 10000       // 10s for images
+const VIDEO_LOAD_TIMEOUT = 20000 // 20s for videos (larger files)
 const RETRY_THROTTLE = 2000      // 2s between manual retries
-const MAX_RETRIES_BEFORE_WARNING = 3
 
 function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0, onImageClick, onUnlock, onLoaded }: SingleImageProps) {
   const [isLoading, setIsLoading] = useState(!localUrl)
@@ -204,8 +201,6 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
   const [isOffline, setIsOffline] = useState(false)
   const hasCalledLoaded = useRef(false)
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasAutoRetried = useRef(false)
   const lastRetryTime = useRef(0)
 
   // Clear timeout helper
@@ -216,44 +211,24 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
     }
   }
 
-  // Clear auto-retry timer
-  const clearAutoRetryTimer = () => {
-    if (autoRetryTimerRef.current) {
-      clearTimeout(autoRetryTimerRef.current)
-      autoRetryTimerRef.current = null
-    }
-  }
-
   // Reset error state when refreshKey changes (triggered by menu Refresh)
   useEffect(() => {
     if (refreshKey > 0) {
       clearLoadingTimer()
-      clearAutoRetryTimer()
       setHasError(false)
       setIsLoading(true)
       setRetryKey(prev => prev + 1)
       setRetryCount(0)
       setIsOffline(false)
-      hasAutoRetried.current = false
     }
   }, [refreshKey])
 
-  // Start timeout when loading begins with auto-retry logic
+  // Start timeout when loading begins
   useEffect(() => {
     if (isLoading && !localUrl) {
       clearLoadingTimer()
-      clearAutoRetryTimer()
 
-      // First timeout at 5s for silent auto-retry
-      autoRetryTimerRef.current = setTimeout(() => {
-        if (!hasAutoRetried.current) {
-          hasAutoRetried.current = true
-          // Silent auto-retry
-          setRetryKey((prev) => prev + 1)
-        }
-      }, AUTO_RETRY_TIMEOUT)
-
-      // Second timeout at 15s to show error
+      // Timeout to show error
       loadingTimerRef.current = setTimeout(() => {
         setIsLoading(false)
         setHasError(true)
@@ -261,7 +236,6 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
     }
     return () => {
       clearLoadingTimer()
-      clearAutoRetryTimer()
     }
   }, [isLoading, retryKey, localUrl])
 
@@ -271,12 +245,10 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
 
   const handleImageLoad = () => {
     clearLoadingTimer()
-    clearAutoRetryTimer()
     setIsLoading(false)
     setHasError(false)
     setRetryCount(0)
     setIsOffline(false)
-    hasAutoRetried.current = false
     // Only call onLoaded when remote image loads (not local blob)
     // This signals that CDN content is ready and local blob can be cleaned up
     if (!localUrl && !hasCalledLoaded.current && onLoaded) {
@@ -287,7 +259,6 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
 
   const handleImageError = () => {
     clearLoadingTimer()
-    clearAutoRetryTimer()
     setIsLoading(false)
     setHasError(true)
   }
@@ -308,12 +279,10 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
     setIsOffline(false)
 
     clearLoadingTimer()
-    clearAutoRetryTimer()
     setHasError(false)
     setIsLoading(true)
     setRetryCount((prev) => prev + 1)
     setRetryKey((prev) => prev + 1)
-    hasAutoRetried.current = false
   }
 
   return (
@@ -392,8 +361,6 @@ function AlbumCarousel({
   const [retryCounts, setRetryCounts] = useState<Map<number, number>>(new Map())
   const [isOffline, setIsOffline] = useState(false)
   const loadingTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
-  const autoRetryTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
-  const hasAutoRetried = useRef<Set<number>>(new Set())
   const lastRetryTimes = useRef<Map<number, number>>(new Map())
 
   // Clear timeout helper for specific index
@@ -405,21 +372,10 @@ function AlbumCarousel({
     }
   }
 
-  // Clear auto-retry timer for specific index
-  const clearAutoRetryTimer = (index: number) => {
-    const timer = autoRetryTimersRef.current.get(index)
-    if (timer) {
-      clearTimeout(timer)
-      autoRetryTimersRef.current.delete(index)
-    }
-  }
-
   // Clear all timers
   const clearAllTimers = () => {
     loadingTimersRef.current.forEach(timer => clearTimeout(timer))
     loadingTimersRef.current.clear()
-    autoRetryTimersRef.current.forEach(timer => clearTimeout(timer))
-    autoRetryTimersRef.current.clear()
   }
 
   // Reset error states when refreshKey changes (triggered by menu Refresh)
@@ -430,7 +386,6 @@ function AlbumCarousel({
       setLoadedIndices(new Set())
       setRetryCounts(new Map())
       setIsOffline(false)
-      hasAutoRetried.current = new Set()
       setRetryKeys(prev => {
         const updated = new Map(prev)
         mediaKeys.forEach((_, idx) => {
@@ -441,7 +396,7 @@ function AlbumCarousel({
     }
   }, [refreshKey, mediaKeys])
 
-  // Start timeout for current image when loading with auto-retry logic
+  // Start timeout for current image when loading
   useEffect(() => {
     if (localUrls) return // Skip timeout if using local URLs
 
@@ -449,19 +404,8 @@ function AlbumCarousel({
 
     if (isCurrentLoading) {
       clearLoadingTimer(currentIndex)
-      clearAutoRetryTimer(currentIndex)
 
-      // First timeout at 5s for silent auto-retry
-      const autoRetryTimer = setTimeout(() => {
-        if (!hasAutoRetried.current.has(currentIndex)) {
-          hasAutoRetried.current.add(currentIndex)
-          // Silent auto-retry
-          setRetryKeys(prev => new Map(prev).set(currentIndex, (prev.get(currentIndex) || 0) + 1))
-        }
-      }, AUTO_RETRY_TIMEOUT)
-      autoRetryTimersRef.current.set(currentIndex, autoRetryTimer)
-
-      // Second timeout at 15s to show error
+      // Timeout to show error
       const timer = setTimeout(() => {
         setLoadedIndices(prev => new Set([...prev, currentIndex]))
         setErrorIndices(prev => new Set([...prev, currentIndex]))
@@ -471,7 +415,6 @@ function AlbumCarousel({
 
     return () => {
       clearLoadingTimer(currentIndex)
-      clearAutoRetryTimer(currentIndex)
     }
   }, [currentIndex, loadedIndices, errorIndices, localUrls, retryKeys])
   // Cache transformed URLs to avoid re-computing
@@ -552,7 +495,6 @@ function AlbumCarousel({
 
   const handleImageLoad = (index: number) => {
     clearLoadingTimer(index)
-    clearAutoRetryTimer(index)
     setLoadedIndices(prev => new Set([...prev, index]))
     setErrorIndices(prev => {
       const next = new Set(prev)
@@ -566,7 +508,6 @@ function AlbumCarousel({
       return next
     })
     setIsOffline(false)
-    hasAutoRetried.current.delete(index)
     // Call onLoaded when first remote image loads (signals CDN is ready)
     if (!localUrls && !hasCalledLoaded.current && onLoaded) {
       hasCalledLoaded.current = true
@@ -576,7 +517,6 @@ function AlbumCarousel({
 
   const handleImageError = (index: number) => {
     clearLoadingTimer(index)
-    clearAutoRetryTimer(index)
     setLoadedIndices(prev => new Set([...prev, index])) // Stop showing skeleton
     setErrorIndices(prev => new Set([...prev, index]))
   }
@@ -598,7 +538,6 @@ function AlbumCarousel({
     setIsOffline(false)
 
     clearLoadingTimer(index)
-    clearAutoRetryTimer(index)
     setErrorIndices(prev => {
       const next = new Set(prev)
       next.delete(index)
@@ -611,7 +550,6 @@ function AlbumCarousel({
     })
     setRetryCounts(prev => new Map(prev).set(index, (prev.get(index) || 0) + 1))
     setRetryKeys(prev => new Map(prev).set(index, (prev.get(index) || 0) + 1))
-    hasAutoRetried.current.delete(index)
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -801,8 +739,6 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   const [isOffline, setIsOffline] = useState(false)
   const hasCalledLoaded = useRef(false)
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasAutoRetried = useRef(false)
   const lastVideoRetryTime = useRef(0)
   const lastThumbnailRetryTime = useRef(0)
 
@@ -814,19 +750,10 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
     }
   }
 
-  // Clear auto-retry timer
-  const clearAutoRetryTimer = () => {
-    if (autoRetryTimerRef.current) {
-      clearTimeout(autoRetryTimerRef.current)
-      autoRetryTimerRef.current = null
-    }
-  }
-
   // Reset error states when refreshKey changes (triggered by menu Refresh)
   useEffect(() => {
     if (refreshKey > 0) {
       clearLoadingTimer()
-      clearAutoRetryTimer()
       setThumbnailError(false)
       setVideoError(false)
       setThumbnailRetryKey(prev => prev + 1)
@@ -835,33 +762,21 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
       setVideoRetryCount(0)
       setThumbnailRetryCount(0)
       setIsOffline(false)
-      hasAutoRetried.current = false
     }
   }, [refreshKey])
 
-  // Start timeout when video is loading with auto-retry logic
+  // Start timeout when video is loading
   useEffect(() => {
     if (!isVideoReady && !videoError && !localVideoUrl && !locked) {
       clearLoadingTimer()
-      clearAutoRetryTimer()
 
-      // First timeout at 10s for silent auto-retry (videos need more time)
-      autoRetryTimerRef.current = setTimeout(() => {
-        if (!hasAutoRetried.current) {
-          hasAutoRetried.current = true
-          // Silent auto-retry
-          setVideoRetryKey((prev) => prev + 1)
-        }
-      }, VIDEO_AUTO_RETRY_TIMEOUT)
-
-      // Second timeout at 30s to show error (videos are larger)
+      // Timeout to show error
       loadingTimerRef.current = setTimeout(() => {
         setVideoError(true)
       }, VIDEO_LOAD_TIMEOUT)
     }
     return () => {
       clearLoadingTimer()
-      clearAutoRetryTimer()
     }
   }, [isVideoReady, videoError, videoRetryKey, localVideoUrl, locked])
 
@@ -919,12 +834,10 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
     setIsOffline(false)
 
     clearLoadingTimer()
-    clearAutoRetryTimer()
     setVideoError(false)
     setIsVideoReady(false)
     setVideoRetryCount((prev) => prev + 1)
     setVideoRetryKey((prev) => prev + 1)
-    hasAutoRetried.current = false
   }
 
   // Hide mute hint after 3 seconds when video is playing
@@ -971,12 +884,10 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
 
   const handleVideoCanPlay = () => {
     clearLoadingTimer()
-    clearAutoRetryTimer()
     setIsVideoReady(true)
     setVideoError(false)
     setVideoRetryCount(0)
     setIsOffline(false)
-    hasAutoRetried.current = false
     // Call onLoaded when remote video is ready (not local blob)
     if (!localVideoUrl && !hasCalledLoaded.current && onLoaded) {
       hasCalledLoaded.current = true

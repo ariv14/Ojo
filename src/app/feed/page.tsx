@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession, clearSession, UserSession } from '@/lib/session'
 import { getFeedCache, setFeedCache, isCacheStale, isCacheExpired, FEED_CACHE_VERSION } from '@/lib/feedCache'
+import { fetchFreshPostUrls, fetchPostViaProfile } from '@/lib/postRefresh'
 import { preloadPostImages, clearPreloadCache } from '@/lib/imagePreloader'
 import { ensureWalletConnected } from '@/lib/wallet'
 import UploadPost from '@/components/UploadPost'
@@ -74,6 +75,7 @@ function FeedContent() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [openOtherMenuId, setOpenOtherMenuId] = useState<string | null>(null)
   const [refreshKeys, setRefreshKeys] = useState<Record<string, number>>({})
+  const [refreshAttempts, setRefreshAttempts] = useState<Record<string, number>>({})
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
   const [editCaption, setEditCaption] = useState('')
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
@@ -942,11 +944,43 @@ function FeedContent() {
     }
   }
 
-  const handleRefreshPost = (postId: string) => {
-    setRefreshKeys(prev => ({
-      ...prev,
-      [postId]: (prev[postId] || 0) + 1
-    }))
+  const handleRefreshPost = async (postId: string) => {
+    const attempts = refreshAttempts[postId] || 0
+    const post = posts.find(p => p.id === postId)
+
+    if (attempts === 0) {
+      // First refresh: Direct Supabase query for fresh URLs
+      const freshData = await fetchFreshPostUrls(postId)
+      if (freshData) {
+        setPosts(prev => prev.map(p => {
+          if (p.id !== postId) return p
+          return {
+            ...p,
+            image_url: freshData.image_url,
+            media_urls: freshData.media_urls,
+            thumbnail_url: freshData.thumbnail_url,
+          }
+        }))
+      }
+    } else if (post?.user_id) {
+      // Second+ refresh: Use profile fallback (always works)
+      const freshData = await fetchPostViaProfile(post.user_id, postId)
+      if (freshData) {
+        setPosts(prev => prev.map(p => {
+          if (p.id !== postId) return p
+          return {
+            ...p,
+            image_url: freshData.image_url,
+            media_urls: freshData.media_urls,
+            thumbnail_url: freshData.thumbnail_url,
+          }
+        }))
+      }
+    }
+
+    // Track refresh attempts and increment refresh key to trigger re-render
+    setRefreshAttempts(prev => ({ ...prev, [postId]: attempts + 1 }))
+    setRefreshKeys(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }))
   }
 
   const handleShareToWorldChat = async (post: Post) => {
