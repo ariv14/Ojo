@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import LoginButton from '@/components/LoginButton'
-import Logo from '@/components/Logo'
+import DoodleLogo from '@/components/DoodleLogo'
 import { getSession, UserSession } from '@/lib/session'
 
 // Key for storing referral code in localStorage
@@ -41,7 +41,7 @@ function HomeContent() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md text-center">
         <h1 className="mb-2 flex items-center justify-center">
-          <Logo size="lg" />
+          <DoodleLogo size="lg" />
         </h1>
         <p className="text-gray-500 mb-8">
           Keep an eye on what is real

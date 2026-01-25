@@ -149,3 +149,213 @@ input, textarea {
     animation: none;
   }
 }
+
+/* ========================================
+   DOODLE LOGO ANIMATIONS
+   ======================================== */
+
+/* Idle Animations */
+@keyframes doodle-idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes doodle-idle-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes doodle-idle-spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes doodle-idle-pulse {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.9; filter: brightness(1.2); }
+}
+
+@keyframes doodle-idle-flicker {
+  0%, 100% { opacity: 1; }
+  10% { opacity: 0.9; }
+  20% { opacity: 1; }
+  30% { opacity: 0.85; }
+  40% { opacity: 1; }
+  90% { opacity: 0.95; }
+}
+
+/* Click Animations */
+@keyframes doodle-click-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes doodle-click-explode {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+@keyframes doodle-click-glow {
+  0% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  50% { filter: brightness(1.5) drop-shadow(0 0 10px currentColor); }
+  100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+}
+
+/* Special Theme Animations */
+@keyframes doodle-flame-flicker {
+  0%, 100% { transform: scale(1) translateY(0); opacity: 1; }
+  25% { transform: scale(1.05) translateY(-1px); opacity: 0.9; }
+  50% { transform: scale(0.95) translateY(1px); opacity: 1; }
+  75% { transform: scale(1.02) translateY(-0.5px); opacity: 0.95; }
+}
+
+@keyframes doodle-globe-rotate {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes doodle-heart-beat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.15); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.1); }
+  60% { transform: scale(1); }
+}
+
+@keyframes doodle-mask-dance {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes doodle-sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.9); }
+}
+
+@keyframes doodle-orb-scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+@keyframes doodle-ray-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes doodle-sparkle-particle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes doodle-feather-wave {
+  0%, 100% { transform: rotate(30deg); }
+  50% { transform: rotate(40deg); }
+}
+
+@keyframes doodle-tooltip-enter {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(0.95); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* Animation Classes */
+.doodle-idle-bob {
+  animation: doodle-idle-bob 2s ease-in-out infinite;
+}
+
+.doodle-idle-bounce {
+  animation: doodle-idle-bounce 1.5s ease-in-out infinite;
+}
+
+.doodle-idle-spin-slow {
+  animation: doodle-idle-spin-slow 20s linear infinite;
+}
+
+.doodle-idle-pulse {
+  animation: doodle-idle-pulse 3s ease-in-out infinite;
+}
+
+.doodle-idle-flicker {
+  animation: doodle-idle-flicker 2s ease-in-out infinite;
+}
+
+.doodle-click-spin {
+  animation: doodle-click-spin 0.5s ease-out;
+}
+
+.doodle-click-explode {
+  animation: doodle-click-explode 0.4s ease-out;
+}
+
+.doodle-click-glow {
+  animation: doodle-click-glow 0.5s ease-out;
+}
+
+.doodle-flame-flicker {
+  animation: doodle-flame-flicker 0.8s ease-in-out infinite;
+}
+
+.doodle-heart-beat {
+  animation: doodle-heart-beat 1.2s ease-in-out infinite;
+}
+
+.doodle-sparkle {
+  animation: doodle-sparkle 1.5s ease-in-out infinite;
+}
+
+.doodle-orb-scan {
+  animation: doodle-orb-scan 2s ease-in-out infinite;
+}
+
+.doodle-ray-pulse {
+  animation: doodle-ray-pulse 1s ease-in-out infinite;
+}
+
+.doodle-sparkle-particle {
+  animation: doodle-sparkle-particle 2s ease-in-out infinite;
+}
+
+.doodle-feather-wave {
+  animation: doodle-feather-wave 2s ease-in-out infinite;
+}
+
+.doodle-tooltip-enter {
+  animation: doodle-tooltip-enter 0.2s ease-out forwards;
+}
+
+/* SVG animation helper */
+.doodle-flame-flicker-svg {
+  animation: doodle-flame-flicker 0.8s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+/* Reduced motion support for doodle animations */
+@media (prefers-reduced-motion: reduce) {
+  .doodle-idle-bob,
+  .doodle-idle-bounce,
+  .doodle-idle-spin-slow,
+  .doodle-idle-pulse,
+  .doodle-idle-flicker,
+  .doodle-click-spin,
+  .doodle-click-explode,
+  .doodle-click-glow,
+  .doodle-flame-flicker,
+  .doodle-heart-beat,
+  .doodle-sparkle,
+  .doodle-orb-scan,
+  .doodle-ray-pulse,
+  .doodle-sparkle-particle,
+  .doodle-feather-wave,
+  .doodle-flame-flicker-svg {
+    animation: none;
+  }
+
+  .doodle-tooltip-enter {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}

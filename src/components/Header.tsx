@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import Logo from './Logo'
+import DoodleLogo from './DoodleLogo'
 
 interface HeaderProps {
   showBackButton?: boolean
@@ -44,11 +44,11 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
           )}
           {isFeedPage ? (
             <div className="flex items-center">
-              <Logo size="sm" />
+              <DoodleLogo size="md" showTooltipOnTap />
             </div>
           ) : (
             <button onClick={handleLogoClick} className="flex items-center">
-              <Logo size="sm" />
+              <DoodleLogo size="md" />
             </button>
           )}
         </div>
