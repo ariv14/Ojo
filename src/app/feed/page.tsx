@@ -262,8 +262,8 @@ function FeedContent() {
       const postHeight = 500 // Approximate height per post
       const visibleIndex = Math.floor(scrollTop / postHeight)
 
-      // Preload next 3 posts
-      preloadPostImages(posts, visibleIndex, 3)
+      // Preload next 5 posts
+      preloadPostImages(posts, visibleIndex, 5)
     }
 
     // Debounce scroll handler for performance
@@ -275,8 +275,8 @@ function FeedContent() {
 
     window.addEventListener('scroll', debouncedHandler, { passive: true })
 
-    // Preload first 5 posts on initial load
-    preloadPostImages(posts, -1, 5)
+    // Preload first 8 posts on initial load
+    preloadPostImages(posts, -1, 8)
 
     return () => {
       window.removeEventListener('scroll', debouncedHandler)
