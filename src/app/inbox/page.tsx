@@ -12,6 +12,7 @@ interface InboxChat {
   other_first_name: string
   other_last_name: string
   created_at: string
+  unread_count: number
 }
 
 export default function InboxPage() {
@@ -29,7 +30,7 @@ export default function InboxPage() {
     }
     fetchInboxChats()
 
-    // Subscribe to new connections (both as receiver and initiator)
+    // Subscribe to new connections and new messages
     const channel = supabase
       .channel('inbox')
       .on(
@@ -71,10 +72,31 @@ export default function InboxPage() {
               other_first_name: otherUser.first_name,
               other_last_name: otherUser.last_name,
               created_at: newConn.created_at,
+              unread_count: 0,
             }
             // Add to beginning (newest first)
             setChats(prev => [newChat, ...prev])
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          const newMsg = payload.new as { connection_id: string; sender_id: string }
+          // Only increment if message is from someone else (not the current user)
+          if (newMsg.sender_id === session.nullifier_hash) return
+
+          // Increment unread count for this connection
+          setChats(prev => prev.map(chat =>
+            chat.connection_id === newMsg.connection_id
+              ? { ...chat, unread_count: chat.unread_count + 1 }
+              : chat
+          ))
         }
       )
       .subscribe()
@@ -98,6 +120,23 @@ export default function InboxPage() {
       return
     }
 
+    // Get connection IDs to fetch unread counts
+    const connectionIds = (data || []).map((chat: { connection_id: string }) => chat.connection_id)
+
+    // Fetch unread message counts for all connections
+    const { data: unreadData } = await supabase
+      .from('messages')
+      .select('connection_id')
+      .in('connection_id', connectionIds)
+      .neq('sender_id', session.nullifier_hash)
+      .eq('is_read', false)
+
+    // Count unread messages per connection
+    const unreadCounts: Record<string, number> = {}
+    ;(unreadData || []).forEach((msg: { connection_id: string }) => {
+      unreadCounts[msg.connection_id] = (unreadCounts[msg.connection_id] || 0) + 1
+    })
+
     // Map RPC results to our interface
     const inboxChats: InboxChat[] = (data || []).map((chat: {
       connection_id: string
@@ -111,6 +150,7 @@ export default function InboxPage() {
       other_first_name: chat.other_first_name || 'Unknown',
       other_last_name: chat.other_last_name || '',
       created_at: chat.created_at,
+      unread_count: unreadCounts[chat.connection_id] || 0,
     }))
 
     // Sort by created_at descending (RPC returns DISTINCT ON order, need to re-sort)
@@ -162,9 +202,16 @@ export default function InboxPage() {
                   Started a chat with you
                 </p>
               </div>
-              <span className="text-xs text-gray-400">
-                {new Date(chat.created_at).toLocaleDateString()}
-              </span>
+              <div className="flex items-center gap-2">
+                {chat.unread_count > 0 && (
+                  <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    {chat.unread_count > 99 ? '99+' : chat.unread_count}
+                  </span>
+                )}
+                <span className="text-xs text-gray-400">
+                  {new Date(chat.created_at).toLocaleDateString()}
+                </span>
+              </div>
             </button>
           ))
         )}
