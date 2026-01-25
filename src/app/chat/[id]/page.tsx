@@ -14,6 +14,7 @@ interface Message {
   content: string
   created_at: string
   is_edited?: boolean
+  is_read?: boolean
   users: {
     first_name: string
   }
@@ -60,7 +61,7 @@ export default function ChatPage() {
 
     fetchMessagesAndConnection()
 
-    // Set up realtime subscription
+    // Set up realtime subscription for INSERT and UPDATE events
     const channel = supabase
       .channel(`messages:${connectionId}`)
       .on(
@@ -71,7 +72,7 @@ export default function ChatPage() {
           table: 'messages',
           filter: `connection_id=eq.${connectionId}`,
         },
-        (payload) => {
+        async (payload) => {
           // Check if message is after user's cleared_at
           const clearedAt = userClearedAtRef.current
           if (clearedAt && payload.new.created_at <= clearedAt) {
@@ -88,10 +89,43 @@ export default function ChatPage() {
             content: payload.new.content as string,
             created_at: payload.new.created_at as string,
             is_edited: payload.new.is_edited as boolean || false,
+            is_read: payload.new.is_read as boolean || false,
             users: { first_name: cachedName },
           }
 
           setMessages((prev) => [...prev, newMsg])
+
+          // If message is from other user, mark it as read
+          if (senderId !== session?.nullifier_hash) {
+            await supabase
+              .from('messages')
+              .update({ is_read: true })
+              .eq('id', payload.new.id)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `connection_id=eq.${connectionId}`,
+        },
+        (payload) => {
+          // Update message read status (and edited status) in real-time
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === payload.new.id
+                ? {
+                    ...msg,
+                    is_read: payload.new.is_read as boolean,
+                    is_edited: payload.new.is_edited as boolean,
+                    content: payload.new.content as string,
+                  }
+                : msg
+            )
+          )
         }
       )
       .subscribe()
@@ -118,83 +152,93 @@ export default function ChatPage() {
     }
   }, [menuMessageId, showSettings])
 
-  // Combined fetch for connection data and messages (avoids duplicate queries)
+  // Mark incoming messages as read
+  const markMessagesAsRead = useCallback(async () => {
+    if (!session) return
+
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('connection_id', connectionId)
+      .neq('sender_id', session.nullifier_hash)
+      .eq('is_read', false)
+  }, [connectionId, session])
+
+  // Combined fetch for connection data and messages using single RPC call
   const fetchMessagesAndConnection = async () => {
     if (!session) return
 
-    // Single query for all connection data (combines two separate queries)
-    const { data: connData } = await supabase
-      .from('connections')
-      .select('initiator_id, receiver_id, initiator_cleared_at, receiver_cleared_at, is_blocked, blocked_by')
-      .eq('id', connectionId)
-      .single()
-
-    let clearedAt: string | null = null
-    if (connData) {
-      const isInitiator = connData.initiator_id === session.nullifier_hash
-      clearedAt = isInitiator ? connData.initiator_cleared_at : connData.receiver_cleared_at
-      setUserClearedAt(clearedAt)
-      setIsBlocked(connData.is_blocked || false)
-      setBlockedBy(connData.blocked_by || null)
-
-      // Cache the other user's info for realtime messages and notifications
-      const otherUserId = isInitiator ? connData.receiver_id : connData.initiator_id
-      const { data: otherUserData } = await supabase
-        .from('users')
-        .select('first_name, wallet_address')
-        .eq('nullifier_hash', otherUserId)
-        .single()
-      if (otherUserData) {
-        userCacheRef.current.set(otherUserId, otherUserData.first_name)
-        setOtherUser(otherUserData)
-      }
-
-      // Cache current user's name too
-      if (session.first_name) {
-        userCacheRef.current.set(session.nullifier_hash, session.first_name)
-      }
-    }
-
-    // Fetch messages with pagination (most recent MESSAGES_PER_PAGE)
-    let query = supabase
-      .from('messages')
-      .select(`
-        id,
-        sender_id,
-        content,
-        created_at,
-        is_edited,
-        users (
-          first_name
-        )
-      `)
-      .eq('connection_id', connectionId)
-      .order('created_at', { ascending: false })
-      .limit(MESSAGES_PER_PAGE)
-
-    // Filter out messages before user's cleared_at
-    if (clearedAt) {
-      query = query.gt('created_at', clearedAt)
-    }
-
-    const { data, error } = await query
+    // Single RPC call for all chat data (replaces 3 sequential queries)
+    const { data, error } = await supabase.rpc('get_chat_data', {
+      p_connection_id: connectionId,
+      p_user_id: session.nullifier_hash,
+      p_limit: MESSAGES_PER_PAGE
+    })
 
     if (error) {
-      console.error('Error fetching messages:', error)
-    } else {
-      // Reverse to show oldest first, then newest at bottom
-      const orderedMessages = (data as unknown as Message[]).reverse()
-      setMessages(orderedMessages)
-      setHasMoreMessages(data.length === MESSAGES_PER_PAGE)
+      console.error('Error fetching chat data:', error)
+      setIsLoading(false)
+      return
+    }
 
-      // Cache all fetched user names
-      orderedMessages.forEach(msg => {
-        if (msg.users?.first_name) {
-          userCacheRef.current.set(msg.sender_id, msg.users.first_name)
-        }
+    if (!data) {
+      console.error('Connection not found or access denied')
+      router.push('/inbox')
+      return
+    }
+
+    // Set connection state
+    setIsBlocked(data.connection.is_blocked || false)
+    setBlockedBy(data.connection.blocked_by || null)
+    setUserClearedAt(data.connection.cleared_at)
+
+    // Set other user info
+    if (data.other_user) {
+      userCacheRef.current.set(data.other_user.id, data.other_user.first_name)
+      setOtherUser({
+        first_name: data.other_user.first_name,
+        wallet_address: data.other_user.wallet_address
       })
     }
+
+    // Cache current user's name
+    if (session.first_name) {
+      userCacheRef.current.set(session.nullifier_hash, session.first_name)
+    }
+
+    // Transform messages from RPC format to component format
+    const transformedMessages: Message[] = (data.messages || []).map((msg: {
+      id: string
+      sender_id: string
+      content: string
+      created_at: string
+      is_edited?: boolean
+      is_read?: boolean
+      sender_first_name: string
+    }) => ({
+      id: msg.id,
+      sender_id: msg.sender_id,
+      content: msg.content,
+      created_at: msg.created_at,
+      is_edited: msg.is_edited || false,
+      is_read: msg.is_read || false,
+      users: { first_name: msg.sender_first_name }
+    }))
+
+    setMessages(transformedMessages)
+    setHasMoreMessages(data.has_more)
+
+    // Cache all fetched user names
+    transformedMessages.forEach(msg => {
+      if (msg.users?.first_name) {
+        userCacheRef.current.set(msg.sender_id, msg.users.first_name)
+      }
+    })
+
     setIsLoading(false)
+
+    // Mark messages from other user as read
+    await markMessagesAsRead()
   }
 
   // Load older messages when scrolling up
@@ -212,6 +256,7 @@ export default function ChatPage() {
         content,
         created_at,
         is_edited,
+        is_read,
         users (
           first_name
         )
@@ -520,7 +565,14 @@ export default function ChatPage() {
                         </div>
                       ) : (
                         <>
-                          <p className="text-sm">{message.content}</p>
+                          <div className="flex items-end gap-1">
+                            <p className="text-sm">{message.content}</p>
+                            {isMe && (
+                              <span className={`text-xs flex-shrink-0 ${message.is_read ? 'text-blue-200' : 'opacity-60'}`}>
+                                {message.is_read ? '✓✓' : '✓'}
+                              </span>
+                            )}
+                          </div>
                           {message.is_edited && (
                             <p className={`text-xs mt-1 ${isMe ? 'opacity-60' : 'opacity-50'}`}>Edited</p>
                           )}

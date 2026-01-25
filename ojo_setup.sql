@@ -88,8 +88,12 @@ CREATE TABLE IF NOT EXISTS messages (
   sender_id TEXT NOT NULL REFERENCES users(nullifier_hash) ON DELETE CASCADE,
   content TEXT NOT NULL,
   is_edited BOOLEAN DEFAULT false,
+  is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Column documentation for read receipts
+COMMENT ON COLUMN messages.is_read IS 'Whether the recipient has read this message';
 
 -- 5. POST VOTES TABLE
 -- Upvotes/downvotes on posts
@@ -221,6 +225,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_hidden_created ON posts(is_hidden, created_
 CREATE INDEX IF NOT EXISTS idx_messages_connection_id ON messages(connection_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_connection_sender_read ON messages(connection_id, sender_id, is_read);
 
 -- Relationships indexes
 CREATE INDEX IF NOT EXISTS idx_relationships_follower_id ON relationships(follower_id);
@@ -702,6 +707,101 @@ BEGIN
 END;
 $$;
 
+-- Function: get_chat_data
+-- Returns all chat page data in a single query (connection, other user, messages)
+-- Consolidates 3 sequential queries into 1 RPC call for performance
+-- Called from: src/app/chat/[id]/page.tsx
+CREATE OR REPLACE FUNCTION get_chat_data(
+  p_connection_id UUID,
+  p_user_id TEXT,
+  p_limit INTEGER DEFAULT 50
+)
+RETURNS JSON
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  result JSON;
+  v_conn RECORD;
+  v_other_user RECORD;
+  v_cleared_at TIMESTAMPTZ;
+  v_other_user_id TEXT;
+  v_messages JSON;
+  v_message_count INTEGER;
+BEGIN
+  -- Get connection data
+  SELECT
+    initiator_id,
+    receiver_id,
+    initiator_cleared_at,
+    receiver_cleared_at,
+    is_blocked,
+    blocked_by
+  INTO v_conn
+  FROM connections
+  WHERE id = p_connection_id
+    AND (initiator_id = p_user_id OR receiver_id = p_user_id);
+
+  -- Return null if connection not found or user not a participant
+  IF v_conn IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  -- Determine other user and cleared_at based on user's role
+  IF v_conn.initiator_id = p_user_id THEN
+    v_other_user_id := v_conn.receiver_id;
+    v_cleared_at := v_conn.initiator_cleared_at;
+  ELSE
+    v_other_user_id := v_conn.initiator_id;
+    v_cleared_at := v_conn.receiver_cleared_at;
+  END IF;
+
+  -- Get other user's info
+  SELECT first_name, wallet_address
+  INTO v_other_user
+  FROM users
+  WHERE nullifier_hash = v_other_user_id;
+
+  -- Get messages with sender names
+  SELECT json_agg(msg ORDER BY msg.created_at ASC), COUNT(*)
+  INTO v_messages, v_message_count
+  FROM (
+    SELECT
+      m.id,
+      m.sender_id,
+      m.content,
+      m.created_at,
+      m.is_edited,
+      m.is_read,
+      u.first_name as sender_first_name
+    FROM messages m
+    JOIN users u ON u.nullifier_hash = m.sender_id
+    WHERE m.connection_id = p_connection_id
+      AND (v_cleared_at IS NULL OR m.created_at > v_cleared_at)
+    ORDER BY m.created_at DESC
+    LIMIT p_limit
+  ) msg;
+
+  -- Build result JSON
+  result := json_build_object(
+    'connection', json_build_object(
+      'is_blocked', v_conn.is_blocked,
+      'blocked_by', v_conn.blocked_by,
+      'cleared_at', v_cleared_at
+    ),
+    'other_user', json_build_object(
+      'id', v_other_user_id,
+      'first_name', v_other_user.first_name,
+      'wallet_address', v_other_user.wallet_address
+    ),
+    'messages', COALESCE(v_messages, '[]'::json),
+    'has_more', v_message_count = p_limit
+  );
+
+  RETURN result;
+END;
+$$;
+
 -- =============================================
 -- SECTION 6: REALTIME CONFIGURATION
 -- =============================================
@@ -772,10 +872,10 @@ CREATE POLICY "Anyone can delete photos"
 -- Summary:
 -- - 1 Custom type (media_type enum)
 -- - 13 Tables created with CASCADE DELETE
--- - 35 Indexes for query performance (including composite indexes)
+-- - 36 Indexes for query performance (including composite indexes)
 -- - RLS enabled on all 13 tables
 -- - 39 RLS policies (permissive)
--- - 8 RPC functions:
+-- - 9 RPC functions:
 --   * delete_conversation - delete chat and messages
 --   * reset_all_data - admin factory reset
 --   * get_user_tips_total - sum tips for profile earnings
@@ -784,6 +884,7 @@ CREATE POLICY "Anyone can delete photos"
 --   * get_users_with_post_counts - admin page users with post counts
 --   * get_inbox_chats - inbox page chats in single query
 --   * get_referral_stats - referral tracking statistics
+--   * get_chat_data - consolidated chat page data (connection, user, messages)
 -- - Realtime enabled on messages, connections, posts
 -- - 8 Storage policies (4 avatars, 4 photos)
 --
