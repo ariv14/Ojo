@@ -200,6 +200,7 @@ export default function ChatPage() {
   }, [connectionId, session])
 
   // Track scroll position to show new message indicator
+  // Depends on isLoading so listener attaches after container renders
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
@@ -215,7 +216,7 @@ export default function ChatPage() {
     }
     container.addEventListener('scroll', handleScroll, { passive: true })
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [isLoading])
 
   // Combined fetch for connection data and messages using single RPC call
   const fetchMessagesAndConnection = async () => {
