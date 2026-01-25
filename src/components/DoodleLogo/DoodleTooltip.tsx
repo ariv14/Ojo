@@ -40,7 +40,7 @@ export default function DoodleTooltip({ holiday, isVisible, onClose }: DoodleToo
   return (
     <div
       ref={tooltipRef}
-      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-50 doodle-tooltip-enter"
+      className="absolute top-full left-0 mt-3 z-50 doodle-tooltip-enter"
     >
       <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-lg px-4 py-3 min-w-[200px] max-w-[280px]">
         <div className="text-center">
@@ -54,7 +54,7 @@ export default function DoodleTooltip({ holiday, isVisible, onClose }: DoodleToo
           </p>
         </div>
         {/* Tooltip arrow */}
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/95 rotate-45 rounded-sm" />
+        <div className="absolute -top-2 left-6 w-4 h-4 bg-white/95 rotate-45 rounded-sm" />
       </div>
     </div>
   )
