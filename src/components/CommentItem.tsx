@@ -7,6 +7,8 @@ import { getSession } from '@/lib/session'
 import { hapticLight } from '@/lib/haptics'
 import UserAvatar from './UserAvatar'
 
+const REPLIES_PER_PAGE = 3
+
 export interface Comment {
   id: string
   post_id: string
@@ -52,6 +54,7 @@ function CommentItem({
   const [userVote, setUserVote] = useState(comment.user_vote)
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [visibleRepliesCount, setVisibleRepliesCount] = useState(REPLIES_PER_PAGE)
 
   // Sync local vote state when props change
   useEffect(() => {
@@ -59,6 +62,11 @@ function CommentItem({
     setDislikeCount(comment.dislike_count)
     setUserVote(comment.user_vote)
   }, [comment.like_count, comment.dislike_count, comment.user_vote])
+
+  // Reset visible replies count when comment changes
+  useEffect(() => {
+    setVisibleRepliesCount(REPLIES_PER_PAGE)
+  }, [comment.id])
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
     if (!session) return
@@ -301,7 +309,7 @@ function CommentItem({
           {/* Replies */}
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-2">
-              {comment.replies.map((reply) => (
+              {comment.replies.slice(0, visibleRepliesCount).map((reply) => (
                 <MemoizedCommentItem
                   key={reply.id}
                   comment={reply}
@@ -310,6 +318,14 @@ function CommentItem({
                   isReply
                 />
               ))}
+              {comment.replies.length > visibleRepliesCount && (
+                <button
+                  onClick={() => setVisibleRepliesCount(prev => prev + REPLIES_PER_PAGE)}
+                  className="ml-8 mt-2 text-xs text-blue-500 hover:text-blue-600"
+                >
+                  View {Math.min(REPLIES_PER_PAGE, comment.replies.length - visibleRepliesCount)} more {comment.replies.length - visibleRepliesCount === 1 ? 'reply' : 'replies'}
+                </button>
+              )}
             </div>
           )}
         </div>
