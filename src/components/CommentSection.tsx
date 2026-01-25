@@ -384,7 +384,7 @@ export default function CommentSection({
                   <button
                     onClick={loadMoreComments}
                     disabled={isLoadingMore}
-                    className="w-full mt-3 py-2 text-sm text-blue-500 hover:text-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full mt-3 py-2 min-h-[36px] text-sm text-blue-500 hover:text-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isLoadingMore ? (
                       <>
