@@ -46,6 +46,11 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   // Cache user names to avoid DB queries on realtime messages
   const userCacheRef = useRef<Map<string, string>>(new Map())
+  // Smart scroll behavior refs
+  const isAtBottomRef = useRef(true)
+  const justSentMessageRef = useRef(false)
+  const previousScrollHeightRef = useRef(0)
+  const isLoadingOlderRef = useRef(false)
   const session = getSession()
 
   // Keep ref in sync with state for realtime callback access
@@ -136,8 +141,29 @@ export default function ChatPage() {
   }, [connectionId, router, session])
 
   useEffect(() => {
-    // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Smart scroll behavior based on context
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    if (isLoadingOlderRef.current) {
+      // Restore scroll position after loading older messages
+      const scrollDelta = container.scrollHeight - previousScrollHeightRef.current
+      container.scrollTop = scrollDelta
+      isLoadingOlderRef.current = false
+      return
+    }
+
+    if (justSentMessageRef.current) {
+      // User sent message - always scroll to bottom
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      justSentMessageRef.current = false
+      return
+    }
+
+    if (isAtBottomRef.current) {
+      // New message arrived and user was at bottom - scroll
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages])
 
   useEffect(() => {
@@ -163,6 +189,26 @@ export default function ChatPage() {
       .neq('sender_id', session.nullifier_hash)
       .eq('is_read', false)
   }, [connectionId, session])
+
+  // Helper to detect if user is at bottom of chat
+  const isUserAtBottom = useCallback((): boolean => {
+    const container = messagesContainerRef.current
+    if (!container) return true
+    const threshold = 100
+    const { scrollTop, scrollHeight, clientHeight } = container
+    return scrollHeight - scrollTop - clientHeight <= threshold
+  }, [])
+
+  // Track scroll position to determine if user is at bottom
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+    const handleScroll = () => {
+      isAtBottomRef.current = isUserAtBottom()
+    }
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [isUserAtBottom])
 
   // Combined fetch for connection data and messages using single RPC call
   const fetchMessagesAndConnection = async () => {
@@ -245,6 +291,12 @@ export default function ChatPage() {
   const loadMoreMessages = useCallback(async () => {
     if (!session || isLoadingMore || !hasMoreMessages || messages.length === 0) return
 
+    // Track scroll position to restore after loading
+    if (messagesContainerRef.current) {
+      previousScrollHeightRef.current = messagesContainerRef.current.scrollHeight
+    }
+    isLoadingOlderRef.current = true
+
     setIsLoadingMore(true)
     const oldestMessage = messages[0]
 
@@ -296,6 +348,9 @@ export default function ChatPage() {
     if (isBlocked) {
       return
     }
+
+    // Mark that user is sending - should scroll to bottom
+    justSentMessageRef.current = true
 
     // Haptic feedback when sending
     hapticLight()
@@ -483,7 +538,7 @@ export default function ChatPage() {
       />
 
       {/* Back to Inbox Navigation */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2">
+      <div className="sticky top-14 z-10 bg-white border-b border-gray-200 px-4 py-2">
         <button
           onClick={() => router.push('/inbox')}
           className="flex items-center gap-1 text-sm text-blue-500 font-medium"
