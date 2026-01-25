@@ -122,10 +122,13 @@ function FeedContent() {
   const lastFetchTime = useRef<string | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const hasScrolledToPost = useRef(false)
+  const shouldInterceptScroll = useRef(false)
+  const pullDistanceRef = useRef(0)
+  const pullIndicatorRef = useRef<HTMLDivElement>(null)
   const POSTS_PER_PAGE = 5
   const MAX_POSTS = 100 // Limit posts in memory for performance
   const PULL_THRESHOLD = 80
-  const SCROLL_TOLERANCE = 10 // pixels - allows pull-to-refresh when near top
 
   useEffect(() => {
     const initFeed = async () => {
@@ -273,13 +276,29 @@ function FeedContent() {
     }
   }, [openMenuId, openOtherMenuId])
 
-  // Scroll to post if scrollTo param is present
+  // Scroll to post if scrollTo param is present (only once)
   useEffect(() => {
     const scrollToId = searchParams.get('scrollTo')
-    if (scrollToId && posts.length > 0) {
+
+    // Reset flag when scrollTo param changes
+    if (!scrollToId) {
+      hasScrolledToPost.current = false
+      return
+    }
+
+    // Only scroll once per scrollTo param
+    if (hasScrolledToPost.current) return
+
+    if (posts.length > 0) {
       const element = document.getElementById(`post-${scrollToId}`)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        hasScrolledToPost.current = true
+
+        // Clear the scrollTo param from URL after scrolling
+        const url = new URL(window.location.href)
+        url.searchParams.delete('scrollTo')
+        window.history.replaceState({}, '', url.toString())
       }
     }
   }, [searchParams, posts])
@@ -718,55 +737,115 @@ function FeedContent() {
 
   // Pull-to-refresh handlers - use native TouchEvent for passive: false support
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (window.scrollY <= SCROLL_TOLERANCE) {
+    if (window.scrollY === 0) {
       touchStartY.current = e.touches[0].clientY
+      shouldInterceptScroll.current = true
+    } else {
+      touchStartY.current = 0
+      shouldInterceptScroll.current = false
     }
   }, [])
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (isRefreshing || touchStartY.current === 0) return
+    // Early exit - allows native scrolling
+    if (!shouldInterceptScroll.current || isRefreshing || touchStartY.current === 0) {
+      return
+    }
 
     const currentY = e.touches[0].clientY
     const diff = currentY - touchStartY.current
 
-    if (diff > 0 && window.scrollY <= SCROLL_TOLERANCE) {
-      // Prevent browser scroll interference during pull-to-refresh
+    if (diff > 0 && window.scrollY === 0) {
       e.preventDefault()
-      // Dampen the pull effect
       const dampedDiff = Math.min(diff * 0.5, 120)
-      setPullDistance(dampedDiff)
+      pullDistanceRef.current = dampedDiff
+
+      // Direct DOM manipulation (no re-render)
+      if (pullIndicatorRef.current) {
+        pullIndicatorRef.current.style.transform = `translateY(${dampedDiff - 40}px)`
+      }
+
+      // Only update state when crossing threshold
+      const wasPastThreshold = pullDistance >= PULL_THRESHOLD
+      const isPastThreshold = dampedDiff >= PULL_THRESHOLD
+      if (wasPastThreshold !== isPastThreshold) {
+        setPullDistance(dampedDiff)
+      }
+    } else {
+      // Release control - user scrolling up or away from top
+      shouldInterceptScroll.current = false
+      if (pullDistanceRef.current > 0) {
+        pullDistanceRef.current = 0
+        setPullDistance(0)
+        if (pullIndicatorRef.current) {
+          pullIndicatorRef.current.style.transform = 'translateY(-40px)'
+        }
+      }
     }
-  }, [isRefreshing])
+  }, [isRefreshing, pullDistance])
 
   const handleTouchEnd = useCallback(async () => {
-    if (pullDistance >= PULL_THRESHOLD && !isRefreshing && currentSession) {
-      // Haptic feedback when refresh triggers
+    const distance = pullDistanceRef.current
+    if (distance >= PULL_THRESHOLD && !isRefreshing && currentSession) {
       hapticSelection()
       setIsRefreshing(true)
       setPullDistance(0)
+      pullDistanceRef.current = 0
       setPage(0)
       setHasMore(true)
       setNewPostCount(0)
       await fetchPosts(currentSession)
     } else {
       setPullDistance(0)
+      pullDistanceRef.current = 0
+    }
+    if (pullIndicatorRef.current) {
+      pullIndicatorRef.current.style.transform = 'translateY(-40px)'
     }
     touchStartY.current = 0
-  }, [pullDistance, isRefreshing, currentSession])
+    shouldInterceptScroll.current = false
+  }, [isRefreshing, currentSession])
 
-  // Attach native touch event listeners with passive: false for pull-to-refresh
+  // Attach native touch event listeners with dynamic passive: false for pull-to-refresh
   useEffect(() => {
     const element = feedRef.current
     if (!element) return
 
+    let nonPassiveAttached = false
+
+    const attachNonPassive = () => {
+      if (!nonPassiveAttached) {
+        element.addEventListener('touchmove', handleTouchMove, { passive: false })
+        nonPassiveAttached = true
+      }
+    }
+
+    const detachNonPassive = () => {
+      if (nonPassiveAttached) {
+        element.removeEventListener('touchmove', handleTouchMove)
+        nonPassiveAttached = false
+      }
+    }
+
+    const handleScrollPosition = () => {
+      if (window.scrollY === 0) {
+        attachNonPassive()
+      } else if (window.scrollY > 50) {
+        detachNonPassive()
+      }
+    }
+
+    if (window.scrollY === 0) attachNonPassive()
+
     element.addEventListener('touchstart', handleTouchStart, { passive: true })
-    element.addEventListener('touchmove', handleTouchMove, { passive: false })
     element.addEventListener('touchend', handleTouchEnd, { passive: true })
+    window.addEventListener('scroll', handleScrollPosition, { passive: true })
 
     return () => {
       element.removeEventListener('touchstart', handleTouchStart)
       element.removeEventListener('touchmove', handleTouchMove)
       element.removeEventListener('touchend', handleTouchEnd)
+      window.removeEventListener('scroll', handleScrollPosition)
     }
   }, [handleTouchStart, handleTouchMove, handleTouchEnd])
 
@@ -1279,8 +1358,9 @@ function FeedContent() {
     >
       {/* Pull-to-refresh indicator */}
       <div
-        className="absolute left-0 right-0 flex justify-center pointer-events-none z-20 transition-transform duration-150"
-        style={{ transform: `translateY(${pullDistance - 40}px)` }}
+        ref={pullIndicatorRef}
+        className="absolute left-0 right-0 flex justify-center pointer-events-none z-20"
+        style={{ transform: 'translateY(-40px)' }}
       >
         {isRefreshing ? (
           <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
