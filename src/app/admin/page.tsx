@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { isLegacySupabaseUrl, resolveImageUrl } from '@/lib/s3'
+import { sendBroadcast, previewBroadcast, BroadcastResult } from '@/lib/broadcast'
 
 interface Stats {
   totalUsers: number
@@ -86,6 +87,16 @@ export default function AdminPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [referralBonusUsers, setReferralBonusUsers] = useState<ReferralBonusUser[]>([])
   const [processingPayoutId, setProcessingPayoutId] = useState<string | null>(null)
+
+  // Broadcast notification state
+  const [broadcastTitle, setBroadcastTitle] = useState('')
+  const [broadcastMessage, setBroadcastMessage] = useState('')
+  const [broadcastPath, setBroadcastPath] = useState('')
+  const [broadcastPreview, setBroadcastPreview] = useState<BroadcastResult | null>(null)
+  const [broadcastResult, setBroadcastResult] = useState<BroadcastResult | null>(null)
+  const [isPreviewingBroadcast, setIsPreviewingBroadcast] = useState(false)
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false)
+  const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -182,6 +193,50 @@ export default function AdminPage() {
     // Refresh the list
     await fetchReferralBonusUsers()
     setProcessingPayoutId(null)
+  }
+
+  const handlePreviewBroadcast = async () => {
+    const session = getSession()
+    if (!session) return
+
+    setIsPreviewingBroadcast(true)
+    setBroadcastPreview(null)
+    setBroadcastResult(null)
+
+    const result = await previewBroadcast(session.nullifier_hash, {
+      title: broadcastTitle,
+      message: broadcastMessage,
+      mini_app_path: broadcastPath || undefined,
+    })
+
+    setBroadcastPreview(result)
+    setIsPreviewingBroadcast(false)
+  }
+
+  const handleSendBroadcast = async () => {
+    const session = getSession()
+    if (!session) return
+
+    setIsSendingBroadcast(true)
+    setShowBroadcastConfirm(false)
+    setBroadcastResult(null)
+
+    const result = await sendBroadcast(session.nullifier_hash, {
+      title: broadcastTitle,
+      message: broadcastMessage,
+      mini_app_path: broadcastPath || undefined,
+    })
+
+    setBroadcastResult(result)
+    setIsSendingBroadcast(false)
+
+    // Clear form on success
+    if (result.success) {
+      setBroadcastTitle('')
+      setBroadcastMessage('')
+      setBroadcastPath('')
+      setBroadcastPreview(null)
+    }
   }
 
   const fetchDashboardData = async () => {
@@ -811,6 +866,117 @@ export default function AdminPage() {
           )}
         </div>
 
+        {/* Broadcast Notifications Section */}
+        <div className="bg-white rounded-xl p-4">
+          <h2 className="text-lg font-semibold mb-2">Broadcast Notifications</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Send push notifications to all active users. Use <code className="bg-gray-100 px-1 rounded">${'{username}'}</code> to personalize messages.
+          </p>
+
+          <div className="space-y-4">
+            {/* Title Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title <span className="text-gray-400">({broadcastTitle.length}/50)</span>
+              </label>
+              <input
+                type="text"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value.slice(0, 50))}
+                placeholder="e.g., New feature available!"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Message Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Message <span className="text-gray-400">({broadcastMessage.length}/200)</span>
+              </label>
+              <textarea
+                value={broadcastMessage}
+                onChange={(e) => setBroadcastMessage(e.target.value.slice(0, 200))}
+                placeholder="e.g., Check out the new albums feature, ${username}!"
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none resize-none"
+              />
+            </div>
+
+            {/* Deep Link Path */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Deep Link Path <span className="text-gray-400">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={broadcastPath}
+                onChange={(e) => setBroadcastPath(e.target.value)}
+                placeholder="/feed"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Preview Result */}
+            {broadcastPreview && (
+              <div className={`p-3 rounded-lg ${broadcastPreview.success ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>
+                {broadcastPreview.success ? (
+                  <p>
+                    Ready to send to <strong>{broadcastPreview.total_recipients}</strong> users
+                    {broadcastPreview.batch_count && broadcastPreview.batch_count > 1 && (
+                      <span> ({broadcastPreview.batch_count} batches)</span>
+                    )}
+                  </p>
+                ) : (
+                  <p>Error: {broadcastPreview.error}</p>
+                )}
+              </div>
+            )}
+
+            {/* Send Result */}
+            {broadcastResult && (
+              <div className={`p-3 rounded-lg ${broadcastResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {broadcastResult.success ? (
+                  <p>
+                    Successfully sent to <strong>{broadcastResult.total_sent}</strong> users!
+                  </p>
+                ) : (
+                  <div>
+                    <p>
+                      Sent: {broadcastResult.total_sent || 0} | Failed: {broadcastResult.total_failed || 0}
+                    </p>
+                    {broadcastResult.error && <p className="mt-1">Error: {broadcastResult.error}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={handlePreviewBroadcast}
+                disabled={!broadcastTitle.trim() || !broadcastMessage.trim() || isPreviewingBroadcast || isSendingBroadcast}
+                className="flex-1 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPreviewingBroadcast ? 'Checking...' : 'Preview Count'}
+              </button>
+              <button
+                onClick={() => setShowBroadcastConfirm(true)}
+                disabled={!broadcastTitle.trim() || !broadcastMessage.trim() || isPreviewingBroadcast || isSendingBroadcast}
+                className="flex-1 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSendingBroadcast ? 'Sending...' : 'Send Broadcast'}
+              </button>
+            </div>
+
+            {/* Guidelines */}
+            <div className="text-xs text-gray-500 space-y-1 border-t pt-3">
+              <p><strong>Guidelines:</strong> Notifications must be functional, not marketing.</p>
+              <p>Good: "New feature: Albums are now available!" or "Your friends posted new photos"</p>
+              <p>Bad: "You're missing out!" or "Limited time offer!"</p>
+            </div>
+          </div>
+        </div>
+
         {/* Reports Table */}
         <div className="bg-white rounded-xl p-4" key={`reports-${reportsKey}`}>
           <h2 className="text-lg font-semibold mb-4">Recent Reports</h2>
@@ -996,6 +1162,51 @@ export default function AdminPage() {
                 className="flex-1 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isResetting ? 'Resetting...' : 'Confirm Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast Confirmation Modal */}
+      {showBroadcastConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-center mb-2">
+              Confirm Broadcast
+            </h3>
+            <p className="text-gray-500 text-center text-sm mb-4">
+              This will send a push notification to all active users with wallet addresses.
+            </p>
+
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <p className="font-medium text-sm">{broadcastTitle}</p>
+              <p className="text-gray-600 text-sm mt-1">{broadcastMessage}</p>
+              {broadcastPath && (
+                <p className="text-gray-400 text-xs mt-2">Link: {broadcastPath}</p>
+              )}
+            </div>
+
+            {broadcastPreview && broadcastPreview.success && (
+              <p className="text-center text-sm text-blue-600 mb-4">
+                Will send to {broadcastPreview.total_recipients} users
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowBroadcastConfirm(false)}
+                disabled={isSendingBroadcast}
+                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendBroadcast}
+                disabled={isSendingBroadcast}
+                className="flex-1 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50"
+              >
+                {isSendingBroadcast ? 'Sending...' : 'Send Now'}
               </button>
             </div>
           </div>
