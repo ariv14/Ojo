@@ -13,6 +13,17 @@ export interface FreshPostData {
 }
 
 /**
+ * Add cache-busting parameter to a URL.
+ * For Supabase storage URLs, the URL doesn't change in the database,
+ * so we need to append a timestamp to force a fresh fetch.
+ */
+function addCacheBuster(url: string | undefined | null): string | undefined {
+  if (!url) return undefined
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}_t=${Date.now()}`
+}
+
+/**
  * Directly query Supabase for fresh post URLs.
  * This is the first-tier refresh approach.
  */
@@ -30,7 +41,8 @@ export async function fetchFreshPostUrls(postId: string): Promise<FreshPostData 
 
   return {
     id: data.id,
-    image_url: data.image_url,
+    // Add cache-busting to Supabase storage URLs (image_url stores full URL)
+    image_url: addCacheBuster(data.image_url),
     media_urls: data.media_urls as MediaUrl[] | undefined,
     thumbnail_url: data.thumbnail_url,
   }
@@ -65,7 +77,8 @@ export async function fetchPostViaProfile(userId: string, postId: string): Promi
 
   return {
     id: post.id,
-    image_url: post.image_url,
+    // Add cache-busting to Supabase storage URLs (image_url stores full URL)
+    image_url: addCacheBuster(post.image_url),
     media_urls: post.media_urls as MediaUrl[] | undefined,
     thumbnail_url: post.thumbnail_url,
   }
