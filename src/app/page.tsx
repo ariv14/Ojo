@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import LoginButton from '@/components/LoginButton'
 import Logo from '@/components/Logo'
 import { getSession, UserSession } from '@/lib/session'
@@ -61,6 +62,19 @@ function HomeContent() {
         ) : (
           <LoginButton />
         )}
+
+        {/* Legal links footer */}
+        <div className="mt-12 pt-6 border-t border-gray-200">
+          <div className="flex justify-center gap-4 text-sm text-gray-500">
+            <Link href="/privacy" className="hover:text-gray-700 transition">
+              Privacy Policy
+            </Link>
+            <span>|</span>
+            <Link href="/terms" className="hover:text-gray-700 transition">
+              Terms of Service
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )

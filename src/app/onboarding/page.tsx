@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { setSession } from '@/lib/session'
 import { ensureWalletConnected } from '@/lib/wallet'
@@ -46,6 +47,7 @@ function OnboardingForm() {
   const [bio, setBio] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -105,6 +107,11 @@ function OnboardingForm() {
 
     if (!avatarFile) {
       setError('Please upload a profile picture.')
+      return
+    }
+
+    if (!agreedToTerms) {
+      setError('Please agree to the Terms of Service and Privacy Policy.')
       return
     }
 
@@ -335,6 +342,27 @@ function OnboardingForm() {
               }`}
             />
           </button>
+        </div>
+
+        {/* Terms Agreement */}
+        <div className="flex items-start gap-3 py-2">
+          <input
+            type="checkbox"
+            id="agreedToTerms"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-1 w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+          />
+          <label htmlFor="agreedToTerms" className="text-sm text-gray-600">
+            I agree to the{' '}
+            <Link href="/terms" className="text-blue-600 underline" target="_blank">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="text-blue-600 underline" target="_blank">
+              Privacy Policy
+            </Link>
+          </label>
         </div>
 
         {error && (

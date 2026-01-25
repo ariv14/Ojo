@@ -712,6 +712,27 @@ export default function EditProfilePage() {
               </svg>
             </button>
 
+            {/* Legal */}
+            <div className="py-4 border-b">
+              <p className="font-medium mb-3">Legal</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push('/privacy')}
+                  className="flex-1 py-2 px-3 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push('/terms')}
+                  className="flex-1 py-2 px-3 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Terms of Service
+                </button>
+              </div>
+            </div>
+
             {/* Danger Zone */}
             <div className="mt-6">
               <h4 className="text-sm font-semibold text-red-600 uppercase mb-3">

@@ -22,10 +22,26 @@
 }
 */
 
-body {
+html, body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* iOS scroll bounce prevention for World Mini Apps compliance */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent pull-to-refresh on iOS */
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
+body {
+  overflow: auto;
+  height: 100%;
+  /* Use dynamic viewport height for mobile keyboards */
+  min-height: 100dvh;
 }
 
 /* Ensure inputs have visible text */
