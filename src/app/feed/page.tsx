@@ -73,6 +73,7 @@ function FeedContent() {
   })
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [openOtherMenuId, setOpenOtherMenuId] = useState<string | null>(null)
+  const [refreshKeys, setRefreshKeys] = useState<Record<string, number>>({})
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
   const [editCaption, setEditCaption] = useState('')
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
@@ -941,6 +942,13 @@ function FeedContent() {
     }
   }
 
+  const handleRefreshPost = (postId: string) => {
+    setRefreshKeys(prev => ({
+      ...prev,
+      [postId]: (prev[postId] || 0) + 1
+    }))
+  }
+
   const handleShareToWorldChat = async (post: Post) => {
     if (!MiniKit.isInstalled()) {
       alert('Please open this app in World App')
@@ -1256,6 +1264,15 @@ function FeedContent() {
                             <button
                               onClick={() => {
                                 setOpenOtherMenuId(null)
+                                handleRefreshPost(post.id)
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                              Refresh
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOpenOtherMenuId(null)
                                 handleShareToWorldChat(post)
                               }}
                               className="w-full px-4 py-2 text-left text-sm text-blue-500 hover:bg-gray-100"
@@ -1308,6 +1325,15 @@ function FeedContent() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
+                            onClick={() => {
+                              setOpenMenuId(null)
+                              handleRefreshPost(post.id)
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                          >
+                            Refresh
+                          </button>
+                          <button
                             onClick={() => handleStartEdit(post)}
                             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                           >
@@ -1344,6 +1370,7 @@ function FeedContent() {
               {/* Post Media (Image/Album/Reel) */}
               <PostMedia
                 post={post}
+                refreshKey={refreshKeys[post.id] || 0}
                 onImageClick={(urls, index) => {
                   if (!post.is_premium || post.has_access) {
                     window.history.pushState(null, '', '#view')

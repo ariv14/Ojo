@@ -31,6 +31,7 @@ interface Post {
 
 interface PostMediaProps {
   post: Post
+  refreshKey?: number
   onImageClick?: (urls: string[], index: number) => void
   onUnlock?: (post: Post) => void
   onMediaLoaded?: (postId: string) => void
@@ -74,7 +75,7 @@ function RetryOverlay({ onRetry }: RetryOverlayProps) {
   )
 }
 
-export default function PostMedia({ post, onImageClick, onUnlock, onMediaLoaded }: PostMediaProps) {
+export default function PostMedia({ post, refreshKey = 0, onImageClick, onUnlock, onMediaLoaded }: PostMediaProps) {
   const isPremiumLocked = post.is_premium && !post.has_access
   const hasWallet = post.users?.wallet_address
 
@@ -87,6 +88,7 @@ export default function PostMedia({ post, onImageClick, onUnlock, onMediaLoaded 
         caption={post.caption}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
+        refreshKey={refreshKey}
         onImageClick={() => {
           if (!isPremiumLocked && post.image_url) {
             onImageClick?.([post.image_url], 0)
@@ -107,6 +109,7 @@ export default function PostMedia({ post, onImageClick, onUnlock, onMediaLoaded 
         caption={post.caption}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
+        refreshKey={refreshKey}
         onImageClick={(index) => {
           // Transform URLs only when needed for image viewer
           const urls = post.media_urls!.map((m) => getS3PublicUrl(m.key))
@@ -130,6 +133,7 @@ export default function PostMedia({ post, onImageClick, onUnlock, onMediaLoaded 
         localThumbnailUrl={post.localBlobs?.localThumbnailUrl}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
+        refreshKey={refreshKey}
         onUnlock={() => onUnlock?.(post)}
         onLoaded={() => onMediaLoaded?.(post.id)}
       />
@@ -147,16 +151,26 @@ interface SingleImageProps {
   caption?: string | null
   locked: boolean
   hasWallet: boolean
+  refreshKey?: number
   onImageClick: () => void
   onUnlock: () => void
   onLoaded?: () => void
 }
 
-function SingleImage({ url, localUrl, caption, locked, hasWallet, onImageClick, onUnlock, onLoaded }: SingleImageProps) {
+function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0, onImageClick, onUnlock, onLoaded }: SingleImageProps) {
   const [isLoading, setIsLoading] = useState(!localUrl)
   const [hasError, setHasError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
   const hasCalledLoaded = useRef(false)
+
+  // Reset error state when refreshKey changes (triggered by menu Refresh)
+  useEffect(() => {
+    if (refreshKey > 0) {
+      setHasError(false)
+      setIsLoading(true)
+      setRetryKey(prev => prev + 1)
+    }
+  }, [refreshKey])
 
   // Build display URL with cache-busting on retry
   const baseUrl = localUrl || url
@@ -236,6 +250,7 @@ interface AlbumCarouselProps {
   caption?: string | null
   locked: boolean
   hasWallet: boolean
+  refreshKey?: number
   onImageClick: (index: number) => void
   onUnlock: () => void
   onLoaded?: () => void
@@ -247,6 +262,7 @@ function AlbumCarousel({
   caption,
   locked,
   hasWallet,
+  refreshKey = 0,
   onImageClick,
   onUnlock,
   onLoaded,
@@ -255,6 +271,21 @@ function AlbumCarousel({
   const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set(localUrls ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : []))
   const [errorIndices, setErrorIndices] = useState<Set<number>>(new Set())
   const [retryKeys, setRetryKeys] = useState<Map<number, number>>(new Map())
+
+  // Reset error states when refreshKey changes (triggered by menu Refresh)
+  useEffect(() => {
+    if (refreshKey > 0) {
+      setErrorIndices(new Set())
+      setLoadedIndices(new Set())
+      setRetryKeys(prev => {
+        const updated = new Map(prev)
+        mediaKeys.forEach((_, idx) => {
+          updated.set(idx, (prev.get(idx) || 0) + 1)
+        })
+        return updated
+      })
+    }
+  }, [refreshKey, mediaKeys])
   // Cache transformed URLs to avoid re-computing
   const [transformedUrls, setTransformedUrls] = useState<Map<number, string>>(new Map())
   const containerRef = useRef<HTMLDivElement>(null)
@@ -523,11 +554,12 @@ interface ReelPlayerProps {
   localThumbnailUrl?: string
   locked: boolean
   hasWallet: boolean
+  refreshKey?: number
   onUnlock: () => void
   onLoaded?: () => void
 }
 
-function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, locked, hasWallet, onUnlock, onLoaded }: ReelPlayerProps) {
+function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, locked, hasWallet, refreshKey = 0, onUnlock, onLoaded }: ReelPlayerProps) {
   const videoRef = useRef<SafeVideoPlayerRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -538,6 +570,15 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   const [thumbnailError, setThumbnailError] = useState(false)
   const [thumbnailRetryKey, setThumbnailRetryKey] = useState(0)
   const hasCalledLoaded = useRef(false)
+
+  // Reset error states when refreshKey changes (triggered by menu Refresh)
+  useEffect(() => {
+    if (refreshKey > 0) {
+      setThumbnailError(false)
+      setThumbnailRetryKey(prev => prev + 1)
+      setIsVideoReady(false)
+    }
+  }, [refreshKey])
 
   // Use local URLs if available, otherwise use remote
   const displayVideoUrl = localVideoUrl || videoUrl
