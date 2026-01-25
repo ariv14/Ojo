@@ -29,17 +29,15 @@ html, body {
   overscroll-behavior-y: contain;
 }
 
-/* Prevent pull-to-refresh on iOS */
-html {
-  overflow: hidden;
-  height: 100%;
+/* Use dynamic viewport height with fallback for older browsers */
+body {
+  min-height: 100vh;
 }
 
-body {
-  overflow: auto;
-  height: 100%;
-  /* Use dynamic viewport height for mobile keyboards */
-  min-height: 100dvh;
+@supports (min-height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
 }
 
 /* Ensure inputs have visible text */

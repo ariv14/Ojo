@@ -14,6 +14,7 @@ import TipButton from '@/components/TipButton'
 import UserAvatar from '@/components/UserAvatar'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
 import { hapticLight, hapticMedium, hapticSuccess, hapticSelection } from '@/lib/haptics'
+import { isAtScrollTop, getScrollTopThreshold } from '@/lib/platform'
 import { isLegacySupabaseUrl } from '@/lib/s3'
 import { sendNotification } from '@/lib/notify'
 import ReportModal from '@/components/ReportModal'
@@ -126,6 +127,7 @@ function FeedContent() {
   const shouldInterceptScroll = useRef(false)
   const pullDistanceRef = useRef(0)
   const pullIndicatorRef = useRef<HTMLDivElement>(null)
+  const wasPastThresholdRef = useRef(false)
   const POSTS_PER_PAGE = 5
   const MAX_POSTS = 100 // Limit posts in memory for performance
   const PULL_THRESHOLD = 80
@@ -737,7 +739,8 @@ function FeedContent() {
 
   // Pull-to-refresh handlers - use native TouchEvent for passive: false support
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (window.scrollY === 0) {
+    const threshold = getScrollTopThreshold()
+    if (isAtScrollTop(threshold)) {
       touchStartY.current = e.touches[0].clientY
       shouldInterceptScroll.current = true
     } else {
@@ -754,8 +757,9 @@ function FeedContent() {
 
     const currentY = e.touches[0].clientY
     const diff = currentY - touchStartY.current
+    const threshold = getScrollTopThreshold()
 
-    if (diff > 0 && window.scrollY === 0) {
+    if (diff > 0 && isAtScrollTop(threshold)) {
       e.preventDefault()
       const dampedDiff = Math.min(diff * 0.5, 120)
       pullDistanceRef.current = dampedDiff
@@ -765,10 +769,10 @@ function FeedContent() {
         pullIndicatorRef.current.style.transform = `translateY(${dampedDiff - 40}px)`
       }
 
-      // Only update state when crossing threshold
-      const wasPastThreshold = pullDistance >= PULL_THRESHOLD
+      // Only update state when crossing threshold (use ref to avoid stale closure)
       const isPastThreshold = dampedDiff >= PULL_THRESHOLD
-      if (wasPastThreshold !== isPastThreshold) {
+      if (wasPastThresholdRef.current !== isPastThreshold) {
+        wasPastThresholdRef.current = isPastThreshold
         setPullDistance(dampedDiff)
       }
     } else {
@@ -776,13 +780,14 @@ function FeedContent() {
       shouldInterceptScroll.current = false
       if (pullDistanceRef.current > 0) {
         pullDistanceRef.current = 0
+        wasPastThresholdRef.current = false
         setPullDistance(0)
         if (pullIndicatorRef.current) {
           pullIndicatorRef.current.style.transform = 'translateY(-40px)'
         }
       }
     }
-  }, [isRefreshing, pullDistance])
+  }, [isRefreshing])
 
   const handleTouchEnd = useCallback(async () => {
     const distance = pullDistanceRef.current
@@ -791,6 +796,7 @@ function FeedContent() {
       setIsRefreshing(true)
       setPullDistance(0)
       pullDistanceRef.current = 0
+      wasPastThresholdRef.current = false
       setPage(0)
       setHasMore(true)
       setNewPostCount(0)
@@ -798,6 +804,7 @@ function FeedContent() {
     } else {
       setPullDistance(0)
       pullDistanceRef.current = 0
+      wasPastThresholdRef.current = false
     }
     if (pullIndicatorRef.current) {
       pullIndicatorRef.current.style.transform = 'translateY(-40px)'
@@ -812,6 +819,9 @@ function FeedContent() {
     if (!element) return
 
     let nonPassiveAttached = false
+    const threshold = getScrollTopThreshold()
+    // Detach threshold adds buffer to prevent jank in the dead zone
+    const detachThreshold = threshold + 20
 
     const attachNonPassive = () => {
       if (!nonPassiveAttached) {
@@ -828,14 +838,14 @@ function FeedContent() {
     }
 
     const handleScrollPosition = () => {
-      if (window.scrollY === 0) {
+      if (isAtScrollTop(threshold)) {
         attachNonPassive()
-      } else if (window.scrollY > 50) {
+      } else if (window.scrollY > detachThreshold) {
         detachNonPassive()
       }
     }
 
-    if (window.scrollY === 0) attachNonPassive()
+    if (isAtScrollTop(threshold)) attachNonPassive()
 
     element.addEventListener('touchstart', handleTouchStart, { passive: true })
     element.addEventListener('touchend', handleTouchEnd, { passive: true })
