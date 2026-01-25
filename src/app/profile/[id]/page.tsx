@@ -9,7 +9,7 @@ import { getSession } from '@/lib/session'
 import { getProfileCacheEntry, setProfileCacheEntry } from '@/lib/profileCache'
 import { hapticMedium, hapticLight } from '@/lib/haptics'
 import { sendNotification } from '@/lib/notify'
-import { getS3PublicUrl } from '@/lib/s3'
+import { getS3PublicUrl, resolveImageUrl } from '@/lib/s3'
 import ReportModal from '@/components/ReportModal'
 import ChatButton from '@/components/ChatButton'
 import Header from '@/components/Header'
@@ -460,7 +460,7 @@ export default function ProfilePage() {
           <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-4">
             {user.avatar_url ? (
               <img
-                src={user.avatar_url}
+                src={resolveImageUrl(user.avatar_url)}
                 alt={`${user.first_name}'s avatar`}
                 className="w-full h-full object-cover"
               />
@@ -589,7 +589,7 @@ export default function ProfilePage() {
                   <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden">
                     {visitor.avatar_url ? (
                       <img
-                        src={visitor.avatar_url}
+                        src={resolveImageUrl(visitor.avatar_url)}
                         alt={visitor.first_name || 'Visitor'}
                         className="w-full h-full object-cover"
                       />
@@ -623,7 +623,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-3 gap-1">
             {posts.map((post) => {
               // Compute the thumbnail URL based on media type
-              let thumbnailSrc = post.image_url
+              let thumbnailSrc = resolveImageUrl(post.image_url)
               if (post.media_type === 'album' && post.media_urls && post.media_urls.length > 0) {
                 thumbnailSrc = getS3PublicUrl(post.media_urls[0].key)
               } else if (post.media_type === 'reel' && post.thumbnail_url) {

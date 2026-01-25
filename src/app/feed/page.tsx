@@ -14,6 +14,7 @@ import TipButton from '@/components/TipButton'
 import UserAvatar from '@/components/UserAvatar'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
 import { hapticLight, hapticMedium, hapticSuccess, hapticSelection } from '@/lib/haptics'
+import { isLegacySupabaseUrl } from '@/lib/s3'
 import { sendNotification } from '@/lib/notify'
 import ReportModal from '@/components/ReportModal'
 import ImageViewer from '@/components/ImageViewer'
@@ -734,28 +735,41 @@ function FeedContent() {
 
     // Delete media from storage before deleting post from DB
     if (post) {
-      // Handle legacy Supabase Storage images
+      // Collect R2 keys to delete
+      const r2KeysToDelete: string[] = []
+
+      // Handle image_url (could be legacy Supabase URL or R2 key)
       if (post.image_url) {
-        const filename = post.image_url.split('/photos/')[1]?.split('?')[0]
-        if (filename) {
-          await supabase.storage.from('photos').remove([filename])
+        if (isLegacySupabaseUrl(post.image_url)) {
+          // Legacy Supabase Storage - extract filename and delete
+          const filename = post.image_url.split('/photos/')[1]?.split('?')[0]
+          if (filename) {
+            await supabase.storage.from('photos').remove([filename])
+          }
+        } else {
+          // R2 key - add to batch delete
+          r2KeysToDelete.push(post.image_url)
         }
       }
 
       // Handle S3 media (albums and reels)
       if (post.media_urls && post.media_urls.length > 0) {
-        const keysToDelete = post.media_urls.map(m => m.key)
+        r2KeysToDelete.push(...post.media_urls.map(m => m.key))
         if (post.thumbnail_url) {
-          keysToDelete.push(post.thumbnail_url)
+          r2KeysToDelete.push(post.thumbnail_url)
         }
+      }
+
+      // Delete all R2 objects in one request
+      if (r2KeysToDelete.length > 0) {
         try {
           await fetch('/api/s3-delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ keys: keysToDelete }),
+            body: JSON.stringify({ keys: r2KeysToDelete }),
           })
         } catch (error) {
-          console.error('Failed to delete S3 objects:', error)
+          console.error('Failed to delete R2 objects:', error)
         }
       }
     }

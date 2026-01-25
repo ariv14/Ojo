@@ -47,3 +47,22 @@ export function generateS3Key(
 export function generateThumbnailKey(userId: string, postId: string): string {
   return `posts/${userId}/${postId}/thumbnail.jpg`
 }
+
+// Check if a string is a legacy Supabase URL (starts with http)
+export function isLegacySupabaseUrl(value: string | undefined | null): boolean {
+  if (!value) return false
+  return value.startsWith('http')
+}
+
+// Resolve image_url or avatar_url to display URL
+// Legacy Supabase URLs are returned as-is, R2 keys are converted to full URLs
+export function resolveImageUrl(imageUrl: string | undefined | null): string {
+  if (!imageUrl) return ''
+  if (isLegacySupabaseUrl(imageUrl)) return imageUrl
+  return getS3PublicUrl(imageUrl)
+}
+
+// Generate S3 key for avatar upload
+export function generateAvatarKey(userId: string): string {
+  return `avatars/${userId}/${Date.now()}.jpg`
+}

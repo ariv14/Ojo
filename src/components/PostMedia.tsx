@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { getS3PublicUrl } from '@/lib/s3'
+import { getS3PublicUrl, resolveImageUrl } from '@/lib/s3'
 import SafeVideoPlayer, { SafeVideoPlayerRef } from '@/components/SafeVideoPlayer'
 
 interface MediaUrl {
@@ -112,17 +112,18 @@ export default function PostMedia({ post, refreshKey = 0, onImageClick, onUnlock
 
   // Legacy single image (backward compatibility)
   if (!post.media_type || post.media_type === 'image') {
+    const resolvedUrl = resolveImageUrl(post.image_url)
     return (
       <SingleImage
-        url={post.image_url || ''}
+        url={resolvedUrl}
         localUrl={post.localBlobs?.localImageUrl}
         caption={post.caption}
         locked={isPremiumLocked}
         hasWallet={!!hasWallet}
         refreshKey={refreshKey}
         onImageClick={() => {
-          if (!isPremiumLocked && post.image_url) {
-            onImageClick?.([post.image_url], 0)
+          if (!isPremiumLocked && resolvedUrl) {
+            onImageClick?.([resolvedUrl], 0)
           }
         }}
         onUnlock={() => onUnlock?.(post)}

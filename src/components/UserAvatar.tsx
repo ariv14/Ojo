@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { resolveImageUrl } from '@/lib/s3'
 
 interface UserAvatarProps {
   avatarUrl?: string | null
@@ -36,14 +37,17 @@ export default function UserAvatar({
     ? (Date.now() - new Date(lastSeenAt).getTime()) < 5 * 60 * 1000
     : false
 
+  // Resolve avatar URL (handles both legacy Supabase URLs and R2 keys)
+  const resolvedAvatarUrl = resolveImageUrl(avatarUrl)
+
   return (
     <div className="relative inline-block">
       <div
         className={`${sizeClasses[size]} rounded-full bg-gray-200 flex items-center justify-center font-medium overflow-hidden`}
       >
-        {avatarUrl && !imageError ? (
+        {resolvedAvatarUrl && !imageError ? (
           <img
-            src={avatarUrl}
+            src={resolvedAvatarUrl}
             alt=""
             loading="lazy"
             decoding="async"

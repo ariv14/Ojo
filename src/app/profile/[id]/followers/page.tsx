@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import ChatButton from '@/components/ChatButton'
+import { resolveImageUrl } from '@/lib/s3'
 
 interface Follower {
   nullifier_hash: string
@@ -141,7 +142,7 @@ export default function FollowersPage() {
                   <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     {follower.avatar_url ? (
                       <img
-                        src={follower.avatar_url}
+                        src={resolveImageUrl(follower.avatar_url)}
                         alt={follower.first_name || 'User'}
                         className="w-full h-full object-cover"
                       />

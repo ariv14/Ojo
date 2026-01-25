@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { isLegacySupabaseUrl, resolveImageUrl } from '@/lib/s3'
 
 interface Stats {
   totalUsers: number
@@ -334,25 +335,37 @@ export default function AdminPage() {
 
     // Clean up R2/Supabase storage before deleting from DB
     if (postData) {
-      // Handle legacy Supabase Storage images
+      const r2KeysToDelete: string[] = []
+
+      // Handle image_url (could be legacy Supabase URL or R2 key)
       if (postData.image_url) {
-        const filename = postData.image_url.split('/photos/')[1]?.split('?')[0]
-        if (filename) {
-          await supabase.storage.from('photos').remove([filename])
+        if (isLegacySupabaseUrl(postData.image_url)) {
+          // Legacy Supabase Storage - extract filename and delete
+          const filename = postData.image_url.split('/photos/')[1]?.split('?')[0]
+          if (filename) {
+            await supabase.storage.from('photos').remove([filename])
+          }
+        } else {
+          // R2 key - add to batch delete
+          r2KeysToDelete.push(postData.image_url)
         }
       }
 
       // Handle R2 media (albums and reels)
       if (postData.media_urls && postData.media_urls.length > 0) {
-        const keysToDelete = postData.media_urls.map((m: { key: string }) => m.key)
+        r2KeysToDelete.push(...postData.media_urls.map((m: { key: string }) => m.key))
         if (postData.thumbnail_url) {
-          keysToDelete.push(postData.thumbnail_url)
+          r2KeysToDelete.push(postData.thumbnail_url)
         }
+      }
+
+      // Delete all R2 objects in one request
+      if (r2KeysToDelete.length > 0) {
         try {
           await fetch('/api/s3-delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ keys: keysToDelete }),
+            body: JSON.stringify({ keys: r2KeysToDelete }),
           })
         } catch (error) {
           console.error('Failed to delete R2 objects:', error)
@@ -666,7 +679,7 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                             {user.avatar_url ? (
-                              <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                              <img src={resolveImageUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
                                 {user.first_name?.[0] || '?'}
@@ -756,7 +769,7 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                             {user.avatar_url ? (
-                              <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                              <img src={resolveImageUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
                                 {user.first_name?.[0] || '?'}

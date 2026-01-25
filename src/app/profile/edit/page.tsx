@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { getSession, setSession } from '@/lib/session'
 import { ensureWalletConnected } from '@/lib/wallet'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
+import { isLegacySupabaseUrl, resolveImageUrl } from '@/lib/s3'
+import { compressImage } from '@/utils/compress'
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other']
 
@@ -132,35 +134,23 @@ export default function EditProfilePage() {
       .select('image_url, media_urls, thumbnail_url')
       .eq('user_id', nullifierHash)
 
-    // 2. Prepare storage cleanup tasks
-    const storageCleanupTasks: Promise<unknown>[] = []
-
-    // Delete all post images from Supabase storage (single photos)
-    const filenames = userPosts?.map(p =>
-      p.image_url?.split('/photos/')[1]?.split('?')[0]
-    ).filter(Boolean) || []
-    if (filenames.length > 0) {
-      storageCleanupTasks.push(
-        supabase.storage.from('photos').remove(filenames as string[])
-      )
-    }
-
-    // Delete avatar if exists
-    if (currentAvatarUrl) {
-      const avatarFile = currentAvatarUrl.split('/avatars/')[1]?.split('?')[0]
-      if (avatarFile) {
-        storageCleanupTasks.push(
-          supabase.storage.from('avatars').remove([avatarFile])
-        )
-      }
-    }
-
-    // 3. Run all Supabase storage deletes in parallel
-    await Promise.all(storageCleanupTasks)
-
-    // 4. Collect R2 keys from albums and reels
+    // 2. Prepare storage cleanup
+    const supabasePhotosToDelete: string[] = []
+    const supabaseAvatarsToDelete: string[] = []
     const r2Keys: string[] = []
+
+    // Process post images - separate legacy Supabase URLs from R2 keys
     userPosts?.forEach(post => {
+      if (post.image_url) {
+        if (isLegacySupabaseUrl(post.image_url)) {
+          // Legacy Supabase URL
+          const filename = post.image_url.split('/photos/')[1]?.split('?')[0]
+          if (filename) supabasePhotosToDelete.push(filename)
+        } else {
+          // R2 key
+          r2Keys.push(post.image_url)
+        }
+      }
       // Album media URLs (stored as array of {key, type} objects)
       if (post.media_urls?.length) {
         post.media_urls.forEach((m: { key: string; type: string }) => {
@@ -172,6 +162,30 @@ export default function EditProfilePage() {
         r2Keys.push(post.thumbnail_url)
       }
     })
+
+    // Process avatar - separate legacy Supabase URLs from R2 keys
+    if (currentAvatarUrl) {
+      if (isLegacySupabaseUrl(currentAvatarUrl)) {
+        const avatarFile = currentAvatarUrl.split('/avatars/')[1]?.split('?')[0]
+        if (avatarFile) supabaseAvatarsToDelete.push(avatarFile)
+      } else {
+        r2Keys.push(currentAvatarUrl)
+      }
+    }
+
+    // 3. Run all Supabase storage deletes in parallel
+    const storageCleanupTasks: Promise<unknown>[] = []
+    if (supabasePhotosToDelete.length > 0) {
+      storageCleanupTasks.push(
+        supabase.storage.from('photos').remove(supabasePhotosToDelete)
+      )
+    }
+    if (supabaseAvatarsToDelete.length > 0) {
+      storageCleanupTasks.push(
+        supabase.storage.from('avatars').remove(supabaseAvatarsToDelete)
+      )
+    }
+    await Promise.all(storageCleanupTasks)
 
     // 5. Delete R2 media in batches (API allows max 15 keys per request)
     for (let i = 0; i < r2Keys.length; i += 15) {
@@ -319,25 +333,40 @@ export default function EditProfilePage() {
 
       // Upload new avatar if selected
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop()
-        const fileName = `${nullifierHash}-${Date.now()}.${fileExt}`
+        // Compress avatar image
+        const compressed = await compressImage(avatarFile)
 
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile)
+        // Get presigned URL for R2 upload
+        const presignedResponse = await fetch('/api/avatar-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: nullifierHash }),
+        })
 
-        if (uploadError) {
-          console.error('Upload error:', uploadError)
+        if (!presignedResponse.ok) {
+          setError('Failed to prepare avatar upload. Please try again.')
+          setIsSaving(false)
+          return
+        }
+
+        const { key, presignedUrl } = await presignedResponse.json()
+
+        // Upload to R2
+        const uploadResponse = await fetch(presignedUrl, {
+          method: 'PUT',
+          body: compressed,
+          headers: { 'Content-Type': 'image/jpeg' },
+        })
+
+        if (!uploadResponse.ok) {
+          console.error('Upload error:', uploadResponse.status)
           setError('Failed to upload profile picture. Please try again.')
           setIsSaving(false)
           return
         }
 
-        const { data: urlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName)
-
-        avatarUrl = urlData.publicUrl
+        // Store R2 key (not full URL)
+        avatarUrl = key
       }
 
       // Update user in database
@@ -386,7 +415,7 @@ export default function EditProfilePage() {
     )
   }
 
-  const displayAvatar = avatarPreview || currentAvatarUrl
+  const displayAvatar = avatarPreview || resolveImageUrl(currentAvatarUrl)
 
   return (
     <div className="min-h-screen bg-gray-50">

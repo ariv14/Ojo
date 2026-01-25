@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { setSession } from '@/lib/session'
 import { ensureWalletConnected } from '@/lib/wallet'
+import { compressImage } from '@/utils/compress'
 
 const COUNTRIES = [
   'Argentina',
@@ -111,27 +112,40 @@ function OnboardingForm() {
     setError('')
 
     try {
-      // Upload avatar to Supabase storage
-      const fileExt = avatarFile.name.split('.').pop()
-      const fileName = `${nullifierHash}-${Date.now()}.${fileExt}`
+      // Compress avatar image
+      const compressed = await compressImage(avatarFile)
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, avatarFile)
+      // Get presigned URL for R2 upload
+      const presignedResponse = await fetch('/api/avatar-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: nullifierHash }),
+      })
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError)
+      if (!presignedResponse.ok) {
+        setError('Failed to prepare avatar upload. Please try again.')
+        setIsLoading(false)
+        return
+      }
+
+      const { key, presignedUrl } = await presignedResponse.json()
+
+      // Upload to R2
+      const uploadResponse = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: compressed,
+        headers: { 'Content-Type': 'image/jpeg' },
+      })
+
+      if (!uploadResponse.ok) {
+        console.error('Upload error:', uploadResponse.status)
         setError('Failed to upload profile picture. Please try again.')
         setIsLoading(false)
         return
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-
-      const avatarUrl = urlData.publicUrl
+      // Store R2 key (not full URL)
+      const avatarUrl = key
 
       // Upsert user with all profile data
       const { error: dbError } = await supabase

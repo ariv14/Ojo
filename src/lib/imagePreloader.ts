@@ -1,4 +1,4 @@
-import { getS3PublicUrl } from '@/lib/s3'
+import { getS3PublicUrl, resolveImageUrl } from '@/lib/s3'
 
 interface MediaUrl {
   key: string
@@ -60,8 +60,8 @@ export function preloadPostImages(
     let urlToPreload: string | undefined
 
     if (post.image_url) {
-      // Legacy single image
-      urlToPreload = post.image_url
+      // Single image - could be legacy Supabase URL or R2 key
+      urlToPreload = resolveImageUrl(post.image_url)
     } else if (post.media_urls?.length && post.media_type === 'album') {
       // Album - preload first image
       urlToPreload = getS3PublicUrl(post.media_urls[0].key)

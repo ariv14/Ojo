@@ -340,34 +340,63 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
       const postId = crypto.randomUUID()
 
       if (mediaType === 'image') {
-        // Single image - use existing Supabase Storage flow
+        // Single image - use R2 with presigned URL flow
         const originalSize = selectedFile!.size / 1024 / 1024
         const compressed = await compressImage(selectedFile!)
         const compressedSize = compressed.size / 1024 / 1024
         console.log(`Compressed from ${originalSize.toFixed(2)} MB to ${compressedSize.toFixed(2)} MB`)
 
-        const fileExt = selectedFile!.name.split('.').pop()
-        const fileName = `${session.nullifier_hash}-${Date.now()}.${fileExt}`
+        setUploadProgress(10)
 
-        const { error: uploadError } = await supabase.storage
-          .from('photos')
-          .upload(fileName, compressed)
+        // Get presigned URL from R2
+        const presignedResponse = await fetch('/api/s3-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: session.nullifier_hash,
+            postId,
+            files: [
+              {
+                filename: selectedFile!.name,
+                contentType: 'image/jpeg',
+                index: 0,
+              },
+            ],
+          }),
+        })
 
-        if (uploadError) {
-          console.error('Upload error:', uploadError)
-          setError('Failed to upload image. Please try again.')
+        if (!presignedResponse.ok) {
+          setError('Failed to prepare upload')
           setIsUploading(false)
           return
         }
 
-        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName)
+        const { uploads } = await presignedResponse.json()
+        const upload = uploads[0]
 
+        setUploadProgress(30)
+
+        // Upload to R2
+        const uploadResult = await uploadToS3(upload.presignedUrl, compressed, 'image/jpeg')
+
+        if (!uploadResult.success) {
+          const errorMsg = uploadResult.error?.includes('CORS')
+            ? 'Storage access denied. Please contact support.'
+            : `Failed to upload image: ${uploadResult.error || 'Unknown error'}`
+          setError(errorMsg)
+          setIsUploading(false)
+          return
+        }
+
+        setUploadProgress(80)
+
+        // Store R2 key (not full URL) in database
         const { data: postData, error: dbError } = await supabase
           .from('posts')
           .insert({
             id: postId,
             user_id: session.nullifier_hash,
-            image_url: urlData.publicUrl,
+            image_url: upload.key,
             caption: caption.trim() || null,
             is_premium: isPremium,
             media_type: 'image',
@@ -382,9 +411,11 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           return
         }
 
+        setUploadProgress(100)
+
         onSuccess({
           id: postData.id,
-          image_url: urlData.publicUrl,
+          image_url: upload.key,
           media_type: 'image',
           caption: caption.trim() || null,
           is_premium: isPremium,
