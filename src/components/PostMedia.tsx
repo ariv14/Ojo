@@ -66,9 +66,19 @@ function MediaSkeleton() {
 // Retry overlay for failed images
 interface RetryOverlayProps {
   onRetry: () => void
+  retryCount?: number
+  isOffline?: boolean
 }
 
-function RetryOverlay({ onRetry }: RetryOverlayProps) {
+function RetryOverlay({ onRetry, retryCount = 0, isOffline = false }: RetryOverlayProps) {
+  // Determine message based on state
+  let message = 'Tap to retry'
+  if (isOffline) {
+    message = "You're offline. Check your connection."
+  } else if (retryCount >= 3) {
+    message = 'Still having trouble. Check your connection.'
+  }
+
   return (
     <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-20">
       <button
@@ -79,12 +89,19 @@ function RetryOverlay({ onRetry }: RetryOverlayProps) {
         }}
         className="bg-white/20 hover:bg-white/30 rounded-full p-4 transition mb-2"
       >
-        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
+        {isOffline ? (
+          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+          </svg>
+        ) : (
+          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        )}
       </button>
-      <span className="text-sm text-white/80">Tap to retry</span>
+      <span className="text-sm text-white/80">{message}</span>
     </div>
   )
 }
@@ -171,28 +188,95 @@ interface SingleImageProps {
   onLoaded?: () => void
 }
 
+// Loading timeout in milliseconds
+const LOAD_TIMEOUT = 15000       // 15s for images
+const VIDEO_LOAD_TIMEOUT = 30000 // 30s for videos (larger files)
+const AUTO_RETRY_TIMEOUT = 5000  // Silent auto-retry after 5s
+const VIDEO_AUTO_RETRY_TIMEOUT = 10000 // Silent auto-retry after 10s for videos
+const RETRY_THROTTLE = 2000      // 2s between manual retries
+const MAX_RETRIES_BEFORE_WARNING = 3
+
 function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0, onImageClick, onUnlock, onLoaded }: SingleImageProps) {
   const [isLoading, setIsLoading] = useState(!localUrl)
   const [hasError, setHasError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
+  const [retryCount, setRetryCount] = useState(0)
+  const [isOffline, setIsOffline] = useState(false)
   const hasCalledLoaded = useRef(false)
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasAutoRetried = useRef(false)
+  const lastRetryTime = useRef(0)
+
+  // Clear timeout helper
+  const clearLoadingTimer = () => {
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current)
+      loadingTimerRef.current = null
+    }
+  }
+
+  // Clear auto-retry timer
+  const clearAutoRetryTimer = () => {
+    if (autoRetryTimerRef.current) {
+      clearTimeout(autoRetryTimerRef.current)
+      autoRetryTimerRef.current = null
+    }
+  }
 
   // Reset error state when refreshKey changes (triggered by menu Refresh)
   useEffect(() => {
     if (refreshKey > 0) {
+      clearLoadingTimer()
+      clearAutoRetryTimer()
       setHasError(false)
       setIsLoading(true)
       setRetryKey(prev => prev + 1)
+      setRetryCount(0)
+      setIsOffline(false)
+      hasAutoRetried.current = false
     }
   }, [refreshKey])
+
+  // Start timeout when loading begins with auto-retry logic
+  useEffect(() => {
+    if (isLoading && !localUrl) {
+      clearLoadingTimer()
+      clearAutoRetryTimer()
+
+      // First timeout at 5s for silent auto-retry
+      autoRetryTimerRef.current = setTimeout(() => {
+        if (!hasAutoRetried.current) {
+          hasAutoRetried.current = true
+          // Silent auto-retry
+          setRetryKey((prev) => prev + 1)
+        }
+      }, AUTO_RETRY_TIMEOUT)
+
+      // Second timeout at 15s to show error
+      loadingTimerRef.current = setTimeout(() => {
+        setIsLoading(false)
+        setHasError(true)
+      }, LOAD_TIMEOUT)
+    }
+    return () => {
+      clearLoadingTimer()
+      clearAutoRetryTimer()
+    }
+  }, [isLoading, retryKey, localUrl])
 
   // Build display URL with cache-busting on retry
   const baseUrl = localUrl || url
   const displayUrl = retryKey > 0 && !localUrl ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : baseUrl
 
   const handleImageLoad = () => {
+    clearLoadingTimer()
+    clearAutoRetryTimer()
     setIsLoading(false)
     setHasError(false)
+    setRetryCount(0)
+    setIsOffline(false)
+    hasAutoRetried.current = false
     // Only call onLoaded when remote image loads (not local blob)
     // This signals that CDN content is ready and local blob can be cleaned up
     if (!localUrl && !hasCalledLoaded.current && onLoaded) {
@@ -202,14 +286,34 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
   }
 
   const handleImageError = () => {
+    clearLoadingTimer()
+    clearAutoRetryTimer()
     setIsLoading(false)
     setHasError(true)
   }
 
   const handleRetry = () => {
+    // Throttle: ignore clicks within 2s of last retry
+    const now = Date.now()
+    if (now - lastRetryTime.current < RETRY_THROTTLE) {
+      return
+    }
+    lastRetryTime.current = now
+
+    // Check if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true)
+      return
+    }
+    setIsOffline(false)
+
+    clearLoadingTimer()
+    clearAutoRetryTimer()
     setHasError(false)
     setIsLoading(true)
+    setRetryCount((prev) => prev + 1)
     setRetryKey((prev) => prev + 1)
+    hasAutoRetried.current = false
   }
 
   return (
@@ -217,7 +321,7 @@ function SingleImage({ url, localUrl, caption, locked, hasWallet, refreshKey = 0
       {isLoading && !localUrl && <MediaSkeleton />}
 
       {/* Error retry overlay */}
-      {hasError && !locked && <RetryOverlay onRetry={handleRetry} />}
+      {hasError && !locked && <RetryOverlay onRetry={handleRetry} retryCount={retryCount} isOffline={isOffline} />}
 
       {/* Background blur layer */}
       {!isLoading && !hasError && (
@@ -285,12 +389,48 @@ function AlbumCarousel({
   const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set(localUrls ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : []))
   const [errorIndices, setErrorIndices] = useState<Set<number>>(new Set())
   const [retryKeys, setRetryKeys] = useState<Map<number, number>>(new Map())
+  const [retryCounts, setRetryCounts] = useState<Map<number, number>>(new Map())
+  const [isOffline, setIsOffline] = useState(false)
+  const loadingTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+  const autoRetryTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+  const hasAutoRetried = useRef<Set<number>>(new Set())
+  const lastRetryTimes = useRef<Map<number, number>>(new Map())
+
+  // Clear timeout helper for specific index
+  const clearLoadingTimer = (index: number) => {
+    const timer = loadingTimersRef.current.get(index)
+    if (timer) {
+      clearTimeout(timer)
+      loadingTimersRef.current.delete(index)
+    }
+  }
+
+  // Clear auto-retry timer for specific index
+  const clearAutoRetryTimer = (index: number) => {
+    const timer = autoRetryTimersRef.current.get(index)
+    if (timer) {
+      clearTimeout(timer)
+      autoRetryTimersRef.current.delete(index)
+    }
+  }
+
+  // Clear all timers
+  const clearAllTimers = () => {
+    loadingTimersRef.current.forEach(timer => clearTimeout(timer))
+    loadingTimersRef.current.clear()
+    autoRetryTimersRef.current.forEach(timer => clearTimeout(timer))
+    autoRetryTimersRef.current.clear()
+  }
 
   // Reset error states when refreshKey changes (triggered by menu Refresh)
   useEffect(() => {
     if (refreshKey > 0) {
+      clearAllTimers()
       setErrorIndices(new Set())
       setLoadedIndices(new Set())
+      setRetryCounts(new Map())
+      setIsOffline(false)
+      hasAutoRetried.current = new Set()
       setRetryKeys(prev => {
         const updated = new Map(prev)
         mediaKeys.forEach((_, idx) => {
@@ -300,6 +440,40 @@ function AlbumCarousel({
       })
     }
   }, [refreshKey, mediaKeys])
+
+  // Start timeout for current image when loading with auto-retry logic
+  useEffect(() => {
+    if (localUrls) return // Skip timeout if using local URLs
+
+    const isCurrentLoading = !loadedIndices.has(currentIndex) && !errorIndices.has(currentIndex)
+
+    if (isCurrentLoading) {
+      clearLoadingTimer(currentIndex)
+      clearAutoRetryTimer(currentIndex)
+
+      // First timeout at 5s for silent auto-retry
+      const autoRetryTimer = setTimeout(() => {
+        if (!hasAutoRetried.current.has(currentIndex)) {
+          hasAutoRetried.current.add(currentIndex)
+          // Silent auto-retry
+          setRetryKeys(prev => new Map(prev).set(currentIndex, (prev.get(currentIndex) || 0) + 1))
+        }
+      }, AUTO_RETRY_TIMEOUT)
+      autoRetryTimersRef.current.set(currentIndex, autoRetryTimer)
+
+      // Second timeout at 15s to show error
+      const timer = setTimeout(() => {
+        setLoadedIndices(prev => new Set([...prev, currentIndex]))
+        setErrorIndices(prev => new Set([...prev, currentIndex]))
+      }, LOAD_TIMEOUT)
+      loadingTimersRef.current.set(currentIndex, timer)
+    }
+
+    return () => {
+      clearLoadingTimer(currentIndex)
+      clearAutoRetryTimer(currentIndex)
+    }
+  }, [currentIndex, loadedIndices, errorIndices, localUrls, retryKeys])
   // Cache transformed URLs to avoid re-computing
   const [transformedUrls, setTransformedUrls] = useState<Map<number, string>>(new Map())
   const containerRef = useRef<HTMLDivElement>(null)
@@ -377,12 +551,22 @@ function AlbumCarousel({
   }
 
   const handleImageLoad = (index: number) => {
+    clearLoadingTimer(index)
+    clearAutoRetryTimer(index)
     setLoadedIndices(prev => new Set([...prev, index]))
     setErrorIndices(prev => {
       const next = new Set(prev)
       next.delete(index)
       return next
     })
+    // Reset retry count on success
+    setRetryCounts(prev => {
+      const next = new Map(prev)
+      next.delete(index)
+      return next
+    })
+    setIsOffline(false)
+    hasAutoRetried.current.delete(index)
     // Call onLoaded when first remote image loads (signals CDN is ready)
     if (!localUrls && !hasCalledLoaded.current && onLoaded) {
       hasCalledLoaded.current = true
@@ -391,11 +575,30 @@ function AlbumCarousel({
   }
 
   const handleImageError = (index: number) => {
+    clearLoadingTimer(index)
+    clearAutoRetryTimer(index)
     setLoadedIndices(prev => new Set([...prev, index])) // Stop showing skeleton
     setErrorIndices(prev => new Set([...prev, index]))
   }
 
   const handleRetry = (index: number) => {
+    // Throttle: ignore clicks within 2s of last retry
+    const now = Date.now()
+    const lastTime = lastRetryTimes.current.get(index) || 0
+    if (now - lastTime < RETRY_THROTTLE) {
+      return
+    }
+    lastRetryTimes.current.set(index, now)
+
+    // Check if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true)
+      return
+    }
+    setIsOffline(false)
+
+    clearLoadingTimer(index)
+    clearAutoRetryTimer(index)
     setErrorIndices(prev => {
       const next = new Set(prev)
       next.delete(index)
@@ -406,7 +609,9 @@ function AlbumCarousel({
       next.delete(index)
       return next
     })
+    setRetryCounts(prev => new Map(prev).set(index, (prev.get(index) || 0) + 1))
     setRetryKeys(prev => new Map(prev).set(index, (prev.get(index) || 0) + 1))
+    hasAutoRetried.current.delete(index)
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -467,7 +672,13 @@ function AlbumCarousel({
       {!isCurrentLoaded && <MediaSkeleton />}
 
       {/* Error retry overlay */}
-      {hasCurrentError && !locked && <RetryOverlay onRetry={() => handleRetry(currentIndex)} />}
+      {hasCurrentError && !locked && (
+        <RetryOverlay
+          onRetry={() => handleRetry(currentIndex)}
+          retryCount={retryCounts.get(currentIndex) || 0}
+          isOffline={isOffline}
+        />
+      )}
 
       {/* Image container */}
       <div
@@ -579,23 +790,87 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [isVideoReady, setIsVideoReady] = useState(!!localVideoUrl)
+  const [videoError, setVideoError] = useState(false)
   const [showMuteHint, setShowMuteHint] = useState(true)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const [thumbnailError, setThumbnailError] = useState(false)
   const [thumbnailRetryKey, setThumbnailRetryKey] = useState(0)
+  const [videoRetryKey, setVideoRetryKey] = useState(0)
+  const [videoRetryCount, setVideoRetryCount] = useState(0)
+  const [thumbnailRetryCount, setThumbnailRetryCount] = useState(0)
+  const [isOffline, setIsOffline] = useState(false)
   const hasCalledLoaded = useRef(false)
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasAutoRetried = useRef(false)
+  const lastVideoRetryTime = useRef(0)
+  const lastThumbnailRetryTime = useRef(0)
+
+  // Clear timeout helper
+  const clearLoadingTimer = () => {
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current)
+      loadingTimerRef.current = null
+    }
+  }
+
+  // Clear auto-retry timer
+  const clearAutoRetryTimer = () => {
+    if (autoRetryTimerRef.current) {
+      clearTimeout(autoRetryTimerRef.current)
+      autoRetryTimerRef.current = null
+    }
+  }
 
   // Reset error states when refreshKey changes (triggered by menu Refresh)
   useEffect(() => {
     if (refreshKey > 0) {
+      clearLoadingTimer()
+      clearAutoRetryTimer()
       setThumbnailError(false)
+      setVideoError(false)
       setThumbnailRetryKey(prev => prev + 1)
+      setVideoRetryKey(prev => prev + 1)
       setIsVideoReady(false)
+      setVideoRetryCount(0)
+      setThumbnailRetryCount(0)
+      setIsOffline(false)
+      hasAutoRetried.current = false
     }
   }, [refreshKey])
 
+  // Start timeout when video is loading with auto-retry logic
+  useEffect(() => {
+    if (!isVideoReady && !videoError && !localVideoUrl && !locked) {
+      clearLoadingTimer()
+      clearAutoRetryTimer()
+
+      // First timeout at 10s for silent auto-retry (videos need more time)
+      autoRetryTimerRef.current = setTimeout(() => {
+        if (!hasAutoRetried.current) {
+          hasAutoRetried.current = true
+          // Silent auto-retry
+          setVideoRetryKey((prev) => prev + 1)
+        }
+      }, VIDEO_AUTO_RETRY_TIMEOUT)
+
+      // Second timeout at 30s to show error (videos are larger)
+      loadingTimerRef.current = setTimeout(() => {
+        setVideoError(true)
+      }, VIDEO_LOAD_TIMEOUT)
+    }
+    return () => {
+      clearLoadingTimer()
+      clearAutoRetryTimer()
+    }
+  }, [isVideoReady, videoError, videoRetryKey, localVideoUrl, locked])
+
   // Use local URLs if available, otherwise use remote
-  const displayVideoUrl = localVideoUrl || videoUrl
+  // Add cache-busting on retry for video
+  const baseVideoUrl = localVideoUrl || videoUrl
+  const displayVideoUrl = videoRetryKey > 0 && !localVideoUrl
+    ? `${baseVideoUrl}${baseVideoUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+    : baseVideoUrl
   const baseThumbnailUrl = localThumbnailUrl || thumbnailUrl
   // Add cache-busting on retry for thumbnail
   const displayThumbnailUrl = baseThumbnailUrl
@@ -609,8 +884,47 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   }
 
   const handleThumbnailRetry = () => {
+    // Throttle: ignore clicks within 2s of last retry
+    const now = Date.now()
+    if (now - lastThumbnailRetryTime.current < RETRY_THROTTLE) {
+      return
+    }
+    lastThumbnailRetryTime.current = now
+
+    // Check if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true)
+      return
+    }
+    setIsOffline(false)
+
     setThumbnailError(false)
+    setThumbnailRetryCount((prev) => prev + 1)
     setThumbnailRetryKey((prev) => prev + 1)
+  }
+
+  const handleVideoRetry = () => {
+    // Throttle: ignore clicks within 2s of last retry
+    const now = Date.now()
+    if (now - lastVideoRetryTime.current < RETRY_THROTTLE) {
+      return
+    }
+    lastVideoRetryTime.current = now
+
+    // Check if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true)
+      return
+    }
+    setIsOffline(false)
+
+    clearLoadingTimer()
+    clearAutoRetryTimer()
+    setVideoError(false)
+    setIsVideoReady(false)
+    setVideoRetryCount((prev) => prev + 1)
+    setVideoRetryKey((prev) => prev + 1)
+    hasAutoRetried.current = false
   }
 
   // Hide mute hint after 3 seconds when video is playing
@@ -656,7 +970,13 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
   }, [locked])
 
   const handleVideoCanPlay = () => {
+    clearLoadingTimer()
+    clearAutoRetryTimer()
     setIsVideoReady(true)
+    setVideoError(false)
+    setVideoRetryCount(0)
+    setIsOffline(false)
+    hasAutoRetried.current = false
     // Call onLoaded when remote video is ready (not local blob)
     if (!localVideoUrl && !hasCalledLoaded.current && onLoaded) {
       hasCalledLoaded.current = true
@@ -714,7 +1034,7 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
         <div className="absolute inset-0">
           {/* Error retry overlay for thumbnail */}
           {thumbnailError && (
-            <RetryOverlay onRetry={handleThumbnailRetry} />
+            <RetryOverlay onRetry={handleThumbnailRetry} retryCount={thumbnailRetryCount} isOffline={isOffline} />
           )}
 
           {!thumbnailError && (
@@ -752,15 +1072,19 @@ function ReelPlayer({ videoUrl, localVideoUrl, thumbnailUrl, localThumbnailUrl, 
           )}
 
           {/* Skeleton while video loads */}
-          {!isVideoReady && <MediaSkeleton />}
+          {!isVideoReady && !videoError && <MediaSkeleton />}
+
+          {/* Error retry overlay for video */}
+          {videoError && <RetryOverlay onRetry={handleVideoRetry} retryCount={videoRetryCount} isOffline={isOffline} />}
 
           <SafeVideoPlayer
+            key={videoRetryKey}
             ref={videoRef}
             src={displayVideoUrl}
             poster={displayThumbnailUrl}
             muted={isMuted}
             loop
-            className={`relative z-10 w-full h-full object-contain ${!isVideoReady ? 'hidden' : ''}`}
+            className={`relative z-10 w-full h-full object-contain ${!isVideoReady || videoError ? 'hidden' : ''}`}
             onClick={togglePlay}
             onCanPlay={handleVideoCanPlay}
             onPlay={handlePlay}
