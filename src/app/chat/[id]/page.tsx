@@ -41,16 +41,18 @@ export default function ChatPage() {
   const [otherUser, setOtherUser] = useState<{ first_name: string; wallet_address: string | null } | null>(null)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [hasNewMessages, setHasNewMessages] = useState(false)
   const userClearedAtRef = useRef<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   // Cache user names to avoid DB queries on realtime messages
   const userCacheRef = useRef<Map<string, string>>(new Map())
   // Smart scroll behavior refs
-  const isAtBottomRef = useRef(true)
   const justSentMessageRef = useRef(false)
   const previousScrollHeightRef = useRef(0)
   const isLoadingOlderRef = useRef(false)
+  const isInitialLoadRef = useRef(true)
+  const isAtBottomRef = useRef(true)
   const session = getSession()
 
   // Keep ref in sync with state for realtime callback access
@@ -100,8 +102,13 @@ export default function ChatPage() {
 
           setMessages((prev) => [...prev, newMsg])
 
-          // If message is from other user, mark it as read
+          // If message is from other user
           if (senderId !== session?.nullifier_hash) {
+            // Show new message indicator if user is not at bottom
+            if (!isAtBottomRef.current) {
+              setHasNewMessages(true)
+            }
+            // Mark it as read
             await supabase
               .from('messages')
               .update({ is_read: true })
@@ -141,7 +148,7 @@ export default function ChatPage() {
   }, [connectionId, router, session])
 
   useEffect(() => {
-    // Smart scroll behavior based on context
+    // Smart scroll behavior - only scroll on initial load or when user sends
     const container = messagesContainerRef.current
     if (!container) return
 
@@ -154,16 +161,18 @@ export default function ChatPage() {
     }
 
     if (justSentMessageRef.current) {
-      // User sent message - always scroll to bottom
+      // User sent message - scroll to bottom
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       justSentMessageRef.current = false
       return
     }
 
-    if (isAtBottomRef.current) {
-      // New message arrived and user was at bottom - scroll
+    // Initial load - scroll to bottom
+    if (isInitialLoadRef.current && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      isInitialLoadRef.current = false
     }
+    // No auto-scroll for incoming messages or updates
   }, [messages])
 
   useEffect(() => {
@@ -190,25 +199,23 @@ export default function ChatPage() {
       .eq('is_read', false)
   }, [connectionId, session])
 
-  // Helper to detect if user is at bottom of chat
-  const isUserAtBottom = useCallback((): boolean => {
-    const container = messagesContainerRef.current
-    if (!container) return true
-    const threshold = 100
-    const { scrollTop, scrollHeight, clientHeight } = container
-    return scrollHeight - scrollTop - clientHeight <= threshold
-  }, [])
-
-  // Track scroll position to determine if user is at bottom
+  // Track scroll position to show new message indicator
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
     const handleScroll = () => {
-      isAtBottomRef.current = isUserAtBottom()
+      const threshold = 100
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const atBottom = scrollHeight - scrollTop - clientHeight <= threshold
+      isAtBottomRef.current = atBottom
+      // Clear new message indicator when user scrolls to bottom
+      if (atBottom) {
+        setHasNewMessages(false)
+      }
     }
     container.addEventListener('scroll', handleScroll, { passive: true })
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [isUserAtBottom])
+  }, [])
 
   // Combined fetch for connection data and messages using single RPC call
   const fetchMessagesAndConnection = async () => {
@@ -663,6 +670,22 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
       </main>
+
+      {/* New Messages Indicator */}
+      {hasNewMessages && (
+        <button
+          onClick={() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+            setHasNewMessages(false)
+          }}
+          className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg flex items-center gap-2 z-10"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+          New messages
+        </button>
+      )}
 
       {/* Input */}
       <footer className="sticky bottom-0 bg-white border-t border-gray-200">
