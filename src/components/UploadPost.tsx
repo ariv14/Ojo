@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { compressImage } from '@/utils/compress'
 import { ensureWalletConnected } from '@/lib/wallet'
-import ReelsCamera from '@/components/ReelsCamera'
 import VideoTrimmer from '@/components/VideoTrimmer'
 
 type MediaType = 'image' | 'album' | 'reel'
@@ -59,9 +58,6 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
   const [showTrimmer, setShowTrimmer] = useState(false)
   const [originalVideoFile, setOriginalVideoFile] = useState<File | null>(null)
   const [originalVideoDuration, setOriginalVideoDuration] = useState(0)
-
-  // Camera state
-  const [showCamera, setShowCamera] = useState(false)
 
   // Common state
   const [caption, setCaption] = useState('')
@@ -239,29 +235,6 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
     setShowTrimmer(false)
     setOriginalVideoFile(null)
     setOriginalVideoDuration(0)
-  }
-
-  const handleCameraCapture = async (file: File) => {
-    setShowCamera(false)
-
-    // Validate the recorded video
-    const validation = await validateVideo(file)
-    if (!validation.valid) {
-      if (validation.error === 'needs_trim' && validation.duration > 0) {
-        setOriginalVideoFile(file)
-        setOriginalVideoDuration(validation.duration)
-        setShowTrimmer(true)
-        return
-      }
-      setError(validation.error || 'Invalid video')
-      return
-    }
-
-    setSelectedVideo(file)
-    setVideoPreview(URL.createObjectURL(file))
-    setVideoDuration(validation.duration)
-    extractVideoThumbnail(file)
-    setError('')
   }
 
   const removeAlbumImage = (index: number) => {
@@ -953,62 +926,25 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {/* Record Video Button */}
-                  <button
-                    type="button"
-                    onClick={() => setShowCamera(true)}
-                    className="w-full aspect-video border-2 border-dashed border-blue-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition"
+                <div
+                  onClick={() => videoInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
+                >
+                  <svg
+                    className="w-12 h-12 text-gray-400 mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                      <svg
-                        className="w-7 h-7 text-blue-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-blue-600 font-medium">Record Video</p>
-                    <p className="text-xs text-gray-400 mt-1">Max 10 seconds with audio</p>
-                  </button>
-
-                  {/* Divider */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-gray-200" />
-                    <span className="text-xs text-gray-400">or</span>
-                    <div className="flex-1 h-px bg-gray-200" />
-                  </div>
-
-                  {/* Choose from Gallery Button */}
-                  <button
-                    type="button"
-                    onClick={() => videoInputRef.current?.click()}
-                    className="w-full py-4 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
-                      <svg
-                        className="w-5 h-5 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-gray-600 font-medium">Choose from Gallery</p>
-                  </button>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <p className="text-gray-500">Tap to select a video</p>
+                  <p className="text-xs text-gray-400 mt-1">Max 10 seconds</p>
                 </div>
               )}
               <input
@@ -1091,14 +1027,6 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
           onComplete={handleTrimComplete}
           onCancel={handleTrimCancel}
           maxDuration={10}
-        />
-      )}
-
-      {/* Camera Modal */}
-      {showCamera && (
-        <ReelsCamera
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
         />
       )}
     </div>
