@@ -35,10 +35,9 @@ export default function CommentSection({
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null)
   const session = getSession()
   const pageRef = useRef(0)
+  const hasFetchedRef = useRef(false)
 
   const fetchComments = useCallback(async (loadMore = false) => {
-    if (!isExpanded) return
-
     if (loadMore) {
       setIsLoadingMore(true)
     } else {
@@ -199,7 +198,7 @@ export default function CommentSection({
       setIsLoading(false)
       setIsLoadingMore(false)
     }
-  }, [postId, isExpanded, session])
+  }, [postId, session])
 
   const loadMoreComments = useCallback(() => {
     if (!hasMore || isLoadingMore) return
@@ -207,8 +206,16 @@ export default function CommentSection({
   }, [hasMore, isLoadingMore, fetchComments])
 
   useEffect(() => {
-    fetchComments()
-  }, [fetchComments])
+    // Only fetch when transitioning to expanded state
+    if (isExpanded && !hasFetchedRef.current) {
+      hasFetchedRef.current = true
+      fetchComments()
+    }
+    // Reset when collapsed so next expansion refetches fresh data
+    if (!isExpanded) {
+      hasFetchedRef.current = false
+    }
+  }, [isExpanded, fetchComments])
 
   const handleNewComment = async (newComment: {
     id: string
@@ -360,8 +367,16 @@ export default function CommentSection({
           {/* Scrollable comments area */}
           <div className="flex-1 overflow-y-auto px-4 py-2">
             {isLoading && comments.length === 0 ? (
-              <div className="text-center py-4 text-gray-500 text-sm animate-pulse">
-                Loading comments...
+              <div className="space-y-3">
+                {[1, 2].map(i => (
+                  <div key={i} className="animate-pulse flex gap-2">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-gray-200 rounded w-24" />
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : comments.length === 0 ? (
               <div className="text-center py-4 text-gray-400 text-sm">
