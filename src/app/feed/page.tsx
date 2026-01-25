@@ -803,19 +803,20 @@ function FeedContent() {
     }
   }, [hasMore, isLoadingMore, currentSession, handleLoadMore])
 
-  const handleVote = async (postId: string, voteType: 'like' | 'dislike') => {
+  const handleVote = async (displayPostId: string, effectivePostId: string, voteType: 'like' | 'dislike') => {
     const session = getSession()
     if (!session) return
 
-    const post = posts.find(p => p.id === postId)
+    // Find the post by display ID (the reshare or original post in the feed)
+    const post = posts.find(p => p.id === displayPostId)
     if (!post) return
 
     // Haptic feedback for vote
     hapticLight()
 
-    // Optimistic update
+    // Optimistic update using displayPostId
     setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p
+      if (p.id !== displayPostId) return p
 
       if (p.user_vote === voteType) {
         // Remove vote
@@ -838,31 +839,33 @@ function FeedContent() {
       }
     }))
 
-    // Persist to database
+    // Persist to database using effectivePostId (original post for reshares)
     if (post.user_vote === voteType) {
       // Delete existing vote
       await supabase
         .from('post_votes')
         .delete()
-        .eq('post_id', postId)
+        .eq('post_id', effectivePostId)
         .eq('user_id', session.nullifier_hash)
     } else {
       // Upsert vote
       await supabase
         .from('post_votes')
         .upsert({
-          post_id: postId,
+          post_id: effectivePostId,
           user_id: session.nullifier_hash,
           vote_type: voteType,
         }, { onConflict: 'post_id,user_id' })
 
-      // Notify post creator of like (not for own posts, not when switching from dislike)
-      if (voteType === 'like' && post.user_vote !== 'dislike' && post.user_id !== session.nullifier_hash && post.users?.wallet_address && session.first_name) {
+      // Notify original post creator of like (not for own posts, not when switching from dislike)
+      const originalUserId = post.original_post_id ? post.original?.user_id : post.user_id
+      const originalUsers = post.original_post_id ? post.original?.users : post.users
+      if (voteType === 'like' && post.user_vote !== 'dislike' && originalUserId !== session.nullifier_hash && originalUsers?.wallet_address && session.first_name) {
         sendNotification(
-          [post.users.wallet_address],
+          [originalUsers.wallet_address],
           'Someone liked your post!',
           `${session.first_name} liked your post`,
-          `/feed?scrollTo=${postId}`
+          `/feed?scrollTo=${effectivePostId}`
         )
       }
     }
@@ -994,7 +997,13 @@ function FeedContent() {
     const session = getSession()
     if (!session || !unlockingPost) return
 
-    const creatorWallet = unlockingPost.users?.wallet_address
+    // For reshares, use original post's creator data
+    const isReshare = !!unlockingPost.original_post_id && !!unlockingPost.original
+    const effectivePostId = isReshare ? unlockingPost.original!.id : unlockingPost.id
+    const effectiveUserId = isReshare ? unlockingPost.original!.user_id : unlockingPost.user_id
+    const effectiveUsers = isReshare ? unlockingPost.original!.users : unlockingPost.users
+
+    const creatorWallet = effectiveUsers?.wallet_address
     if (!creatorWallet) {
       setUnlockError('Creator wallet not found')
       return
@@ -1041,7 +1050,7 @@ function FeedContent() {
       await delay(1500)
       setUnlockStep(2)
 
-      // Step 2: Pay creator directly (0.8 WLD)
+      // Step 2: Pay original creator directly (0.8 WLD)
       const creatorReference = crypto.randomUUID().replace(/-/g, '').slice(0, 36)
       const creatorPayload: PayCommandInput = {
         reference: creatorReference,
@@ -1050,7 +1059,7 @@ function FeedContent() {
           symbol: Tokens.WLD,
           token_amount: tokenToDecimals(UNLOCK_AMOUNT * CREATOR_SHARE, Tokens.WLD).toString(),
         }],
-        description: `Payment to ${unlockingPost.users?.first_name || 'creator'}`,
+        description: `Payment to ${effectiveUsers?.first_name || 'creator'}`,
       }
 
       const { finalPayload: creatorPayment } = await MiniKit.commandsAsync.pay(creatorPayload)
@@ -1060,12 +1069,12 @@ function FeedContent() {
         setUnlockError('Creator payment failed. Platform fee was collected.')
       }
 
-      // Record access with creator share info
+      // Record access with original post/creator info
       const { error: insertError } = await supabase.from('post_access').insert({
         user_id: session.nullifier_hash,
-        post_id: unlockingPost.id,
+        post_id: effectivePostId,
         amount: UNLOCK_AMOUNT,
-        creator_id: unlockingPost.user_id,
+        creator_id: effectiveUserId,
         creator_wallet_address: creatorWallet,
         creator_share: UNLOCK_AMOUNT * CREATOR_SHARE,
         owner_share: UNLOCK_AMOUNT * OWNER_SHARE,
@@ -1076,19 +1085,19 @@ function FeedContent() {
         console.error('Error recording unlock:', insertError.message)
       }
 
-      // Update local state to remove blur
+      // Update local state to remove blur (for both reshare and original if present)
       setPosts(prev => prev.map(p =>
-        p.id === unlockingPost.id ? { ...p, has_access: true } : p
+        (p.id === unlockingPost.id || p.id === effectivePostId) ? { ...p, has_access: true } : p
       ))
 
       if (creatorPayment.status === 'success') {
-        // Notify creator of premium unlock
+        // Notify original creator of premium unlock
         if (creatorWallet && session.first_name) {
           sendNotification(
             [creatorWallet],
             'Premium content unlocked!',
             `${session.first_name} paid ${UNLOCK_AMOUNT} WLD for your content`,
-            `/feed?scrollTo=${unlockingPost.id}`
+            `/feed?scrollTo=${effectivePostId}`
           )
         }
 
@@ -1463,6 +1472,13 @@ function FeedContent() {
                     {post.users?.first_name} {post.users?.last_name}
                   </button>
                   <span>reshared</span>
+                  <span className="text-gray-300">•</span>
+                  <button
+                    onClick={() => router.push(`/profile/${effectiveUserId}`)}
+                    className="text-blue-500 hover:underline"
+                  >
+                    View original
+                  </button>
                 </div>
               )}
 
@@ -1642,7 +1658,7 @@ function FeedContent() {
               {/* Vote Buttons */}
               <div className="flex items-center gap-4 px-4 py-2">
                 <button
-                  onClick={() => handleVote(effectivePostId, 'like')}
+                  onClick={() => handleVote(post.id, effectivePostId, 'like')}
                   className={`flex items-center gap-1 transition ${
                     post.user_vote === 'like' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -1663,7 +1679,7 @@ function FeedContent() {
                   <span className="text-sm font-medium">{post.like_count}</span>
                 </button>
                 <button
-                  onClick={() => handleVote(effectivePostId, 'dislike')}
+                  onClick={() => handleVote(post.id, effectivePostId, 'dislike')}
                   className={`flex items-center gap-1 transition ${
                     post.user_vote === 'dislike' ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
