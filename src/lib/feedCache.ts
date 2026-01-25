@@ -1,5 +1,5 @@
 const FEED_CACHE_KEY = 'ojo_feed_cache'
-const FEED_CACHE_VERSION = 2 // Bumped for albums & reels support
+const FEED_CACHE_VERSION = 3 // Bumped for reshares & comments support
 const CACHE_STALE_MS = 5 * 60 * 1000 // 5 minutes - show cached but refresh in background
 const CACHE_EXPIRED_MS = 30 * 60 * 1000 // 30 minutes - don't show cached data at all
 
@@ -32,6 +32,29 @@ interface CachedPost {
   media_type?: 'image' | 'album' | 'reel'
   media_urls?: MediaUrl[]
   thumbnail_url?: string
+  // Reshare fields
+  original_post_id?: string | null
+  reshare_comment?: string | null
+  reshare_count: number
+  user_has_reshared: boolean
+  original?: {
+    id: string
+    user_id: string
+    users: {
+      first_name: string
+      last_name: string
+      avatar_url: string | null
+      wallet_address: string | null
+    }
+    image_url?: string
+    caption: string | null
+    is_premium: boolean
+    media_type?: 'image' | 'album' | 'reel'
+    media_urls?: MediaUrl[]
+    thumbnail_url?: string
+  }
+  // Comment fields
+  comment_count: number
 }
 
 interface FeedCache {

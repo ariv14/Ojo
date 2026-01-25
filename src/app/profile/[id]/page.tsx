@@ -40,6 +40,13 @@ interface Post {
   media_type?: 'image' | 'album' | 'reel'
   media_urls?: { key: string; type: string }[]
   thumbnail_url?: string
+  original_post_id?: string | null
+  original?: {
+    image_url?: string
+    thumbnail_url?: string
+    media_urls?: { key: string; type: string }[]
+    media_type?: 'image' | 'album' | 'reel'
+  }
 }
 
 interface Visitor {
@@ -108,10 +115,10 @@ export default function ProfilePage() {
 
       setUser(userData)
 
-      // Fetch user's posts
+      // Fetch user's posts (including reshares)
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('id, image_url, caption, created_at, is_premium, media_type, media_urls, thumbnail_url, users:user_id(wallet_address)')
+        .select('id, image_url, caption, created_at, is_premium, media_type, media_urls, thumbnail_url, original_post_id, users:user_id(wallet_address)')
         .eq('user_id', profileId)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false })
@@ -120,12 +127,68 @@ export default function ProfilePage() {
         console.error('Error fetching posts:', postsError)
       }
 
+      // Fetch original posts for reshares
+      const originalPostIds = postsData
+        ?.map(p => (p as unknown as { original_post_id: string | null }).original_post_id)
+        .filter((id): id is string => !!id) || []
+
+      let originalPostsMap: Record<string, { image_url: string | null; thumbnail_url: string | null; media_urls: { key: string; type: string }[] | null; media_type: string | null }> = {}
+      if (originalPostIds.length > 0) {
+        const { data: originalPosts } = await supabase
+          .from('posts')
+          .select('id, image_url, thumbnail_url, media_urls, media_type')
+          .in('id', originalPostIds)
+
+        originalPosts?.forEach(op => {
+          originalPostsMap[op.id] = {
+            image_url: op.image_url,
+            thumbnail_url: (op as unknown as { thumbnail_url: string | null }).thumbnail_url,
+            media_urls: (op as unknown as { media_urls: { key: string; type: string }[] | null }).media_urls,
+            media_type: (op as unknown as { media_type: string | null }).media_type,
+          }
+        })
+      }
+
       // Check access for premium posts
       // Helper to normalize the users field (Supabase may return object or array)
       const normalizeUsers = (users: unknown): { wallet_address: string | null } | null => {
         if (!users) return null
         if (Array.isArray(users)) return users[0] || null
         return users as { wallet_address: string | null }
+      }
+
+      // Helper to map post data with reshare support
+      type PostData = NonNullable<typeof postsData>[number]
+      const mapPost = (post: PostData, hasAccess: boolean): Post => {
+        const originalPostId = (post as unknown as { original_post_id: string | null }).original_post_id
+        const isReshare = !!originalPostId
+        const originalPost = originalPostId ? originalPostsMap[originalPostId] : null
+
+        return {
+          id: post.id,
+          image_url: isReshare && originalPost ? originalPost.image_url || '' : post.image_url,
+          caption: post.caption,
+          created_at: post.created_at,
+          is_premium: post.is_premium,
+          has_access: hasAccess,
+          users: normalizeUsers(post.users),
+          media_type: isReshare && originalPost
+            ? originalPost.media_type as 'image' | 'album' | 'reel' | undefined
+            : (post as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
+          media_urls: isReshare && originalPost
+            ? originalPost.media_urls || undefined
+            : (post as unknown as { media_urls?: { key: string; type: string }[] }).media_urls,
+          thumbnail_url: isReshare && originalPost
+            ? originalPost.thumbnail_url || undefined
+            : (post as unknown as { thumbnail_url?: string }).thumbnail_url,
+          original_post_id: originalPostId,
+          original: originalPost ? {
+            image_url: originalPost.image_url || undefined,
+            thumbnail_url: originalPost.thumbnail_url || undefined,
+            media_urls: originalPost.media_urls || undefined,
+            media_type: originalPost.media_type as 'image' | 'album' | 'reel' | undefined,
+          } : undefined,
+        }
       }
 
       let postsWithAccess: Post[] = []
@@ -139,46 +202,15 @@ export default function ProfilePage() {
             .in('post_id', premiumPostIds)
 
           const unlockedIds = new Set(accessData?.map(a => a.post_id) || [])
-          postsWithAccess = postsData.map(post => ({
-            id: post.id,
-            image_url: post.image_url,
-            caption: post.caption,
-            created_at: post.created_at,
-            is_premium: post.is_premium,
-            has_access: !post.is_premium || unlockedIds.has(post.id) || !!isOwn,
-            users: normalizeUsers(post.users),
-            media_type: (post as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
-            media_urls: (post as unknown as { media_urls?: { key: string; type: string }[] }).media_urls,
-            thumbnail_url: (post as unknown as { thumbnail_url?: string }).thumbnail_url,
-          }))
+          postsWithAccess = postsData.map(post =>
+            mapPost(post, !post.is_premium || unlockedIds.has(post.id) || !!isOwn)
+          )
         } else {
-          postsWithAccess = postsData.map(post => ({
-            id: post.id,
-            image_url: post.image_url,
-            caption: post.caption,
-            created_at: post.created_at,
-            is_premium: post.is_premium,
-            has_access: true,
-            users: normalizeUsers(post.users),
-            media_type: (post as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
-            media_urls: (post as unknown as { media_urls?: { key: string; type: string }[] }).media_urls,
-            thumbnail_url: (post as unknown as { thumbnail_url?: string }).thumbnail_url,
-          }))
+          postsWithAccess = postsData.map(post => mapPost(post, true))
         }
       } else {
         // Not logged in - no access to premium posts
-        postsWithAccess = (postsData || []).map(post => ({
-          id: post.id,
-          image_url: post.image_url,
-          caption: post.caption,
-          created_at: post.created_at,
-          is_premium: post.is_premium,
-          has_access: !post.is_premium,
-          users: normalizeUsers(post.users),
-          media_type: (post as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
-          media_urls: (post as unknown as { media_urls?: { key: string; type: string }[] }).media_urls,
-          thumbnail_url: (post as unknown as { thumbnail_url?: string }).thumbnail_url,
-        }))
+        postsWithAccess = (postsData || []).map(post => mapPost(post, !post.is_premium))
       }
       setPosts(postsWithAccess)
 
@@ -664,6 +696,14 @@ export default function ProfilePage() {
                     <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                      </svg>
+                    </div>
+                  )}
+                  {/* Reshare indicator */}
+                  {post.original_post_id && (
+                    <div className="absolute top-1 left-1 bg-green-500/80 text-white p-1 rounded">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     </div>
                   )}

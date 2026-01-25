@@ -22,6 +22,8 @@ import ConfirmationModal from '@/components/ConfirmationModal'
 import PostMedia from '@/components/PostMedia'
 import Logo from '@/components/Logo'
 import Header from '@/components/Header'
+import ReshareButton from '@/components/ReshareButton'
+import CommentSection from '@/components/CommentSection'
 
 interface MediaUrl {
   key: string
@@ -58,6 +60,29 @@ interface Post {
     localVideoUrl?: string
     localThumbnailUrl?: string
   }
+  // Reshare fields
+  original_post_id?: string | null
+  reshare_comment?: string | null
+  reshare_count: number
+  user_has_reshared: boolean
+  original?: {
+    id: string
+    user_id: string
+    users: {
+      first_name: string
+      last_name: string
+      avatar_url: string | null
+      wallet_address: string | null
+    }
+    image_url?: string
+    caption: string | null
+    is_premium: boolean
+    media_type?: 'image' | 'album' | 'reel'
+    media_urls?: MediaUrl[]
+    thumbnail_url?: string
+  }
+  // Comment fields
+  comment_count: number
 }
 
 function FeedContent() {
@@ -84,6 +109,7 @@ function FeedContent() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [viewingImage, setViewingImage] = useState<{ urls: string[]; currentIndex: number; caption?: string } | null>(null)
   const [unlockingPost, setUnlockingPost] = useState<Post | null>(null)
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
   const [unlockStep, setUnlockStep] = useState(0) // 0 = not started, 1 = platform fee, 2 = creator payment
   const [unlockError, setUnlockError] = useState('')
   const [page, setPage] = useState(0)
@@ -352,7 +378,7 @@ function FeedContent() {
     const from = pageNum * POSTS_PER_PAGE
     const to = from + POSTS_PER_PAGE - 1
 
-    // Fetch posts with user data
+    // Fetch posts with user data (including reshare fields)
     const { data: postsData, error } = await supabase
       .from('posts')
       .select(`
@@ -366,6 +392,8 @@ function FeedContent() {
         media_type,
         media_urls,
         thumbnail_url,
+        original_post_id,
+        reshare_comment,
         users (
           first_name,
           last_name,
@@ -417,11 +445,33 @@ function FeedContent() {
 
     const postIds = filteredPostsData.map(p => p.id)
 
+    // Collect original post IDs for reshares
+    const originalPostIds = filteredPostsData
+      .map(p => (p as unknown as { original_post_id: string | null }).original_post_id)
+      .filter((id): id is string => !!id)
+
+    // All post IDs we need data for (both posts and originals for reshares)
+    const allPostIds = [...new Set([...postIds, ...originalPostIds])]
+
     // Fetch all related data in parallel for better performance
     let allVotes: { post_id: string; vote_type: string }[] | null = null
     let userVotes: { post_id: string; vote_type: string }[] | null = null
     let tipTotals: { post_id: string; amount: number }[] | null = null
     let accessData: { post_id: string }[] | null = null
+    let commentCounts: { post_id: string; count: number }[] | null = null
+    let reshareCounts: { original_post_id: string; count: number }[] | null = null
+    let userReshares: { original_post_id: string }[] | null = null
+    let originalPosts: Record<string, {
+      id: string
+      user_id: string
+      image_url: string | null
+      caption: string | null
+      is_premium: boolean
+      media_type: string | null
+      media_urls: MediaUrl[] | null
+      thumbnail_url: string | null
+      users: { first_name: string; last_name: string; avatar_url: string | null; wallet_address: string | null }
+    }> = {}
 
     try {
       const results = await Promise.all([
@@ -429,29 +479,106 @@ function FeedContent() {
         supabase
           .from('post_votes')
           .select('post_id, vote_type')
-          .in('post_id', postIds),
+          .in('post_id', allPostIds),
         // Current user's votes
         supabase
           .from('post_votes')
           .select('post_id, vote_type')
           .eq('user_id', session.nullifier_hash)
-          .in('post_id', postIds),
+          .in('post_id', allPostIds),
         // Tip totals for posts
         supabase
           .from('tips')
           .select('post_id, amount')
-          .in('post_id', postIds),
+          .in('post_id', allPostIds),
         // User's post access (for premium posts)
         supabase
           .from('post_access')
           .select('post_id')
+          .eq('user_id', session.nullifier_hash),
+        // Comment counts
+        supabase
+          .from('comments')
+          .select('post_id')
+          .in('post_id', allPostIds),
+        // Reshare counts (posts that reference these posts)
+        supabase
+          .from('posts')
+          .select('original_post_id')
+          .in('original_post_id', allPostIds)
+          .not('original_post_id', 'is', null),
+        // User's reshares
+        supabase
+          .from('posts')
+          .select('original_post_id')
           .eq('user_id', session.nullifier_hash)
+          .in('original_post_id', allPostIds)
+          .not('original_post_id', 'is', null),
+        // Original posts for reshares (if any)
+        originalPostIds.length > 0
+          ? supabase
+              .from('posts')
+              .select(`
+                id,
+                user_id,
+                image_url,
+                caption,
+                is_premium,
+                media_type,
+                media_urls,
+                thumbnail_url,
+                users (
+                  first_name,
+                  last_name,
+                  avatar_url,
+                  wallet_address
+                )
+              `)
+              .in('id', originalPostIds)
+          : Promise.resolve({ data: [] }),
       ])
 
       allVotes = results[0].data
       userVotes = results[1].data
       tipTotals = results[2].data as { post_id: string; amount: number }[] | null
       accessData = results[3].data
+
+      // Process comment counts
+      const commentsByPost: Record<string, number> = {}
+      results[4].data?.forEach(c => {
+        commentsByPost[c.post_id] = (commentsByPost[c.post_id] || 0) + 1
+      })
+      commentCounts = Object.entries(commentsByPost).map(([post_id, count]) => ({ post_id, count }))
+
+      // Process reshare counts
+      const resharesByPost: Record<string, number> = {}
+      results[5].data?.forEach(r => {
+        if (r.original_post_id) {
+          resharesByPost[r.original_post_id] = (resharesByPost[r.original_post_id] || 0) + 1
+        }
+      })
+      reshareCounts = Object.entries(resharesByPost).map(([original_post_id, count]) => ({ original_post_id, count }))
+
+      // Process user reshares
+      userReshares = results[6].data as { original_post_id: string }[] | null
+
+      // Process original posts for reshares
+      results[7].data?.forEach((op: {
+        id: string
+        user_id: string
+        image_url: string | null
+        caption: string | null
+        is_premium: boolean
+        media_type: string | null
+        media_urls: MediaUrl[] | null
+        thumbnail_url: string | null
+        users: { first_name: string; last_name: string; avatar_url: string | null; wallet_address: string | null } | { first_name: string; last_name: string; avatar_url: string | null; wallet_address: string | null }[]
+      }) => {
+        originalPosts[op.id] = {
+          ...op,
+          users: Array.isArray(op.users) ? op.users[0] : op.users,
+        }
+      })
     } catch (error) {
       console.error('Error fetching post metadata:', error)
       // Continue with empty metadata - posts will still display
@@ -484,25 +611,67 @@ function FeedContent() {
 
     const accessedPostIds = new Set(accessData?.map(a => a.post_id) || [])
 
-    // Combine posts with vote data, tips, and access
-    const postsWithVotes: Post[] = filteredPostsData.map(p => ({
-      id: p.id,
-      user_id: p.user_id,
-      image_url: p.image_url,
-      caption: p.caption,
-      created_at: p.created_at,
-      users: p.users as unknown as Post['users'],
-      like_count: voteCounts[p.id]?.likes || 0,
-      dislike_count: voteCounts[p.id]?.dislikes || 0,
-      user_vote: userVotesMap[p.id] || null,
-      total_tips: tipsByPost[p.id] || 0,
-      is_premium: (p as unknown as { is_premium: boolean }).is_premium || false,
-      has_access: accessedPostIds.has(p.id) || p.user_id === session.nullifier_hash,
-      boosted_until: (p as unknown as { boosted_until: string | null }).boosted_until || null,
-      media_type: (p as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
-      media_urls: (p as unknown as { media_urls?: MediaUrl[] }).media_urls,
-      thumbnail_url: (p as unknown as { thumbnail_url?: string }).thumbnail_url,
-    }))
+    // Process comment counts into map
+    const commentCountMap: Record<string, number> = {}
+    commentCounts?.forEach(c => {
+      commentCountMap[c.post_id] = c.count
+    })
+
+    // Process reshare counts into map
+    const reshareCountMap: Record<string, number> = {}
+    reshareCounts?.forEach(r => {
+      reshareCountMap[r.original_post_id] = r.count
+    })
+
+    // Process user reshares into set
+    const userReshareSet = new Set(userReshares?.map(r => r.original_post_id) || [])
+
+    // Combine posts with vote data, tips, access, comments, and reshares
+    const postsWithVotes: Post[] = filteredPostsData.map(p => {
+      const originalPostId = (p as unknown as { original_post_id: string | null }).original_post_id
+      const isReshare = !!originalPostId
+      const originalPost = originalPostId ? originalPosts[originalPostId] : null
+
+      // For reshares, get data from original post; for regular posts, use own data
+      const effectivePostId = isReshare && originalPost ? originalPost.id : p.id
+
+      return {
+        id: p.id,
+        user_id: p.user_id,
+        image_url: isReshare && originalPost ? originalPost.image_url || undefined : p.image_url,
+        caption: p.caption,
+        created_at: p.created_at,
+        users: p.users as unknown as Post['users'],
+        like_count: voteCounts[effectivePostId]?.likes || 0,
+        dislike_count: voteCounts[effectivePostId]?.dislikes || 0,
+        user_vote: userVotesMap[effectivePostId] || null,
+        total_tips: tipsByPost[effectivePostId] || 0,
+        is_premium: isReshare && originalPost ? originalPost.is_premium : (p as unknown as { is_premium: boolean }).is_premium || false,
+        has_access: accessedPostIds.has(effectivePostId) || (isReshare && originalPost ? originalPost.user_id === session.nullifier_hash : p.user_id === session.nullifier_hash),
+        boosted_until: (p as unknown as { boosted_until: string | null }).boosted_until || null,
+        media_type: isReshare && originalPost ? originalPost.media_type as 'image' | 'album' | 'reel' | undefined : (p as unknown as { media_type?: 'image' | 'album' | 'reel' }).media_type,
+        media_urls: isReshare && originalPost ? originalPost.media_urls || undefined : (p as unknown as { media_urls?: MediaUrl[] }).media_urls,
+        thumbnail_url: isReshare && originalPost ? originalPost.thumbnail_url || undefined : (p as unknown as { thumbnail_url?: string }).thumbnail_url,
+        // Reshare fields
+        original_post_id: originalPostId,
+        reshare_comment: (p as unknown as { reshare_comment: string | null }).reshare_comment,
+        reshare_count: reshareCountMap[effectivePostId] || 0,
+        user_has_reshared: userReshareSet.has(effectivePostId),
+        original: originalPost ? {
+          id: originalPost.id,
+          user_id: originalPost.user_id,
+          users: originalPost.users as NonNullable<Post['original']>['users'],
+          image_url: originalPost.image_url || undefined,
+          caption: originalPost.caption,
+          is_premium: originalPost.is_premium,
+          media_type: originalPost.media_type as 'image' | 'album' | 'reel' | undefined,
+          media_urls: originalPost.media_urls || undefined,
+          thumbnail_url: originalPost.thumbnail_url || undefined,
+        } : undefined,
+        // Comment fields
+        comment_count: commentCountMap[effectivePostId] || 0,
+      }
+    })
 
     // Sort: boosted posts first, then pure chronological
     if (!append) {
@@ -1229,6 +1398,14 @@ function FeedContent() {
                 media_urls: newPost.media_urls,
                 thumbnail_url: newPost.thumbnail_url,
                 localBlobs: newPost.localBlobs,
+                // Reshare fields
+                original_post_id: null,
+                reshare_comment: null,
+                reshare_count: 0,
+                user_has_reshared: false,
+                original: undefined,
+                // Comment fields
+                comment_count: 0,
               }
               // Prepend to the top of the feed
               setPosts(prev => [fullPost, ...prev])
@@ -1264,22 +1441,52 @@ function FeedContent() {
             No posts yet. Be the first to share!
           </div>
         ) : (
-          posts.map((post) => (
+          posts.map((post) => {
+            // Determine effective post data for reshares
+            const isReshare = !!post.original_post_id && !!post.original
+            const effectivePostId = isReshare ? post.original!.id : post.id
+            const effectiveUserId = isReshare ? post.original!.user_id : post.user_id
+            const effectiveUsers = isReshare ? post.original!.users : post.users
+
+            return (
             <article key={post.id} id={`post-${post.id}`} className="bg-white border-b border-gray-200">
+              {/* Reshare Header */}
+              {isReshare && (
+                <div className="px-4 pt-2 pb-1 flex items-center gap-2 text-gray-500 text-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <button
+                    onClick={() => router.push(`/profile/${post.user_id}`)}
+                    className="hover:underline"
+                  >
+                    {post.users?.first_name} {post.users?.last_name}
+                  </button>
+                  <span>reshared</span>
+                </div>
+              )}
+
+              {/* Reshare Comment (if any) */}
+              {isReshare && post.reshare_comment && (
+                <div className="px-4 py-2 text-sm text-gray-700 bg-gray-50 border-b">
+                  {post.reshare_comment}
+                </div>
+              )}
+
               {/* Post Header */}
               <div className="px-4 py-3 flex items-center justify-between">
                 <button
-                  onClick={() => router.push(`/profile/${post.user_id}`)}
+                  onClick={() => router.push(`/profile/${effectiveUserId}`)}
                   className="flex items-center gap-3"
                 >
                   <UserAvatar
-                    avatarUrl={post.users?.avatar_url}
-                    firstName={post.users?.first_name}
-                    lastSeenAt={post.users?.last_seen_at}
+                    avatarUrl={effectiveUsers?.avatar_url}
+                    firstName={effectiveUsers?.first_name}
+                    lastSeenAt={isReshare ? undefined : post.users?.last_seen_at}
                     size="sm"
                   />
                   <span className="font-medium text-sm">
-                    {post.users?.first_name} {post.users?.last_name}
+                    {effectiveUsers?.first_name} {effectiveUsers?.last_name}
                   </span>
                   {post.boosted_until && new Date(post.boosted_until) > new Date() && (
                     <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-600 text-xs rounded-full">
@@ -1435,7 +1642,7 @@ function FeedContent() {
               {/* Vote Buttons */}
               <div className="flex items-center gap-4 px-4 py-2">
                 <button
-                  onClick={() => handleVote(post.id, 'like')}
+                  onClick={() => handleVote(effectivePostId, 'like')}
                   className={`flex items-center gap-1 transition ${
                     post.user_vote === 'like' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -1456,7 +1663,7 @@ function FeedContent() {
                   <span className="text-sm font-medium">{post.like_count}</span>
                 </button>
                 <button
-                  onClick={() => handleVote(post.id, 'dislike')}
+                  onClick={() => handleVote(effectivePostId, 'dislike')}
                   className={`flex items-center gap-1 transition ${
                     post.user_vote === 'dislike' ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -1477,13 +1684,62 @@ function FeedContent() {
                   <span className="text-sm font-medium">{post.dislike_count}</span>
                 </button>
 
-                {/* Tip Button - only for other users' posts */}
-                {currentSession && post.user_id !== currentSession.nullifier_hash && (
+                {/* Reshare Button */}
+                <ReshareButton
+                  postId={effectivePostId}
+                  postUserId={effectiveUserId}
+                  reshareCount={post.reshare_count}
+                  userHasReshared={post.user_has_reshared}
+                  originalPost={{
+                    user_id: effectiveUserId,
+                    users: effectiveUsers as {
+                      first_name: string
+                      last_name: string
+                      avatar_url: string | null
+                      wallet_address: string | null
+                    },
+                    image_url: post.image_url,
+                    caption: isReshare && post.original ? post.original.caption : post.caption,
+                    is_premium: post.is_premium,
+                    media_type: post.media_type,
+                    thumbnail_url: post.thumbnail_url,
+                  }}
+                  onReshareSuccess={() => {
+                    // Refresh to show the new reshare
+                    if (currentSession) fetchPosts(currentSession)
+                  }}
+                />
+
+                {/* Comment Button */}
+                <button
+                  onClick={() => {
+                    setExpandedComments(prev => {
+                      const next = new Set(prev)
+                      if (next.has(effectivePostId)) {
+                        next.delete(effectivePostId)
+                      } else {
+                        next.add(effectivePostId)
+                      }
+                      return next
+                    })
+                  }}
+                  className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  {post.comment_count > 0 && (
+                    <span className="text-sm font-medium">{post.comment_count}</span>
+                  )}
+                </button>
+
+                {/* Tip Button - only for other users' posts (original author for reshares) */}
+                {currentSession && effectiveUserId !== currentSession.nullifier_hash && (
                   <TipButton
-                    postId={post.id}
-                    authorAddress={post.user_id}
-                    authorWalletAddress={post.users?.wallet_address}
-                    authorName={post.users?.first_name || 'User'}
+                    postId={effectivePostId}
+                    authorAddress={effectiveUserId}
+                    authorWalletAddress={effectiveUsers?.wallet_address}
+                    authorName={effectiveUsers?.first_name || 'User'}
                     onTipSuccess={() => {
                       setPosts(prev => prev.map(p =>
                         p.id === post.id ? { ...p, total_tips: p.total_tips + 0.5 } : p
@@ -1538,14 +1794,14 @@ function FeedContent() {
                   </div>
                 </div>
               ) : (
-                post.caption && (
+                (isReshare && post.original?.caption) || (!isReshare && post.caption) ? (
                   <div className="px-4 py-2">
                     <p className="text-sm">
-                      <span className="font-medium">{post.users?.first_name}</span>{' '}
-                      {post.caption}
+                      <span className="font-medium">{effectiveUsers?.first_name}</span>{' '}
+                      {isReshare && post.original ? post.original.caption : post.caption}
                     </p>
                   </div>
-                )
+                ) : null
               )}
 
               {/* Post Time */}
@@ -1554,8 +1810,33 @@ function FeedContent() {
                   {new Date(post.created_at).toLocaleDateString()}
                 </time>
               </div>
+
+              {/* Comment Section */}
+              <CommentSection
+                postId={effectivePostId}
+                postUserId={effectiveUserId}
+                postUserWallet={effectiveUsers?.wallet_address}
+                isExpanded={expandedComments.has(effectivePostId)}
+                onToggle={() => {
+                  setExpandedComments(prev => {
+                    const next = new Set(prev)
+                    if (next.has(effectivePostId)) {
+                      next.delete(effectivePostId)
+                    } else {
+                      next.add(effectivePostId)
+                    }
+                    return next
+                  })
+                }}
+                commentCount={post.comment_count}
+                onCommentCountChange={(delta) => {
+                  setPosts(prev => prev.map(p =>
+                    p.id === post.id ? { ...p, comment_count: p.comment_count + delta } : p
+                  ))
+                }}
+              />
             </article>
-          ))
+          )})
         )}
 
         {/* Infinite scroll trigger / Load More */}

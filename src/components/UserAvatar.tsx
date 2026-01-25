@@ -7,7 +7,7 @@ interface UserAvatarProps {
   avatarUrl?: string | null
   firstName?: string | null
   lastSeenAt?: string | null
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   showStatus?: boolean
 }
 
@@ -19,12 +19,14 @@ export default function UserAvatar({
   showStatus = true,
 }: UserAvatarProps) {
   const sizeClasses = {
+    xs: 'w-6 h-6 text-xs',
     sm: 'w-8 h-8 text-sm',
     md: 'w-10 h-10 text-base',
     lg: 'w-14 h-14 text-xl',
   }
 
   const statusSizeClasses = {
+    xs: 'w-2 h-2 border',
     sm: 'w-2.5 h-2.5 border',
     md: 'w-3 h-3 border-2',
     lg: 'w-4 h-4 border-2',
