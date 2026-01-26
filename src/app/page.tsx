@@ -50,7 +50,7 @@ function HomeContent() {
         {session ? (
           <div className="space-y-4">
             <p className="text-gray-700">
-              Welcome back, {session.first_name}!
+              Welcome back, {session.username || session.first_name || 'friend'}!
             </p>
             <button
               onClick={() => router.push('/feed')}

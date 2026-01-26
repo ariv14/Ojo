@@ -13,8 +13,9 @@ import Header from '@/components/Header'
 
 interface User {
   nullifier_hash: string
-  first_name: string
-  last_name: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
   avatar_url: string | null
   country: string | null
   last_seen_at: string | null
@@ -282,11 +283,12 @@ export default function DiscoverPage() {
       } else {
         // Notify the user being followed
         const followedUser = users.find(u => u.nullifier_hash === userId)
-        if (followedUser?.wallet_address && currentSession.first_name) {
+        const followerName = currentSession.username || currentSession.first_name
+        if (followedUser?.wallet_address && followerName) {
           sendNotification(
             [followedUser.wallet_address],
             'New follower!',
-            `${currentSession.first_name} started following you`,
+            `${followerName} started following you`,
             '/feed'
           )
         }
@@ -432,13 +434,13 @@ export default function DiscoverPage() {
               >
                 <UserAvatar
                   avatarUrl={user.avatar_url}
-                  firstName={user.first_name}
+                  username={user.username || user.first_name}
                   lastSeenAt={user.last_seen_at}
                   size="md"
                 />
                 <div className="flex-1 text-left">
                   <p className="font-medium text-sm">
-                    {user.first_name} {user.last_name}
+                    {user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}
                   </p>
                   {user.country && (
                     <p className="text-xs text-gray-500">{user.country}</p>

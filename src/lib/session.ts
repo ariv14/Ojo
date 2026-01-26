@@ -2,10 +2,13 @@ const SESSION_KEY = 'ojo_user'
 
 export interface UserSession {
   nullifier_hash: string
+  username?: string           // Primary display name from World App
+  avatar_url?: string         // Profile picture URL from World App
+  wallet_address?: string     // Wallet address from MiniKit
+  // Deprecated - kept for backwards compatibility during migration
   first_name?: string
   last_name?: string
   country?: string
-  avatar_url?: string
 }
 
 export function getSession(): UserSession | null {

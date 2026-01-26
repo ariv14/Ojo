@@ -1,5 +1,5 @@
 const FEED_CACHE_KEY = 'ojo_feed_cache'
-const FEED_CACHE_VERSION = 3 // Bumped for reshares & comments support
+const FEED_CACHE_VERSION = 4 // Bumped for username support
 const CACHE_STALE_MS = 5 * 60 * 1000 // 5 minutes - show cached but refresh in background
 const CACHE_EXPIRED_MS = 30 * 60 * 1000 // 30 minutes - don't show cached data at all
 
@@ -15,8 +15,9 @@ interface CachedPost {
   caption: string | null
   created_at: string
   users: {
-    first_name: string
-    last_name: string
+    username?: string
+    first_name?: string
+    last_name?: string
     avatar_url: string | null
     wallet_address: string | null
     status: string | null
@@ -41,8 +42,9 @@ interface CachedPost {
     id: string
     user_id: string
     users: {
-      first_name: string
-      last_name: string
+      username?: string
+      first_name?: string
+      last_name?: string
       avatar_url: string | null
       wallet_address: string | null
     }

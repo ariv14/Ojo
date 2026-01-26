@@ -17,6 +17,7 @@ import Header from '@/components/Header'
 interface User {
   nullifier_hash: string
   wallet_address: string | null
+  username: string | null
   first_name: string | null
   last_name: string | null
   country: string | null
@@ -51,6 +52,7 @@ interface Post {
 
 interface Visitor {
   nullifier_hash: string
+  username: string | null
   first_name: string | null
   last_name: string | null
   avatar_url: string | null
@@ -103,7 +105,7 @@ export default function ProfilePage() {
       // Fetch user data (profileId is nullifier_hash)
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('nullifier_hash, wallet_address, first_name, last_name, country, avatar_url, created_at, sex, age, bio')
+        .select('nullifier_hash, wallet_address, username, first_name, last_name, country, avatar_url, created_at, sex, age, bio')
         .eq('nullifier_hash', profileId)
         .single()
 
@@ -250,11 +252,12 @@ export default function ProfilePage() {
           } else {
             console.log('Profile view recorded successfully')
             // Notify profile owner of view
-            if (userData?.wallet_address && session.first_name) {
+            const viewerName = session.username || session.first_name
+            if (userData?.wallet_address && viewerName) {
               sendNotification(
                 [userData.wallet_address],
                 'Profile view',
-                `${session.first_name} viewed your profile`,
+                `${viewerName} viewed your profile`,
                 '/feed'
               )
             }
@@ -281,6 +284,7 @@ export default function ProfilePage() {
           created_at,
           users!profile_views_viewer_id_fkey (
             nullifier_hash,
+            username,
             first_name,
             last_name,
             avatar_url
@@ -395,11 +399,12 @@ export default function ProfilePage() {
       console.log('Followed successfully')
 
       // Notify the user being followed
-      if (user?.wallet_address && session.first_name) {
+      const followerName = session.username || session.first_name
+      if (user?.wallet_address && followerName) {
         sendNotification(
           [user.wallet_address],
           'New follower!',
-          `${session.first_name} started following you`,
+          `${followerName} started following you`,
           '/feed'
         )
       }
@@ -415,8 +420,9 @@ export default function ProfilePage() {
 
     hapticLight()
 
+    const displayName = user.username || user.first_name || 'User'
     const shareData = {
-      title: `${user.first_name}'s Profile on Ojo`,
+      title: `${displayName}'s Profile on Ojo`,
       text: 'Check out this verified human on Ojo!',
       url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&path=/profile/${profileId}`,
     }
@@ -493,19 +499,19 @@ export default function ProfilePage() {
             {user.avatar_url ? (
               <img
                 src={resolveImageUrl(user.avatar_url)}
-                alt={`${user.first_name}'s avatar`}
+                alt={`${user.username || user.first_name || 'User'}'s avatar`}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-3xl text-gray-500 font-semibold">
-                {user.first_name?.[0] || '?'}
+                {(user.username || user.first_name)?.[0] || '?'}
               </div>
             )}
           </div>
 
           {/* Name */}
           <h2 className="text-xl font-bold flex items-center gap-1.5">
-            {user.first_name} {user.last_name}
+            {user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}
             <svg
               className="w-5 h-5 text-blue-500"
               viewBox="0 0 24 24"
@@ -620,30 +626,33 @@ export default function ProfilePage() {
               Recent Visitors
             </h3>
             <div className="flex gap-4 overflow-x-auto pb-2">
-              {recentVisitors.map((visitor) => (
-                <button
-                  key={visitor.nullifier_hash}
-                  onClick={() => router.push(`/profile/${visitor.nullifier_hash}`)}
-                  className="flex flex-col items-center flex-shrink-0"
-                >
-                  <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden">
-                    {visitor.avatar_url ? (
-                      <img
-                        src={resolveImageUrl(visitor.avatar_url)}
-                        alt={visitor.first_name || 'Visitor'}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
-                        {visitor.first_name?.[0] || '?'}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-500 mt-1 truncate max-w-[60px]">
-                    {visitor.first_name}
-                  </span>
-                </button>
-              ))}
+              {recentVisitors.map((visitor) => {
+                const visitorName = visitor.username || visitor.first_name || 'User'
+                return (
+                  <button
+                    key={visitor.nullifier_hash}
+                    onClick={() => router.push(`/profile/${visitor.nullifier_hash}`)}
+                    className="flex flex-col items-center flex-shrink-0"
+                  >
+                    <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden">
+                      {visitor.avatar_url ? (
+                        <img
+                          src={resolveImageUrl(visitor.avatar_url)}
+                          alt={visitorName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
+                          {visitorName[0] || '?'}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500 mt-1 truncate max-w-[60px]">
+                      {visitorName}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -726,7 +735,7 @@ export default function ProfilePage() {
         <ReportModal
           targetId={profileId}
           targetType="user"
-          targetName={user.first_name || undefined}
+          targetName={user.username || user.first_name || undefined}
           onClose={() => setShowReportModal(false)}
           onSuccess={() => setShowReportModal(false)}
         />

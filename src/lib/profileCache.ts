@@ -1,10 +1,11 @@
 const PROFILE_CACHE_KEY = 'ojo_profile_cache'
-const PROFILE_CACHE_VERSION = 3
+const PROFILE_CACHE_VERSION = 4  // Bumped for username support
 const MAX_CACHED_PROFILES = 20
 
 interface CachedUser {
   nullifier_hash: string
   wallet_address: string | null
+  username: string | null
   first_name: string | null
   last_name: string | null
   country: string | null
@@ -29,6 +30,7 @@ interface CachedPost {
 
 interface CachedVisitor {
   nullifier_hash: string
+  username: string | null
   first_name: string | null
   last_name: string | null
   avatar_url: string | null

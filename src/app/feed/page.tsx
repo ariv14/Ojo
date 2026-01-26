@@ -38,8 +38,9 @@ interface Post {
   caption: string | null
   created_at: string
   users: {
-    first_name: string
-    last_name: string
+    username?: string
+    first_name?: string
+    last_name?: string
     avatar_url: string | null
     wallet_address: string | null
     status: string | null
@@ -70,8 +71,9 @@ interface Post {
     id: string
     user_id: string
     users: {
-      first_name: string
-      last_name: string
+      username?: string
+      first_name?: string
+      last_name?: string
       avatar_url: string | null
       wallet_address: string | null
     }
@@ -949,11 +951,12 @@ function FeedContent() {
       // Notify original post creator of like (not for own posts, not when switching from dislike)
       const originalUserId = post.original_post_id ? post.original?.user_id : post.user_id
       const originalUsers = post.original_post_id ? post.original?.users : post.users
-      if (voteType === 'like' && post.user_vote !== 'dislike' && originalUserId !== session.nullifier_hash && originalUsers?.wallet_address && session.first_name) {
+      const likerName = session.username || session.first_name
+      if (voteType === 'like' && post.user_vote !== 'dislike' && originalUserId !== session.nullifier_hash && originalUsers?.wallet_address && likerName) {
         sendNotification(
           [originalUsers.wallet_address],
           'Someone liked your post!',
-          `${session.first_name} liked your post`,
+          `${likerName} liked your post`,
           `/feed?scrollTo=${effectivePostId}`
         )
       }
@@ -1148,7 +1151,7 @@ function FeedContent() {
           symbol: Tokens.WLD,
           token_amount: tokenToDecimals(UNLOCK_AMOUNT * CREATOR_SHARE, Tokens.WLD).toString(),
         }],
-        description: `Payment to ${effectiveUsers?.first_name || 'creator'}`,
+        description: `Payment to ${effectiveUsers?.username || effectiveUsers?.first_name || 'creator'}`,
       }
 
       const { finalPayload: creatorPayment } = await MiniKit.commandsAsync.pay(creatorPayload)
@@ -1181,11 +1184,12 @@ function FeedContent() {
 
       if (creatorPayment.status === 'success') {
         // Notify original creator of premium unlock
-        if (creatorWallet && session.first_name) {
+        const buyerName = session.username || session.first_name
+        if (creatorWallet && buyerName) {
           sendNotification(
             [creatorWallet],
             'Premium content unlocked!',
-            `${session.first_name} paid ${UNLOCK_AMOUNT} WLD for your content`,
+            `${buyerName} paid ${UNLOCK_AMOUNT} WLD for your content`,
             `/feed?scrollTo=${effectivePostId}`
           )
         }
@@ -1203,11 +1207,12 @@ function FeedContent() {
   }
 
   const handleSharePost = async (post: Post) => {
+    const posterName = post.users?.username || post.users?.first_name || 'User'
     if (!MiniKit.isInstalled()) {
       // Fallback to native share for non-MiniKit browsers
       if (navigator.share) {
         await navigator.share({
-          title: `Post by ${post.users?.first_name}`,
+          title: `Post by ${posterName}`,
           text: post.caption || 'Check out this post on Ojo!',
           url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&path=/feed?scrollTo=${post.id}`,
         })
@@ -1219,7 +1224,7 @@ function FeedContent() {
 
     try {
       await MiniKit.commandsAsync.share({
-        title: `Post by ${post.users?.first_name}`,
+        title: `Post by ${posterName}`,
         text: post.caption || 'Check out this post on Ojo!',
         url: `https://worldcoin.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID}&path=/feed?scrollTo=${post.id}`,
       })
@@ -1455,7 +1460,7 @@ function FeedContent() {
             <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)}>
               <UserAvatar
                 avatarUrl={currentSession?.avatar_url}
-                firstName={currentSession?.first_name}
+                username={currentSession?.username || currentSession?.first_name}
                 size="sm"
                 showStatus={false}
               />
@@ -1479,6 +1484,7 @@ function FeedContent() {
                 caption: newPost.caption,
                 created_at: new Date().toISOString(),
                 users: {
+                  username: currentSession.username || currentSession.first_name || '',
                   first_name: currentSession.first_name || '',
                   last_name: currentSession.last_name || '',
                   avatar_url: currentSession.avatar_url || null,
@@ -1559,7 +1565,7 @@ function FeedContent() {
                     onClick={() => router.push(`/profile/${post.user_id}`)}
                     className="hover:underline"
                   >
-                    {post.users?.first_name} {post.users?.last_name}
+                    {post.users?.username || `${post.users?.first_name || ''} ${post.users?.last_name || ''}`.trim() || 'Anonymous'}
                   </button>
                   <span>reshared</span>
                   <span className="text-gray-300">•</span>
@@ -1587,12 +1593,12 @@ function FeedContent() {
                 >
                   <UserAvatar
                     avatarUrl={effectiveUsers?.avatar_url}
-                    firstName={effectiveUsers?.first_name}
+                    username={effectiveUsers?.username || effectiveUsers?.first_name}
                     lastSeenAt={isReshare ? undefined : post.users?.last_seen_at}
                     size="sm"
                   />
                   <span className="font-medium text-sm">
-                    {effectiveUsers?.first_name} {effectiveUsers?.last_name}
+                    {effectiveUsers?.username || `${effectiveUsers?.first_name || ''} ${effectiveUsers?.last_name || ''}`.trim() || 'Anonymous'}
                   </span>
                   {post.boosted_until && new Date(post.boosted_until) > new Date() && (
                     <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-600 text-xs rounded-full">
@@ -1845,7 +1851,7 @@ function FeedContent() {
                     postId={effectivePostId}
                     authorAddress={effectiveUserId}
                     authorWalletAddress={effectiveUsers?.wallet_address}
-                    authorName={effectiveUsers?.first_name || 'User'}
+                    authorName={effectiveUsers?.username || effectiveUsers?.first_name || 'User'}
                     onTipSuccess={() => {
                       setPosts(prev => prev.map(p =>
                         p.id === post.id ? { ...p, total_tips: p.total_tips + 0.5 } : p
@@ -1903,7 +1909,7 @@ function FeedContent() {
                 (isReshare && post.original?.caption) || (!isReshare && post.caption) ? (
                   <div className="px-4 py-2">
                     <p className="text-sm">
-                      <span className="font-medium">{effectiveUsers?.first_name}</span>{' '}
+                      <span className="font-medium">{effectiveUsers?.username || effectiveUsers?.first_name || 'Anonymous'}</span>{' '}
                       {isReshare && post.original ? post.original.caption : post.caption}
                     </p>
                   </div>
@@ -2010,7 +2016,7 @@ function FeedContent() {
           <div className="bg-white/80 backdrop-blur-md rounded-2xl w-full max-w-sm p-6">
             <h3 className="text-lg font-bold text-center mb-2">Unlock Premium Post</h3>
             <p className="text-gray-500 text-center mb-4">
-              Unlock @{unlockingPost.users?.first_name}'s premium content
+              Unlock @{unlockingPost.users?.username || unlockingPost.users?.first_name || 'User'}'s premium content
             </p>
 
             {/* Breakdown */}

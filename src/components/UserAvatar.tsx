@@ -5,7 +5,8 @@ import { resolveImageUrl } from '@/lib/s3'
 
 interface UserAvatarProps {
   avatarUrl?: string | null
-  firstName?: string | null
+  firstName?: string | null  // Deprecated - use username
+  username?: string | null   // Primary display name
   lastSeenAt?: string | null
   size?: 'xs' | 'sm' | 'md' | 'lg'
   showStatus?: boolean
@@ -14,10 +15,13 @@ interface UserAvatarProps {
 export default function UserAvatar({
   avatarUrl,
   firstName,
+  username,
   lastSeenAt,
   size = 'md',
   showStatus = true,
 }: UserAvatarProps) {
+  // Use username if provided, fall back to firstName for compatibility
+  const displayName = username || firstName
   const sizeClasses = {
     xs: 'w-6 h-6 text-xs',
     sm: 'w-8 h-8 text-sm',
@@ -57,7 +61,7 @@ export default function UserAvatar({
             onError={() => setImageError(true)}
           />
         ) : (
-          <span className="text-gray-500">{firstName?.[0] || '?'}</span>
+          <span className="text-gray-500">{displayName?.[0] || '?'}</span>
         )}
       </div>
       {showStatus && (

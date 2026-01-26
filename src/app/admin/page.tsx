@@ -21,8 +21,9 @@ interface Stats {
 
 interface AdminUser {
   nullifier_hash: string
-  first_name: string
-  last_name: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
   avatar_url: string | null
   country: string | null
   status: string
@@ -54,8 +55,9 @@ interface Ticket {
 
 interface ReferralBonusUser {
   referrer_id: string
-  first_name: string
-  last_name: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
   avatar_url: string | null
   wallet_address: string | null
   unpaid_completed: number
@@ -152,11 +154,12 @@ export default function AdminPage() {
     // Fetch user details for eligible users
     const { data: usersData } = await supabase
       .from('users')
-      .select('nullifier_hash, first_name, last_name, avatar_url, wallet_address')
+      .select('nullifier_hash, username, first_name, last_name, avatar_url, wallet_address')
       .in('nullifier_hash', eligibleUserIds)
 
     const bonusUsers: ReferralBonusUser[] = (usersData || []).map(u => ({
       referrer_id: u.nullifier_hash,
+      username: u.username,
       first_name: u.first_name,
       last_name: u.last_name,
       avatar_url: u.avatar_url,
@@ -544,8 +547,9 @@ export default function AdminPage() {
       return
     }
 
-    const usersWithCounts: AdminUser[] = (usersData || []).map((user: AdminUser) => ({
+    const usersWithCounts: AdminUser[] = (usersData || []).map((user: AdminUser & { username?: string }) => ({
       nullifier_hash: user.nullifier_hash,
+      username: user.username || null,
       first_name: user.first_name,
       last_name: user.last_name,
       avatar_url: user.avatar_url,
@@ -737,11 +741,11 @@ export default function AdminPage() {
                               <img src={resolveImageUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-                                {user.first_name?.[0] || '?'}
+                                {(user.username || user.first_name)?.[0] || '?'}
                               </div>
                             )}
                           </div>
-                          <span className="font-medium">{user.first_name} {user.last_name}</span>
+                          <span className="font-medium">{user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}</span>
                         </div>
                       </td>
                       <td className="py-2 px-2 text-gray-500">{user.country || '-'}</td>
@@ -827,11 +831,11 @@ export default function AdminPage() {
                               <img src={resolveImageUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-                                {user.first_name?.[0] || '?'}
+                                {(user.username || user.first_name)?.[0] || '?'}
                               </div>
                             )}
                           </div>
-                          <span className="font-medium">{user.first_name} {user.last_name}</span>
+                          <span className="font-medium">{user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}</span>
                         </div>
                       </td>
                       <td className="py-2 px-2">
@@ -945,6 +949,10 @@ export default function AdminPage() {
                       Sent: {broadcastResult.total_sent || 0} | Failed: {broadcastResult.total_failed || 0}
                     </p>
                     {broadcastResult.error && <p className="mt-1">Error: {broadcastResult.error}</p>}
+                    {/* Show batch-level errors from World API */}
+                    {broadcastResult.batch_results?.filter(b => !b.success).map((b, i) => (
+                      <p key={i} className="mt-1 text-xs">Batch {b.batch}: {b.error}</p>
+                    ))}
                   </div>
                 )}
               </div>

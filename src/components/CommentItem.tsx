@@ -18,8 +18,9 @@ export interface Comment {
   created_at: string
   updated_at: string
   users: {
-    first_name: string
-    last_name: string
+    username?: string
+    first_name?: string
+    last_name?: string
     avatar_url: string | null
   }
   like_count: number
@@ -169,7 +170,7 @@ function CommentItem({
         <button onClick={() => router.push(`/profile/${comment.user_id}`)}>
           <UserAvatar
             avatarUrl={comment.users?.avatar_url}
-            firstName={comment.users?.first_name}
+            username={comment.users?.username || comment.users?.first_name}
             size="xs"
             showStatus={false}
           />
@@ -183,7 +184,7 @@ function CommentItem({
                 onClick={() => router.push(`/profile/${comment.user_id}`)}
                 className="font-medium text-sm hover:underline"
               >
-                {comment.users?.first_name} {comment.users?.last_name}
+                {comment.users?.username || `${comment.users?.first_name || ''} ${comment.users?.last_name || ''}`.trim() || 'Anonymous'}
               </button>
               <span className="text-xs text-gray-400">
                 {timeAgo(comment.created_at)}
@@ -258,7 +259,7 @@ function CommentItem({
               {/* Reply */}
               {!isReply && onReply && (
                 <button
-                  onClick={() => onReply(comment.id, comment.users?.first_name || 'User')}
+                  onClick={() => onReply(comment.id, comment.users?.username || comment.users?.first_name || 'User')}
                   className="text-xs text-gray-500 hover:text-gray-700"
                 >
                   Reply

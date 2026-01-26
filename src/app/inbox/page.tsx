@@ -9,8 +9,9 @@ import Header from '@/components/Header'
 interface InboxChat {
   connection_id: string
   other_user_id: string
-  other_first_name: string
-  other_last_name: string
+  other_username: string | null
+  other_first_name: string | null
+  other_last_name: string | null
   created_at: string
   unread_count: number
 }
@@ -60,7 +61,7 @@ export default function InboxPage() {
           // Incrementally add the new chat instead of full refetch
           const { data: otherUser } = await supabase
             .from('users')
-            .select('first_name, last_name')
+            .select('username, first_name, last_name')
             .eq('nullifier_hash', otherUserId)
             .single()
 
@@ -69,6 +70,7 @@ export default function InboxPage() {
             const newChat: InboxChat = {
               connection_id: newConn.id,
               other_user_id: otherUserId,
+              other_username: otherUser.username,
               other_first_name: otherUser.first_name,
               other_last_name: otherUser.last_name,
               created_at: newConn.created_at,
@@ -141,14 +143,16 @@ export default function InboxPage() {
     const inboxChats: InboxChat[] = (data || []).map((chat: {
       connection_id: string
       other_user_id: string
-      other_first_name: string
-      other_last_name: string
+      other_username?: string
+      other_first_name?: string
+      other_last_name?: string
       created_at: string
     }) => ({
       connection_id: chat.connection_id,
       other_user_id: chat.other_user_id,
-      other_first_name: chat.other_first_name || 'Unknown',
-      other_last_name: chat.other_last_name || '',
+      other_username: chat.other_username || null,
+      other_first_name: chat.other_first_name || null,
+      other_last_name: chat.other_last_name || null,
       created_at: chat.created_at,
       unread_count: unreadCounts[chat.connection_id] || 0,
     }))
@@ -185,18 +189,20 @@ export default function InboxPage() {
             No messages yet
           </div>
         ) : (
-          chats.map((chat) => (
+          chats.map((chat) => {
+            const displayName = chat.other_username || `${chat.other_first_name || ''} ${chat.other_last_name || ''}`.trim() || 'Unknown'
+            return (
             <button
               key={chat.connection_id}
               onClick={() => router.push(`/chat/${chat.connection_id}`)}
               className="w-full px-4 py-3 flex items-center gap-3 bg-white border-b border-gray-100 hover:bg-gray-50 transition text-left"
             >
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium">
-                {chat.other_first_name?.[0] || '?'}
+                {displayName[0] || '?'}
               </div>
               <div className="flex-1">
                 <p className="font-medium text-gray-900">
-                  {chat.other_first_name} {chat.other_last_name}
+                  {displayName}
                 </p>
                 <p className="text-sm text-gray-500">
                   Started a chat with you
@@ -213,7 +219,8 @@ export default function InboxPage() {
                 </span>
               </div>
             </button>
-          ))
+            )
+          })
         )}
       </main>
     </div>

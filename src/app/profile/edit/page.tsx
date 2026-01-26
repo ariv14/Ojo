@@ -39,8 +39,8 @@ export default function EditProfilePage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
+  // Username is read-only (synced from World App)
+  const [username, setUsername] = useState('')
   const [country, setCountry] = useState('')
   const [sex, setSex] = useState('')
   const [age, setAge] = useState<number | ''>('')
@@ -73,7 +73,7 @@ export default function EditProfilePage() {
     const fetchUser = async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('first_name, last_name, country, avatar_url, sex, age, status, invisible_mode_expiry, bio, wallet_address')
+        .select('username, first_name, country, avatar_url, sex, age, status, invisible_mode_expiry, bio, wallet_address')
         .eq('nullifier_hash', session.nullifier_hash)
         .single()
 
@@ -85,8 +85,7 @@ export default function EditProfilePage() {
       }
 
       if (data) {
-        setFirstName(data.first_name || '')
-        setLastName(data.last_name || '')
+        setUsername(data.username || data.first_name || '')
         setCountry(data.country || '')
         setCurrentAvatarUrl(data.avatar_url)
         setSex(data.sex || '')
@@ -315,16 +314,6 @@ export default function EditProfilePage() {
       return
     }
 
-    if (!firstName.trim() || !lastName.trim()) {
-      setError('Please fill in your name.')
-      return
-    }
-
-    if (!country) {
-      setError('Please select your country.')
-      return
-    }
-
     setIsSaving(true)
     setError('')
 
@@ -369,13 +358,11 @@ export default function EditProfilePage() {
         avatarUrl = key
       }
 
-      // Update user in database
+      // Update user in database (username synced from World App, not editable here)
       const { error: dbError } = await supabase
         .from('users')
         .update({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          country: country,
+          country: country || null,
           avatar_url: avatarUrl,
           sex: sex || null,
           age: age || null,
@@ -393,9 +380,7 @@ export default function EditProfilePage() {
       // Update session
       setSession({
         nullifier_hash: nullifierHash,
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        country: country,
+        username: username,
         avatar_url: avatarUrl || undefined,
       })
 
@@ -487,40 +472,20 @@ export default function EditProfilePage() {
             <p className="text-sm text-gray-500 mt-2">Tap to change photo</p>
           </div>
 
-          {/* First Name */}
+          {/* Username (read-only, synced from World App) */}
           <div>
             <label
-              htmlFor="firstName"
+              htmlFor="username"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              First Name
+              Username
             </label>
-            <input
-              id="firstName"
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Enter your first name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
-            />
-          </div>
-
-          {/* Last Name */}
-          <div>
-            <label
-              htmlFor="lastName"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Last Name
-            </label>
-            <input
-              id="lastName"
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Enter your last name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
-            />
+            <div className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-700">
+              {username || 'Anonymous'}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Your username is synced from your World App profile
+            </p>
           </div>
 
           {/* Country */}
