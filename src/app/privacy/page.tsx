@@ -26,9 +26,9 @@ export default function PrivacyPolicyPage() {
       <div className="w-full md:max-w-2xl mx-auto p-4">
         <div className="bg-white rounded-xl p-6 space-y-6">
           <div>
-            <p className="text-sm text-gray-500 mb-4">Last updated: January 25, 2025</p>
+            <p className="text-sm text-gray-500 mb-4">Last updated: January 26, 2025</p>
             <p className="text-gray-700">
-              Ojo (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use the Ojo application.
+              OJO (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use the OJO application.
             </p>
           </div>
 
@@ -37,7 +37,7 @@ export default function PrivacyPolicyPage() {
 
             <h3 className="font-medium text-gray-800 mb-2">1.1 Information You Provide</h3>
             <ul className="list-disc list-inside text-gray-700 space-y-1 mb-4">
-              <li><strong>Profile Information:</strong> First name, last name, country, age (optional), bio, and profile photo</li>
+              <li><strong>Profile Information:</strong> Username and profile picture (synced from your World App profile), plus optional details you provide like country, age, and bio</li>
               <li><strong>Content:</strong> Posts, comments, photos, videos, and messages you create</li>
               <li><strong>Communications:</strong> Support tickets and feedback you submit</li>
             </ul>
@@ -45,16 +45,17 @@ export default function PrivacyPolicyPage() {
             <h3 className="font-medium text-gray-800 mb-2">1.2 Information Collected Automatically</h3>
             <ul className="list-disc list-inside text-gray-700 space-y-1 mb-4">
               <li><strong>World ID:</strong> Your nullifier hash (anonymous identifier from World ID verification)</li>
+              <li><strong>World App Profile:</strong> Your username and profile picture are automatically fetched from World App during sign-in</li>
               <li><strong>Wallet Address:</strong> For processing WLD payments (tips, premium content, etc.)</li>
               <li><strong>Usage Data:</strong> Profile views, interactions (likes, follows), and app activity</li>
             </ul>
 
             <h3 className="font-medium text-gray-800 mb-2">1.3 Information We Do NOT Collect</h3>
             <ul className="list-disc list-inside text-gray-700 space-y-1">
-              <li>Biometric data (this is processed by World ID, not Ojo)</li>
+              <li>Biometric data (this is processed by World ID, not OJO)</li>
               <li>Location data beyond country (which you provide)</li>
               <li>Contact lists or phone numbers</li>
-              <li>Browsing history outside Ojo</li>
+              <li>Browsing history outside OJO</li>
             </ul>
           </section>
 
@@ -116,21 +117,21 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-lg font-semibold mb-3">7. Children&apos;s Privacy</h2>
             <p className="text-gray-700">
-              Ojo is not intended for users under 18 years of age. World ID Orb verification, which is required to use Ojo, is only available to adults. We do not knowingly collect information from children under 18.
+              OJO is not intended for users under 18 years of age. World ID Orb verification, which is required to use OJO, is only available to adults. We do not knowingly collect information from children under 18.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold mb-3">8. International Users</h2>
             <p className="text-gray-700">
-              Ojo operates globally. By using Ojo, you consent to the transfer of your information to servers located outside your country of residence, which may have different data protection laws.
+              OJO operates globally. By using OJO, you consent to the transfer of your information to servers located outside your country of residence, which may have different data protection laws.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold mb-3">9. Changes to This Policy</h2>
             <p className="text-gray-700">
-              We may update this Privacy Policy from time to time. We will notify you of significant changes through the app. Continued use of Ojo after changes constitutes acceptance of the updated policy.
+              We may update this Privacy Policy from time to time. We will notify you of significant changes through the app. Continued use of OJO after changes constitutes acceptance of the updated policy.
             </p>
           </section>
 

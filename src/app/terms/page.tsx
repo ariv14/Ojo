@@ -27,16 +27,16 @@ export default function TermsOfServicePage() {
       <div className="w-full md:max-w-2xl mx-auto p-4">
         <div className="bg-white rounded-xl p-6 space-y-6">
           <div>
-            <p className="text-sm text-gray-500 mb-4">Last updated: January 25, 2025</p>
+            <p className="text-sm text-gray-500 mb-4">Last updated: January 26, 2025</p>
             <p className="text-gray-700">
-              Welcome to Ojo. By using our application, you agree to these Terms of Service. Please read them carefully.
+              Welcome to OJO. By using our application, you agree to these Terms of Service. Please read them carefully.
             </p>
           </div>
 
           <section>
             <h2 className="text-lg font-semibold mb-3">1. Acceptance of Terms</h2>
             <p className="text-gray-700">
-              By accessing or using Ojo, you agree to be bound by these Terms of Service and our{' '}
+              By accessing or using OJO, you agree to be bound by these Terms of Service and our{' '}
               <Link href="/privacy" className="text-blue-600 underline">Privacy Policy</Link>.
               If you do not agree to these terms, you may not use the app.
             </p>
@@ -45,10 +45,11 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-lg font-semibold mb-3">2. Eligibility</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-1">
-              <li>You must be at least 18 years old to use Ojo</li>
+              <li>You must be at least 18 years old to use OJO</li>
               <li>You must complete World ID Orb verification to create an account</li>
+              <li>You must connect your wallet during sign-in to use OJO</li>
               <li>You may only have one account per person (enforced via World ID)</li>
-              <li>You must not be banned or previously removed from Ojo</li>
+              <li>You must not be banned or previously removed from OJO</li>
             </ul>
           </section>
 
@@ -56,7 +57,8 @@ export default function TermsOfServicePage() {
             <h2 className="text-lg font-semibold mb-3">3. Your Account</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-1">
               <li>You are responsible for all activity on your account</li>
-              <li>You must provide accurate information in your profile</li>
+              <li>Your username and profile picture are synced from your World App profile</li>
+              <li>You may update optional profile details like bio, country, and age</li>
               <li>You may not impersonate another person or entity</li>
               <li>You may not share or transfer your account to others</li>
               <li>You can delete your account at any time through profile settings</li>
@@ -68,7 +70,7 @@ export default function TermsOfServicePage() {
 
             <h3 className="font-medium text-gray-800 mb-2">4.1 Your Content</h3>
             <p className="text-gray-700 mb-3">
-              You retain ownership of content you post. By posting content, you grant Ojo a non-exclusive, royalty-free license to display, distribute, and promote your content within the app.
+              You retain ownership of content you post. By posting content, you grant OJO a non-exclusive, royalty-free license to display, distribute, and promote your content within the app.
             </p>
 
             <h3 className="font-medium text-gray-800 mb-2">4.2 Content Standards</h3>
@@ -96,7 +98,7 @@ export default function TermsOfServicePage() {
               <li>Collect or store other users&apos; personal information</li>
               <li>Interfere with or disrupt the app&apos;s functionality</li>
               <li>Attempt to access other users&apos; accounts</li>
-              <li>Use Ojo for any illegal purpose</li>
+              <li>Use OJO for any illegal purpose</li>
             </ul>
           </section>
 
@@ -124,7 +126,7 @@ export default function TermsOfServicePage() {
               <li>Creators may mark content as premium, requiring payment to view</li>
               <li>Once unlocked, premium content remains accessible to you</li>
               <li>Premium content must still comply with all content standards</li>
-              <li>Ojo is not responsible for the quality of premium content</li>
+              <li>OJO is not responsible for the quality of premium content</li>
             </ul>
           </section>
 
@@ -142,8 +144,8 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-lg font-semibold mb-3">9. Intellectual Property</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-1">
-              <li>Ojo and its features, design, and branding are our property</li>
-              <li>You may not copy, modify, or distribute Ojo&apos;s code or design</li>
+              <li>OJO and its features, design, and branding are our property</li>
+              <li>You may not copy, modify, or distribute OJO&apos;s code or design</li>
               <li>User content remains the property of its creators</li>
               <li>Report copyright violations through our support system</li>
             </ul>
@@ -152,25 +154,25 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-lg font-semibold mb-3">10. Third-Party Services</h2>
             <p className="text-gray-700">
-              Ojo integrates with World ID, World App, Supabase, and Cloudflare. Your use of these services is subject to their respective terms and privacy policies. We are not responsible for third-party services.
+              OJO integrates with World ID, World App, Supabase, and Cloudflare. Your use of these services is subject to their respective terms and privacy policies. We are not responsible for third-party services.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold mb-3">11. Disclaimers</h2>
             <ul className="list-disc list-inside text-gray-700 space-y-1">
-              <li>Ojo is provided &quot;as is&quot; without warranties of any kind</li>
+              <li>OJO is provided &quot;as is&quot; without warranties of any kind</li>
               <li>We do not guarantee uninterrupted or error-free service</li>
               <li>We are not responsible for user-generated content</li>
               <li>We are not responsible for lost data or earnings</li>
-              <li>Use Ojo at your own risk</li>
+              <li>Use OJO at your own risk</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold mb-3">12. Limitation of Liability</h2>
             <p className="text-gray-700">
-              To the maximum extent permitted by law, Ojo and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising from your use of the app.
+              To the maximum extent permitted by law, OJO and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising from your use of the app.
             </p>
           </section>
 
@@ -184,7 +186,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-lg font-semibold mb-3">14. Termination</h2>
             <p className="text-gray-700">
-              We may terminate or suspend your access to Ojo at any time, for any reason, without notice. Upon termination, your right to use the app ceases immediately. Provisions that should survive termination will remain in effect.
+              We may terminate or suspend your access to OJO at any time, for any reason, without notice. Upon termination, your right to use the app ceases immediately. Provisions that should survive termination will remain in effect.
             </p>
           </section>
 
