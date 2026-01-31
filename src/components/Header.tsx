@@ -3,7 +3,7 @@
 import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
-import DoodleLogo from './DoodleLogo'
+import Image from 'next/image'
 
 interface HeaderProps {
   showBackButton?: boolean
@@ -46,11 +46,11 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
             <h1 className="text-base font-semibold tracking-tight truncate text-gray-900">{title}</h1>
           ) : isFeedPage ? (
             <div className="flex items-center">
-              <DoodleLogo size="md" showTooltipOnTap />
+              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain" />
             </div>
           ) : (
             <button onClick={handleLogoClick} className="flex items-center">
-              <DoodleLogo size="md" />
+              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain" />
             </button>
           )}
         </div>

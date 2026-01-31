@@ -543,22 +543,22 @@ export default function ProfilePage() {
           <p className="text-gray-400 text-sm mt-1">Joined {joinDate}</p>
 
           {/* Stats */}
-          <div className="flex justify-around w-full mt-4 py-2">
+          <div className="flex flex-row justify-center gap-8 py-6 w-full">
             <div className="text-center">
-              <p className="text-xl font-bold text-gray-900">{viewCount}</p>
-              <p className="text-xs text-gray-500">Views</p>
+              <p className="text-2xl font-bold text-gray-900">{viewCount}</p>
+              <p className="text-sm font-medium text-gray-500">Views</p>
             </div>
             <div className="h-8 w-px bg-gray-200 self-center" />
             <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="text-center">
-              <p className="text-xl font-bold text-gray-900">{followerCount}</p>
-              <p className="text-xs text-gray-500">Followers</p>
+              <p className="text-2xl font-bold text-gray-900">{followerCount}</p>
+              <p className="text-sm font-medium text-gray-500">Followers</p>
             </button>
             {isOwnProfile && (
               <>
                 <div className="h-8 w-px bg-gray-200 self-center" />
                 <div className="text-center">
-                  <p className="text-xl font-bold text-amber-600">{tipsEarned.toFixed(1)}</p>
-                  <p className="text-xs text-gray-500">WLD Earned</p>
+                  <p className="text-2xl font-bold text-amber-600">{tipsEarned.toFixed(1)}</p>
+                  <p className="text-sm font-medium text-gray-500">WLD Earned</p>
                 </div>
               </>
             )}
@@ -566,7 +566,7 @@ export default function ProfilePage() {
 
           {/* Edit Button (own profile only) */}
           {isOwnProfile && (
-            <div className="flex gap-3 mt-4 w-full px-4">
+            <div className="flex gap-3 mt-6 w-full px-4">
               <button
                 onClick={() => router.push('/profile/edit')}
                 className="flex-1 py-2 bg-gray-100 text-gray-900 rounded-full font-medium hover:bg-gray-200 transition"
@@ -586,7 +586,7 @@ export default function ProfilePage() {
 
           {/* Follow, Chat and Report Buttons (other profiles only) */}
           {!isOwnProfile && (
-            <div className="flex gap-3 mt-4 w-full px-4">
+            <div className="flex gap-3 mt-6 w-full px-4">
               <button
                 onClick={handleFollowToggle}
                 disabled={isFollowLoading}
