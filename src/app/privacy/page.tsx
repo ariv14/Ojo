@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14">
+    <div className="min-h-screen bg-gray-50">
       <Header showBackButton onBack={() => router.back()} title="Privacy Policy" />
 
       {/* Content */}

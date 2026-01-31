@@ -176,7 +176,7 @@ export default function InboxPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-14">
+      <div className="min-h-screen bg-gray-50">
         <Header showBackButton />
         <main className="w-full md:max-w-2xl mx-auto">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -188,7 +188,7 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header showBackButton />
 

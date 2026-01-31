@@ -451,7 +451,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header showBackButton />
-        <div className="w-full md:max-w-2xl mx-auto pt-14 flex items-center justify-center py-20">
+        <div className="w-full md:max-w-2xl mx-auto flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
             <p className="text-sm text-gray-400">Loading profile...</p>
@@ -483,7 +483,7 @@ export default function ProfilePage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header
         showBackButton
@@ -543,42 +543,42 @@ export default function ProfilePage() {
           <p className="text-gray-400 text-sm mt-1">Joined {joinDate}</p>
 
           {/* Stats */}
-          <div className="flex gap-4 mt-4">
-            <div className="text-center px-4 py-2 bg-gray-50 rounded-xl">
-              <p className="text-gray-900 font-bold">{viewCount}</p>
-              <p className="text-gray-500 text-xs">Views</p>
+          <div className="flex justify-around w-full mt-4 py-2">
+            <div className="text-center">
+              <p className="text-xl font-bold text-gray-900">{viewCount}</p>
+              <p className="text-xs text-gray-500">Views</p>
             </div>
-            <button
-              onClick={() => router.push(`/profile/${profileId}/followers`)}
-              className="text-center px-4 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
-            >
-              <p className="text-gray-900 font-bold">{followerCount}</p>
-              <p className="text-gray-500 text-xs">Followers</p>
+            <div className="h-8 w-px bg-gray-200 self-center" />
+            <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="text-center">
+              <p className="text-xl font-bold text-gray-900">{followerCount}</p>
+              <p className="text-xs text-gray-500">Followers</p>
             </button>
             {isOwnProfile && (
-              <div className="text-center px-4 py-2 bg-amber-50 rounded-xl">
-                <p className="text-amber-600 font-bold">{tipsEarned.toFixed(1)} WLD</p>
-                <p className="text-gray-500 text-xs">Earned</p>
-              </div>
+              <>
+                <div className="h-8 w-px bg-gray-200 self-center" />
+                <div className="text-center">
+                  <p className="text-xl font-bold text-amber-600">{tipsEarned.toFixed(1)}</p>
+                  <p className="text-xs text-gray-500">WLD Earned</p>
+                </div>
+              </>
             )}
           </div>
 
           {/* Edit Button (own profile only) */}
           {isOwnProfile && (
-            <div className="flex flex-col gap-2 mt-4">
+            <div className="flex gap-3 mt-4 w-full px-4">
               <button
                 onClick={() => router.push('/profile/edit')}
-                className="px-6 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition"
+                className="flex-1 py-2 bg-gray-100 text-gray-900 rounded-full font-medium hover:bg-gray-200 transition"
               >
                 Edit Profile
               </button>
-              {/* Admin link - only shown to admin on their own profile */}
               {profileId === process.env.NEXT_PUBLIC_ADMIN_ID && (
                 <button
                   onClick={() => router.push('/admin')}
-                  className="px-6 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition"
+                  className="flex-1 py-2 bg-black text-white rounded-full font-medium hover:bg-gray-800 transition"
                 >
-                  Admin Dashboard
+                  Admin
                 </button>
               )}
             </div>
@@ -586,24 +586,24 @@ export default function ProfilePage() {
 
           {/* Follow, Chat and Report Buttons (other profiles only) */}
           {!isOwnProfile && (
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3 mt-4 w-full px-4">
               <button
                 onClick={handleFollowToggle}
                 disabled={isFollowLoading}
-                className={`flex-1 px-6 py-2 rounded-lg font-medium transition disabled:opacity-50 ${
+                className={`flex-1 py-2 rounded-full font-medium transition disabled:opacity-50 ${
                   isFollowing
-                    ? 'border border-gray-300 hover:bg-gray-50'
+                    ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     : 'bg-black text-white hover:bg-gray-800'
                 }`}
               >
                 {isFollowLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
               </button>
-              <div className="px-4 py-2 border border-gray-300 rounded-lg text-blue-500 hover:bg-blue-50 transition">
+              <div className="flex-1 py-2 bg-gray-100 text-gray-900 rounded-full font-medium text-center hover:bg-gray-200 transition">
                 <ChatButton targetUserAddress={profileId} />
               </div>
               <button
                 onClick={() => setShowReportModal(true)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-500 hover:text-red-500 hover:border-red-300 transition"
+                className="py-2 px-4 bg-gray-100 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition"
                 title="Report user"
               >
                 <AlertTriangle className="w-5 h-5" />

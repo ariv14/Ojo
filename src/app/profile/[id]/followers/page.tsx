@@ -88,7 +88,7 @@ export default function FollowersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-14">
+      <div className="min-h-screen bg-gray-50">
         <Header showBackButton onBack={() => router.back()} title="Followers" />
         <div className="w-full md:max-w-2xl mx-auto bg-white">
           <div className="divide-y">
@@ -102,7 +102,7 @@ export default function FollowersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14">
+    <div className="min-h-screen bg-gray-50">
       <Header showBackButton onBack={() => router.back()} title={`Followers${profileName ? ` · ${profileName}` : ''}`} />
 
       {/* Followers List */}

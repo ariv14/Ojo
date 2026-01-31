@@ -353,7 +353,7 @@ export default function DiscoverPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-14">
+      <div className="min-h-screen bg-gray-50">
         <Header showBackButton onBack={() => router.back()} />
         <div className="bg-white border-b">
           <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
@@ -374,7 +374,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header
         showBackButton

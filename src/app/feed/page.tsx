@@ -1360,7 +1360,7 @@ function FeedContent() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header isFeedPage={true} />
-        <main className="w-full md:max-w-2xl mx-auto pt-14">
+        <main className="w-full md:max-w-2xl mx-auto">
           {Array.from({ length: 3 }).map((_, i) => (
             <SkeletonPost key={i} />
           ))}
@@ -1436,18 +1436,18 @@ function FeedContent() {
             >
               <MessageCircle className="w-[18px] h-[18px]" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-red-500 w-2.5 h-2.5 rounded-full notification-dot ring-2 ring-[#0f1d3a]" />
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 w-2.5 h-2.5 rounded-full notification-dot ring-2 ring-white" />
               )}
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="post-btn-shimmer bg-gradient-to-r from-white via-sky-50 to-white text-gray-900 px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 shadow-[0_0_20px_rgba(135,180,220,0.25)] active:scale-92 transition-transform"
+              className="post-btn-shimmer bg-black text-white px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 active:scale-92 transition-transform"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               Post
             </button>
             <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-slate-300 via-sky-300 to-white">
-              <div className="rounded-full p-[1px] bg-[#0f1d3a]">
+              <div className="rounded-full p-[1px] bg-white">
                 <UserAvatar
                   avatarUrl={currentSession?.avatar_url}
                   username={currentSession?.username || currentSession?.first_name}
@@ -1531,7 +1531,7 @@ function FeedContent() {
       )}
 
       {/* Feed */}
-      <main className="w-full md:max-w-2xl mx-auto pt-14">
+      <main className="w-full md:max-w-2xl mx-auto">
         {posts.length === 0 ? (
           <EmptyState
             icon={<Camera className="w-6 h-6" />}

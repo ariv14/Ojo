@@ -410,7 +410,7 @@ export default function EditProfilePage() {
   const displayAvatar = avatarPreview || resolveImageUrl(currentAvatarUrl)
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14">
+    <div className="min-h-screen bg-gray-50">
       <Header showBackButton onBack={() => router.back()} title="Edit Profile" />
 
       {/* Form */}

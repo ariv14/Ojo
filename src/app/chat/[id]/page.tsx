@@ -487,7 +487,7 @@ export default function ChatPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 pt-14">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         <Header showBackButton />
         <div className="flex-1 px-4 py-4 space-y-3">
           <SkeletonMessage isMe={false} />
@@ -502,7 +502,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 pt-14">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <Header
         showBackButton
