@@ -13,6 +13,11 @@ import { getS3PublicUrl, resolveImageUrl } from '@/lib/s3'
 import ReportModal from '@/components/ReportModal'
 import ChatButton from '@/components/ChatButton'
 import Header from '@/components/Header'
+import UserAvatar from '@/components/UserAvatar'
+import { SkeletonPost } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
+import Badge from '@/components/ui/Badge'
+import { Share2, BadgeCheck, Camera, Lock, Layers, Video, RefreshCw, AlertTriangle, Images } from 'lucide-react'
 
 interface User {
   nullifier_hash: string
@@ -444,8 +449,14 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Header showBackButton />
+        <div className="w-full md:max-w-2xl mx-auto pt-14 flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
+            <p className="text-sm text-gray-400">Loading profile...</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -483,9 +494,7 @@ export default function ProfilePage() {
             className="text-white/80 hover:text-white"
             title="Share profile"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
+            <Share2 className="w-6 h-6" />
           </button>
         }
       />
@@ -495,31 +504,20 @@ export default function ProfilePage() {
         <div className="w-full md:max-w-2xl mx-auto px-4 py-6">
           <div className="flex flex-col items-center">
           {/* Avatar */}
-          <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-4">
-            {user.avatar_url ? (
-              <img
-                src={resolveImageUrl(user.avatar_url)}
-                alt={`${user.username || user.first_name || 'User'}'s avatar`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl text-gray-500 font-semibold">
-                {(user.username || user.first_name)?.[0] || '?'}
-              </div>
-            )}
+          <div className="mb-4">
+            <UserAvatar
+              avatarUrl={user.avatar_url}
+              username={user.username || user.first_name}
+              size="lg"
+              showStatus={false}
+              ring
+            />
           </div>
 
           {/* Name */}
           <h2 className="text-xl font-bold flex items-center gap-1.5">
             {user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}
-            <svg
-              className="w-5 h-5 text-blue-500"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-label="Orb Verified"
-            >
-              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.707 7.707a1 1 0 00-1.414-1.414L11 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l5-5z" clipRule="evenodd" />
-            </svg>
+            <BadgeCheck className="w-5 h-5 text-blue-500" />
           </h2>
 
           {/* Country */}
@@ -545,21 +543,21 @@ export default function ProfilePage() {
           <p className="text-gray-400 text-sm mt-1">Joined {joinDate}</p>
 
           {/* Stats */}
-          <div className="flex gap-6 mt-3">
-            <div className="text-center">
-              <p className="text-gray-900 font-semibold">{viewCount}</p>
+          <div className="flex gap-4 mt-4">
+            <div className="text-center px-4 py-2 bg-gray-50 rounded-xl">
+              <p className="text-gray-900 font-bold">{viewCount}</p>
               <p className="text-gray-500 text-xs">Views</p>
             </div>
             <button
               onClick={() => router.push(`/profile/${profileId}/followers`)}
-              className="text-center hover:opacity-70 transition"
+              className="text-center px-4 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
             >
-              <p className="text-gray-900 font-semibold">{followerCount}</p>
+              <p className="text-gray-900 font-bold">{followerCount}</p>
               <p className="text-gray-500 text-xs">Followers</p>
             </button>
             {isOwnProfile && (
-              <div className="text-center">
-                <p className="text-amber-600 font-semibold">{tipsEarned.toFixed(1)} WLD</p>
+              <div className="text-center px-4 py-2 bg-amber-50 rounded-xl">
+                <p className="text-amber-600 font-bold">{tipsEarned.toFixed(1)} WLD</p>
                 <p className="text-gray-500 text-xs">Earned</p>
               </div>
             )}
@@ -608,9 +606,7 @@ export default function ProfilePage() {
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-500 hover:text-red-500 hover:border-red-300 transition"
                 title="Report user"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+                <AlertTriangle className="w-5 h-5" />
               </button>
             </div>
           )}
@@ -634,19 +630,12 @@ export default function ProfilePage() {
                     onClick={() => router.push(`/profile/${visitor.nullifier_hash}`)}
                     className="flex flex-col items-center flex-shrink-0"
                   >
-                    <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden">
-                      {visitor.avatar_url ? (
-                        <img
-                          src={resolveImageUrl(visitor.avatar_url)}
-                          alt={visitorName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
-                          {visitorName[0] || '?'}
-                        </div>
-                      )}
-                    </div>
+                    <UserAvatar
+                      avatarUrl={visitor.avatar_url}
+                      username={visitorName}
+                      size="lg"
+                      showStatus={false}
+                    />
                     <span className="text-xs text-gray-500 mt-1 truncate max-w-[60px]">
                       {visitorName}
                     </span>
@@ -665,9 +654,11 @@ export default function ProfilePage() {
         </h3>
 
         {posts.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No posts yet</p>
-          </div>
+          <EmptyState
+            icon={<Camera className="w-6 h-6" />}
+            title="No posts yet"
+            description={isOwnProfile ? "Share your first photo or reel!" : "This user hasn't posted anything yet."}
+          />
         ) : (
           <div className="grid grid-cols-3 gap-1">
             {posts.map((post) => {
@@ -683,7 +674,7 @@ export default function ProfilePage() {
                 <Link
                   key={post.id}
                   href={`/feed?scrollTo=${post.id}`}
-                  className="aspect-square bg-gray-100 overflow-hidden block relative"
+                  className="aspect-square bg-gray-100 overflow-hidden block relative rounded-lg"
                 >
                   <img
                     src={thumbnailSrc}
@@ -695,32 +686,24 @@ export default function ProfilePage() {
                   {/* Album indicator */}
                   {post.media_type === 'album' && (
                     <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
-                      </svg>
+                      <Layers className="w-4 h-4" />
                     </div>
                   )}
                   {/* Reel indicator */}
                   {post.media_type === 'reel' && (
                     <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                      </svg>
+                      <Video className="w-4 h-4" />
                     </div>
                   )}
                   {/* Reshare indicator */}
                   {post.original_post_id && (
                     <div className="absolute top-1 left-1 bg-green-500/80 text-white p-1 rounded">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
+                      <RefreshCw className="w-4 h-4" />
                     </div>
                   )}
                   {post.is_premium && !post.has_access && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z"/>
-                      </svg>
+                      <Lock className="w-8 h-8 text-white" />
                     </div>
                   )}
                 </Link>

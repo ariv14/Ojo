@@ -173,8 +173,14 @@ export default function LoginButton() {
     <button
       onClick={handleVerify}
       disabled={isLoading}
-      className="bg-black text-white px-6 py-3 rounded-full font-medium disabled:opacity-50"
+      className="bg-gray-900 text-white px-8 py-3.5 rounded-full font-semibold disabled:opacity-50 hover:bg-gray-800 active:bg-gray-950 transition-all duration-150 shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] flex items-center gap-2.5 mx-auto"
     >
+      {isLoading && (
+        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      )}
       {isLoading ? (statusMessage || 'Verifying...') : 'Verify with World ID'}
     </button>
   )

@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { Flag } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import Modal from './ui/Modal'
+import Button from './ui/Button'
 
 interface ReportModalProps {
   targetId: string
@@ -64,9 +67,14 @@ export default function ReportModal({ targetId, targetType, targetName, onClose,
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl w-full max-w-sm p-6">
-        <h3 className="text-lg font-bold text-center mb-2">
+    <Modal isOpen={true} onClose={onClose}>
+      <div className="p-6">
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+            <Flag className="w-6 h-6 text-red-500" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-center mb-1">
           Report {targetType === 'post' ? 'Post' : 'User'}
         </h3>
         {targetName && (
@@ -80,10 +88,10 @@ export default function ReportModal({ targetId, targetType, targetName, onClose,
             <button
               key={reason}
               onClick={() => setSelectedReason(reason)}
-              className={`w-full p-3 text-left rounded-lg border transition ${
+              className={`w-full p-3 text-left rounded-lg border text-sm transition-all duration-150 ${
                 selectedReason === reason
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-red-500 bg-red-50 text-red-700 font-medium'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
               }`}
             >
               {reason}
@@ -96,22 +104,27 @@ export default function ReportModal({ targetId, targetType, targetName, onClose,
         )}
 
         <div className="flex gap-3">
-          <button
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+            className="flex-1"
+            size="lg"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             onClick={handleSubmit}
-            disabled={isSubmitting || !selectedReason}
-            className="flex-1 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition disabled:opacity-50"
+            disabled={!selectedReason}
+            isLoading={isSubmitting}
+            className="flex-1"
+            size="lg"
           >
-            {isSubmitting ? 'Submitting...' : 'Report'}
-          </button>
+            Report
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

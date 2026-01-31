@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import Header from '@/components/Header'
+import { SkeletonChatRow } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
+import Badge from '@/components/ui/Badge'
+import UserAvatar from '@/components/UserAvatar'
+import { MessageCircle } from 'lucide-react'
 
 interface InboxChat {
   connection_id: string
@@ -171,8 +176,13 @@ export default function InboxPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen bg-gray-50 pt-14">
+        <Header showBackButton />
+        <main className="w-full md:max-w-2xl mx-auto">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonChatRow key={i} />
+          ))}
+        </main>
       </div>
     )
   }
@@ -185,9 +195,11 @@ export default function InboxPage() {
       {/* Chat List */}
       <main className="w-full md:max-w-2xl mx-auto">
         {chats.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No messages yet
-          </div>
+          <EmptyState
+            icon={<MessageCircle className="w-6 h-6" />}
+            title="No messages yet"
+            description="When you connect with someone, your conversations will appear here."
+          />
         ) : (
           chats.map((chat) => {
             const displayName = chat.other_username || `${chat.other_first_name || ''} ${chat.other_last_name || ''}`.trim() || 'Unknown'
@@ -197,9 +209,11 @@ export default function InboxPage() {
               onClick={() => router.push(`/chat/${chat.connection_id}`)}
               className="w-full px-4 py-3 flex items-center gap-3 bg-white border-b border-gray-100 hover:bg-gray-50 transition text-left"
             >
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium">
-                {displayName[0] || '?'}
-              </div>
+              <UserAvatar
+                username={displayName}
+                size="lg"
+                showStatus={false}
+              />
               <div className="flex-1">
                 <p className="font-medium text-gray-900">
                   {displayName}
@@ -210,9 +224,9 @@ export default function InboxPage() {
               </div>
               <div className="flex items-center gap-2">
                 {chat.unread_count > 0 && (
-                  <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  <Badge variant="info" size="sm">
                     {chat.unread_count > 99 ? '99+' : chat.unread_count}
-                  </span>
+                  </Badge>
                 )}
                 <span className="text-xs text-gray-400">
                   {new Date(chat.created_at).toLocaleDateString()}

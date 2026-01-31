@@ -2,6 +2,7 @@
 
 import { useState, useEffect, memo } from 'react'
 import { useRouter } from 'next/navigation'
+import { ThumbsUp, ThumbsDown, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { hapticLight } from '@/lib/haptics'
@@ -233,26 +234,22 @@ function CommentItem({
               {/* Like */}
               <button
                 onClick={() => handleVote('like')}
-                className={`flex items-center gap-1 text-xs ${
+                className={`flex items-center gap-1 text-xs transition-colors ${
                   userVote === 'like' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <svg className="w-3.5 h-3.5" fill={userVote === 'like' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                </svg>
+                <ThumbsUp className="w-3.5 h-3.5" fill={userVote === 'like' ? 'currentColor' : 'none'} />
                 {likeCount > 0 && <span>{likeCount}</span>}
               </button>
 
               {/* Dislike */}
               <button
                 onClick={() => handleVote('dislike')}
-                className={`flex items-center gap-1 text-xs ${
+                className={`flex items-center gap-1 text-xs transition-colors ${
                   userVote === 'dislike' ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <svg className="w-3.5 h-3.5" fill={userVote === 'dislike' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
-                </svg>
+                <ThumbsDown className="w-3.5 h-3.5" fill={userVote === 'dislike' ? 'currentColor' : 'none'} />
                 {dislikeCount > 0 && <span>{dislikeCount}</span>}
               </button>
 
@@ -274,30 +271,28 @@ function CommentItem({
                       e.stopPropagation()
                       setShowMenu(!showMenu)
                     }}
-                    className="text-gray-400 hover:text-gray-600 p-1"
+                    className="text-gray-400 hover:text-gray-600 p-1 transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <circle cx="12" cy="6" r="1.5" />
-                      <circle cx="12" cy="12" r="1.5" />
-                      <circle cx="12" cy="18" r="1.5" />
-                    </svg>
+                    <MoreVertical className="w-4 h-4" />
                   </button>
                   {showMenu && (
-                    <div className="absolute right-0 mt-1 bg-white rounded-lg shadow-lg border py-1 z-10 min-w-[100px]">
+                    <div className="absolute right-0 mt-1 bg-white rounded-xl shadow-[var(--shadow-lg)] border border-gray-100 py-1 z-10 min-w-[120px] animate-scale-in">
                       <button
                         onClick={() => {
                           setShowMenu(false)
                           setIsEditing(true)
                         }}
-                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
                       >
+                        <Pencil className="w-3.5 h-3.5" />
                         Edit
                       </button>
                       <button
                         onClick={handleDelete}
                         disabled={isDeleting}
-                        className="w-full px-3 py-1.5 text-left text-sm text-red-500 hover:bg-gray-100 disabled:opacity-50"
+                        className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
                       >
+                        <Trash2 className="w-3.5 h-3.5" />
                         {isDeleting ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>

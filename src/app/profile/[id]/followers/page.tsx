@@ -5,7 +5,10 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import ChatButton from '@/components/ChatButton'
-import { resolveImageUrl } from '@/lib/s3'
+import UserAvatar from '@/components/UserAvatar'
+import { SkeletonUserRow } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
 
 interface Follower {
   nullifier_hash: string
@@ -84,8 +87,24 @@ export default function FollowersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b">
+          <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
+            <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-900">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold">Followers</h1>
+            </div>
+          </div>
+        </div>
+        <div className="w-full md:max-w-2xl mx-auto bg-white">
+          <div className="divide-y">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonUserRow key={i} />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -99,19 +118,7 @@ export default function FollowersPage() {
             onClick={() => router.back()}
             className="text-gray-600 hover:text-gray-900"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ChevronLeft className="w-6 h-6" />
           </button>
           <div>
             <h1 className="text-lg font-semibold">Followers</h1>
@@ -123,9 +130,11 @@ export default function FollowersPage() {
       {/* Followers List */}
       <div className="w-full md:max-w-2xl mx-auto bg-white">
         {followers.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No followers yet
-          </div>
+          <EmptyState
+            icon={<Users className="w-7 h-7" />}
+            title="No followers yet"
+            description="When people follow this profile, they'll appear here."
+          />
         ) : (
           <div className="divide-y">
             {followers.map((follower) => (
@@ -139,19 +148,12 @@ export default function FollowersPage() {
                   className="flex items-center gap-3 flex-1"
                 >
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                    {follower.avatar_url ? (
-                      <img
-                        src={resolveImageUrl(follower.avatar_url)}
-                        alt={follower.first_name || 'User'}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
-                        {follower.first_name?.[0] || '?'}
-                      </div>
-                    )}
-                  </div>
+                  <UserAvatar
+                    avatarUrl={follower.avatar_url}
+                    firstName={follower.first_name}
+                    size="lg"
+                    showStatus={false}
+                  />
 
                   {/* Info */}
                   <div className="flex-1 text-left">
@@ -176,19 +178,7 @@ export default function FollowersPage() {
                   onClick={() => router.push(`/profile/${follower.nullifier_hash}`)}
                   className="text-gray-400"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
             ))}

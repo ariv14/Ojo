@@ -25,6 +25,9 @@ import Logo from '@/components/Logo'
 import Header from '@/components/Header'
 import ReshareButton from '@/components/ReshareButton'
 import CommentSection from '@/components/CommentSection'
+import { Search, MessageCircle, Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock } from 'lucide-react'
+import { SkeletonPost } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface MediaUrl {
   key: string
@@ -1355,13 +1358,13 @@ function FeedContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="mb-2 flex items-center justify-center">
-            <Logo size="lg" />
-          </h1>
-          <p className="text-gray-500">Keep an eye on what is real</p>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <Header isFeedPage={true} />
+        <main className="w-full md:max-w-2xl mx-auto pt-14">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonPost key={i} />
+          ))}
+        </main>
       </div>
     )
   }
@@ -1381,14 +1384,7 @@ function FeedContent() {
           <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
         ) : pullDistance > 0 && (
           <div className={`transition-transform ${pullDistance >= PULL_THRESHOLD ? 'text-black' : 'text-gray-400'}`}>
-            <svg
-              className={`w-6 h-6 transition-transform ${pullDistance >= PULL_THRESHOLD ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
+            <ArrowDown className={`w-6 h-6 transition-transform ${pullDistance >= PULL_THRESHOLD ? 'rotate-180' : ''}`} />
           </div>
         )}
       </div>
@@ -1403,9 +1399,7 @@ function FeedContent() {
           }}
           className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg z-30 flex items-center gap-2 hover:bg-blue-600 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
+          <ArrowUp className="w-4 h-4" />
           {newPostCount} new {newPostCount === 1 ? 'post' : 'posts'}
         </button>
       )}
@@ -1420,9 +1414,7 @@ function FeedContent() {
               className="p-2"
               title="Discover Users"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Search className="w-6 h-6" />
             </button>
             <button
               onClick={async () => {
@@ -1442,9 +1434,7 @@ function FeedContent() {
               }}
               className="relative p-2"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
+              <MessageCircle className="w-6 h-6" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {unreadCount}
@@ -1453,9 +1443,10 @@ function FeedContent() {
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium"
+              className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1"
             >
-              + Post
+              <Plus className="w-4 h-4" />
+              Post
             </button>
             <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)}>
               <UserAvatar
@@ -1542,9 +1533,11 @@ function FeedContent() {
       {/* Feed */}
       <main className="w-full md:max-w-2xl mx-auto pt-14">
         {posts.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No posts yet. Be the first to share!
-          </div>
+          <EmptyState
+            icon={<Camera className="w-6 h-6" />}
+            title="No posts yet"
+            description="Be the first to share something!"
+          />
         ) : (
           posts.map((post) => {
             // Determine effective post data for reshares
@@ -1558,9 +1551,7 @@ function FeedContent() {
               {/* Reshare Header */}
               {isReshare && (
                 <div className="px-4 pt-2 pb-1 flex items-center gap-2 text-gray-500 text-sm">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <RefreshCw className="w-4 h-4" />
                   <button
                     onClick={() => router.push(`/profile/${post.user_id}`)}
                     className="hover:underline"
@@ -1619,16 +1610,12 @@ function FeedContent() {
                           }}
                           className="p-2 text-gray-400 hover:text-gray-600 transition"
                         >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <circle cx="12" cy="5" r="2" />
-                            <circle cx="12" cy="12" r="2" />
-                            <circle cx="12" cy="19" r="2" />
-                          </svg>
+                          <MoreVertical className="w-5 h-5" />
                         </button>
                         {/* Dropdown Menu for other users' posts */}
                         {openOtherMenuId === post.id && (
                           <div
-                            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-50 min-w-[140px]"
+                            className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-[var(--shadow-lg)] border py-1 z-50 min-w-[140px] animate-scale-in"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -1638,7 +1625,7 @@ function FeedContent() {
                               }}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                             >
-                              Refresh
+                              <RefreshCw className="w-4 h-4 inline mr-2" />Refresh
                             </button>
                             <button
                               onClick={() => {
@@ -1647,7 +1634,7 @@ function FeedContent() {
                               }}
                               className="w-full px-4 py-2 text-left text-sm text-blue-500 hover:bg-gray-100"
                             >
-                              Share to Chat
+                              <Send className="w-4 h-4 inline mr-2" />Share to Chat
                             </button>
                             <button
                               onClick={() => {
@@ -1656,7 +1643,7 @@ function FeedContent() {
                               }}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                             >
-                              Hide User
+                              <EyeOff className="w-4 h-4 inline mr-2" />Hide User
                             </button>
                             <button
                               onClick={() => {
@@ -1665,7 +1652,7 @@ function FeedContent() {
                               }}
                               className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
                             >
-                              Report
+                              <Flag className="w-4 h-4 inline mr-2" />Report
                             </button>
                           </div>
                         )}
@@ -1682,16 +1669,12 @@ function FeedContent() {
                         }}
                         className="p-2 text-gray-400 hover:text-gray-600 transition"
                       >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <circle cx="12" cy="5" r="2" />
-                          <circle cx="12" cy="12" r="2" />
-                          <circle cx="12" cy="19" r="2" />
-                        </svg>
+                        <MoreVertical className="w-5 h-5" />
                       </button>
                       {/* Dropdown Menu */}
                       {openMenuId === post.id && (
                         <div
-                          className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 z-50 min-w-[140px]"
+                          className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-[var(--shadow-lg)] border py-1 z-50 min-w-[140px] animate-scale-in"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -1701,13 +1684,13 @@ function FeedContent() {
                             }}
                             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                           >
-                            Refresh
+                            <RefreshCw className="w-4 h-4 inline mr-2" />Refresh
                           </button>
                           <button
                             onClick={() => handleStartEdit(post)}
                             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                           >
-                            Edit
+                            <Pencil className="w-4 h-4 inline mr-2" />Edit
                           </button>
                           <button
                             onClick={() => {
@@ -1716,19 +1699,19 @@ function FeedContent() {
                             }}
                             className="w-full px-4 py-2 text-left text-sm text-blue-500 hover:bg-gray-100"
                           >
-                            Share to Chat
+                            <Send className="w-4 h-4 inline mr-2" />Share to Chat
                           </button>
                           <button
                             onClick={() => handleBoostPost(post.id)}
                             className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-gray-100"
                           >
-                            Boost (5 WLD)
+                            <Rocket className="w-4 h-4 inline mr-2" />Boost (5 WLD)
                           </button>
                           <button
                             onClick={() => handleDeletePost(post.id)}
                             className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
                           >
-                            Delete
+                            <Trash2 className="w-4 h-4 inline mr-2" />Delete
                           </button>
                         </div>
                       )}
@@ -1759,19 +1742,7 @@ function FeedContent() {
                     post.user_vote === 'like' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill={post.user_vote === 'like' ? 'currentColor' : 'none'}
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-                    />
-                  </svg>
+                  <ThumbsUp className="w-6 h-6" fill={post.user_vote === 'like' ? 'currentColor' : 'none'} />
                   <span className="text-sm font-medium">{post.like_count}</span>
                 </button>
                 <button
@@ -1780,19 +1751,7 @@ function FeedContent() {
                     post.user_vote === 'dislike' ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill={post.user_vote === 'dislike' ? 'currentColor' : 'none'}
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
-                    />
-                  </svg>
+                  <ThumbsDown className="w-6 h-6" fill={post.user_vote === 'dislike' ? 'currentColor' : 'none'} />
                   <span className="text-sm font-medium">{post.dislike_count}</span>
                 </button>
 
@@ -1837,9 +1796,7 @@ function FeedContent() {
                   }}
                   className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
+                  <MessageSquare className="w-6 h-6" />
                   {post.comment_count > 0 && (
                     <span className="text-sm font-medium">{post.comment_count}</span>
                   )}
@@ -1866,9 +1823,7 @@ function FeedContent() {
                   className="text-gray-500 hover:text-gray-700 transition ml-auto"
                   title="Share post"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
+                  <Share2 className="w-6 h-6" />
                 </button>
 
                 {/* Total Tips Display */}

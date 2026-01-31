@@ -8,6 +8,9 @@ import { ensureWalletConnected } from '@/lib/wallet'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
 import { isLegacySupabaseUrl, resolveImageUrl } from '@/lib/s3'
 import { compressImage } from '@/utils/compress'
+import { ChevronLeft, Camera, ChevronRight, Shield, Eye, Wallet, HelpCircle, Trash2 } from 'lucide-react'
+import Modal from '@/components/ui/Modal'
+import Button from '@/components/ui/Button'
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other']
 
@@ -395,7 +398,10 @@ export default function EditProfilePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
+          <p className="text-sm text-gray-400">Loading profile...</p>
+        </div>
       </div>
     )
   }
@@ -409,21 +415,9 @@ export default function EditProfilePage() {
         <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900"
+            className="text-gray-600 hover:text-gray-900 transition"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ChevronLeft className="w-6 h-6" />
           </button>
           <h1 className="text-lg font-semibold">Edit Profile</h1>
           <div className="w-6" />
@@ -445,28 +439,21 @@ export default function EditProfilePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden hover:border-gray-400 transition"
+              className="relative w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden hover:border-gray-400 transition group"
             >
               {displayAvatar ? (
-                <img
-                  src={displayAvatar}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <svg
-                  className="w-8 h-8 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                <>
+                  <img
+                    src={displayAvatar}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
                   />
-                </svg>
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                </>
+              ) : (
+                <Camera className="w-8 h-8 text-gray-400" />
               )}
             </button>
             <p className="text-sm text-gray-500 mt-2">Tap to change photo</p>
@@ -575,13 +562,15 @@ export default function EditProfilePage() {
             <p className="text-red-500 text-sm text-center">{error}</p>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={isSaving}
-            className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition"
+            isLoading={isSaving}
+            size="lg"
+            className="w-full"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
+          </Button>
 
           {/* Settings Section */}
           <div className="mt-12 pt-8 border-t border-gray-200">
@@ -589,11 +578,16 @@ export default function EditProfilePage() {
 
             {/* Disable Profile */}
             <div className="flex items-center justify-between py-4 border-b">
-              <div>
-                <p className="font-medium">Disable Profile</p>
-                <p className="text-sm text-gray-500">
-                  Hide your posts from the feed
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-4.5 h-4.5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Disable Profile</p>
+                  <p className="text-sm text-gray-500">
+                    Hide your posts from the feed
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -612,13 +606,18 @@ export default function EditProfilePage() {
 
             {/* Wallet Connection */}
             <div className="flex items-center justify-between py-4 border-b">
-              <div>
-                <p className="font-medium">Wallet Connected</p>
-                <p className="text-sm text-gray-500">
-                  {walletAddress
-                    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                    : 'Connect wallet for payments'}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                  <Wallet className="w-4.5 h-4.5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Wallet Connected</p>
+                  <p className="text-sm text-gray-500">
+                    {walletAddress
+                      ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                      : 'Connect wallet for payments'}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -638,13 +637,18 @@ export default function EditProfilePage() {
 
             {/* Invisible Mode */}
             <div className="flex items-center justify-between py-4 border-b">
-              <div>
-                <p className="font-medium">Invisible Mode</p>
-                <p className="text-sm text-gray-500">
-                  {invisibleExpiry && new Date(invisibleExpiry) > new Date()
-                    ? `Active until ${new Date(invisibleExpiry).toLocaleDateString()}`
-                    : 'Browse profiles without being seen'}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0">
+                  <Eye className="w-4.5 h-4.5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Invisible Mode</p>
+                  <p className="text-sm text-gray-500">
+                    {invisibleExpiry && new Date(invisibleExpiry) > new Date()
+                      ? `Active until ${new Date(invisibleExpiry).toLocaleDateString()}`
+                      : 'Browse profiles without being seen'}
+                  </p>
+                </div>
               </div>
               {invisibleExpiry && new Date(invisibleExpiry) > new Date() ? (
                 <span className="px-3 py-1 bg-green-100 text-green-600 text-sm rounded-full">
@@ -668,13 +672,16 @@ export default function EditProfilePage() {
               onClick={() => router.push('/support')}
               className="flex items-center justify-between w-full py-4 border-b"
             >
-              <div className="text-left">
-                <p className="font-medium">Support</p>
-                <p className="text-sm text-gray-500">Get help or report an issue</p>
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <HelpCircle className="w-4.5 h-4.5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Support</p>
+                  <p className="text-sm text-gray-500">Get help or report an issue</p>
+                </div>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
 
             {/* Legal */}
@@ -703,45 +710,55 @@ export default function EditProfilePage() {
               <h4 className="text-sm font-semibold text-red-600 uppercase mb-3">
                 Danger Zone
               </h4>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="lg"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full py-3 border-2 border-red-500 text-red-500 rounded-lg font-medium hover:bg-red-50 transition"
+                leftIcon={<Trash2 className="w-4 h-4" />}
+                className="w-full border-red-300 text-red-500 hover:bg-red-50 hover:text-red-600"
               >
                 Delete Account
-              </button>
+              </Button>
             </div>
           </div>
         </form>
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold text-center mb-2">Delete Account?</h3>
-            <p className="text-gray-500 text-center mb-6">
-              This will permanently delete your account and all your data. This cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={isDeleting}
-                className="flex-1 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition disabled:opacity-50"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => !isDeleting && setShowDeleteConfirm(false)}
+        closeOnBackdrop={!isDeleting}
+      >
+        <div className="p-6">
+          <h3 className="text-lg font-bold text-center mb-2">Delete Account?</h3>
+          <p className="text-gray-500 text-center mb-6">
+            This will permanently delete your account and all your data. This cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="lg"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              isLoading={isDeleting}
+              className="flex-1"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }

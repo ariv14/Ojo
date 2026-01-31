@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ChevronLeft } from 'lucide-react'
 
 export default function PrivacyPolicyPage() {
   const router = useRouter()
@@ -8,17 +9,15 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
+      <div className="bg-white border-b shadow-[var(--shadow-xs)] sticky top-0 z-10">
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900"
+            className="text-gray-600 hover:text-gray-900 transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-semibold">Privacy Policy</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Privacy Policy</h1>
         </div>
       </div>
 

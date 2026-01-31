@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronLeft, HelpCircle, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import Badge from '@/components/ui/Badge'
+import EmptyState from '@/components/ui/EmptyState'
+import Modal from '@/components/ui/Modal'
+import Button from '@/components/ui/Button'
 
 interface Ticket {
   id: string
@@ -117,18 +122,12 @@ export default function SupportPage() {
     setIsReplying(false)
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): 'warning' | 'info' | 'success' | 'default' => {
     switch (status) {
-      case 'open':
-        return 'bg-yellow-100 text-yellow-600'
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-600'
-      case 'resolved':
-        return 'bg-green-100 text-green-600'
-      case 'closed':
-        return 'bg-gray-100 text-gray-600'
-      default:
-        return 'bg-gray-100 text-gray-600'
+      case 'open': return 'warning'
+      case 'in_progress': return 'info'
+      case 'resolved': return 'success'
+      default: return 'default'
     }
   }
 
@@ -150,7 +149,7 @@ export default function SupportPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+        <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full" />
       </div>
     )
   }
@@ -158,42 +157,41 @@ export default function SupportPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b shadow-[var(--shadow-xs)]">
         <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ChevronLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-lg font-semibold">Support</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Support</h1>
           </div>
-          <button
+          <Button
+            size="sm"
             onClick={() => setShowNewTicket(true)}
-            className="px-4 py-2 bg-black text-white text-sm rounded-lg font-medium hover:bg-gray-800 transition"
+            leftIcon={<Plus className="w-4 h-4" />}
           >
             New Ticket
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Tickets List */}
       <div className="w-full md:max-w-2xl mx-auto p-4">
         {tickets.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center">
-            <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-gray-500 mb-4">No support tickets yet</p>
-            <button
-              onClick={() => setShowNewTicket(true)}
-              className="text-blue-500 font-medium"
-            >
-              Create your first ticket
-            </button>
+          <div className="bg-white rounded-xl">
+            <EmptyState
+              icon={<HelpCircle className="w-7 h-7" />}
+              title="No support tickets"
+              description="Need help? Create a ticket and we'll get back to you."
+              action={
+                <Button size="sm" onClick={() => setShowNewTicket(true)}>
+                  Create your first ticket
+                </Button>
+              }
+            />
           </div>
         ) : (
           <div className="space-y-3">
@@ -208,9 +206,9 @@ export default function SupportPage() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-medium flex-1 pr-2">{ticket.subject}</h3>
-                  <span className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${getStatusColor(ticket.status)}`}>
+                  <Badge variant={getStatusVariant(ticket.status)} size="sm">
                     {getStatusLabel(ticket.status)}
-                  </span>
+                  </Badge>
                 </div>
                 <p className="text-gray-500 text-sm mb-2 line-clamp-2">{ticket.message}</p>
 
@@ -240,79 +238,76 @@ export default function SupportPage() {
       </div>
 
       {/* New Ticket Modal */}
-      {showNewTicket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-center mb-4">New Support Ticket</h3>
+      <Modal isOpen={showNewTicket} onClose={() => { setShowNewTicket(false); setSubject(''); setMessage(''); setError('') }} className="max-w-md">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-center mb-4">New Support Ticket</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Brief description of your issue"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
-                  maxLength={100}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Message
-                </label>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe your issue in detail..."
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none resize-none"
-                  maxLength={1000}
-                />
-              </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subject
+              </label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Brief description of your issue"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none text-sm transition-all"
+                maxLength={100}
+              />
             </div>
 
-            {error && (
-              <p className="text-red-500 text-sm text-center mt-4">{error}</p>
-            )}
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowNewTicket(false)
-                  setSubject('')
-                  setMessage('')
-                  setError('')
-                }}
-                disabled={isSubmitting}
-                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitTicket}
-                disabled={isSubmitting || !subject.trim() || !message.trim()}
-                className="flex-1 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Message
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Describe your issue in detail..."
+                rows={4}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none resize-none text-sm transition-all"
+                maxLength={1000}
+              />
             </div>
           </div>
+
+          {error && (
+            <p className="text-red-500 text-sm text-center mt-4">{error}</p>
+          )}
+
+          <div className="flex gap-3 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => { setShowNewTicket(false); setSubject(''); setMessage(''); setError('') }}
+              disabled={isSubmitting}
+              className="flex-1"
+              size="lg"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitTicket}
+              disabled={!subject.trim() || !message.trim()}
+              isLoading={isSubmitting}
+              className="flex-1"
+              size="lg"
+            >
+              Submit
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Ticket Detail Modal */}
-      {selectedTicket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+      <Modal isOpen={!!selectedTicket} onClose={() => { setSelectedTicket(null); setUserReply('') }} className="max-w-md max-h-[90vh] overflow-y-auto">
+        {selectedTicket && (
+          <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Ticket Details</h3>
-              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedTicket.status)}`}>
+              <h3 className="text-lg font-semibold">Ticket Details</h3>
+              <Badge variant={getStatusVariant(selectedTicket.status)} size="md">
                 {getStatusLabel(selectedTicket.status)}
-              </span>
+              </Badge>
             </div>
 
             <div className="space-y-4">
@@ -378,29 +373,30 @@ export default function SupportPage() {
 
             {/* Actions */}
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setSelectedTicket(null)
-                  setUserReply('')
-                }}
+              <Button
+                variant="outline"
+                onClick={() => { setSelectedTicket(null); setUserReply('') }}
                 disabled={isReplying}
-                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                className="flex-1"
+                size="lg"
               >
                 Close
-              </button>
+              </Button>
               {selectedTicket.admin_response && selectedTicket.status !== 'resolved' && selectedTicket.status !== 'closed' && (
-                <button
+                <Button
                   onClick={handleUserReply}
-                  disabled={isReplying || !userReply.trim()}
-                  className="flex-1 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!userReply.trim()}
+                  isLoading={isReplying}
+                  className="flex-1"
+                  size="lg"
                 >
-                  {isReplying ? 'Sending...' : 'Send Reply'}
-                </button>
+                  Send Reply
+                </Button>
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }

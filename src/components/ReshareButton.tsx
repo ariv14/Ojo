@@ -3,9 +3,12 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { Repeat2, Lock } from 'lucide-react'
 import { hapticSuccess, hapticLight } from '@/lib/haptics'
 import { sendNotification } from '@/lib/notify'
 import Toast from './Toast'
+import Modal from './ui/Modal'
+import Button from './ui/Button'
 import UserAvatar from './UserAvatar'
 import { resolveImageUrl } from '@/lib/s3'
 
@@ -132,7 +135,7 @@ export default function ReshareButton({
       <button
         onClick={handleButtonClick}
         disabled={!canReshare}
-        className={`flex items-center gap-1 transition ${
+        className={`flex items-center gap-1 transition-colors ${
           userHasReshared
             ? 'text-green-500'
             : canReshare
@@ -147,110 +150,93 @@ export default function ReshareButton({
             : 'Reshare'
         }
       >
-        <svg
-          className="w-6 h-6"
-          fill={userHasReshared ? 'currentColor' : 'none'}
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          />
-        </svg>
+        <Repeat2 className="w-5 h-5" />
         {reshareCount > 0 && (
           <span className="text-sm font-medium">{reshareCount}</span>
         )}
       </button>
 
       {/* Reshare Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold text-center mb-4">Reshare Post</h3>
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setReshareComment(''); setError('') }}>
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-center mb-4">Reshare Post</h3>
 
-            {/* Original post preview */}
-            <div className="border rounded-lg p-3 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <UserAvatar
-                  avatarUrl={originalPost.users?.avatar_url}
-                  firstName={originalPost.users?.first_name}
-                  size="xs"
-                  showStatus={false}
-                />
-                <span className="text-sm font-medium">
-                  {originalPost.users?.first_name} {originalPost.users?.last_name}
-                </span>
-              </div>
-              {previewImage && (
-                <div className="relative w-full h-24 bg-gray-100 rounded overflow-hidden mb-2">
-                  <img
-                    src={previewImage}
-                    alt="Post preview"
-                    className={`w-full h-full object-cover ${
-                      originalPost.is_premium ? 'blur-sm' : ''
-                    }`}
-                  />
-                  {originalPost.is_premium && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z"/>
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              )}
-              {originalPost.caption && (
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {originalPost.caption}
-                </p>
-              )}
-            </div>
-
-            {/* Comment field */}
-            <div className="mb-4">
-              <textarea
-                value={reshareComment}
-                onChange={(e) => setReshareComment(e.target.value)}
-                placeholder="Add your thoughts... (optional)"
-                className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
-                rows={2}
-                maxLength={280}
+          {/* Original post preview */}
+          <div className="border border-gray-100 rounded-xl p-3 mb-4 bg-gray-50">
+            <div className="flex items-center gap-2 mb-2">
+              <UserAvatar
+                avatarUrl={originalPost.users?.avatar_url}
+                firstName={originalPost.users?.first_name}
+                size="xs"
+                showStatus={false}
               />
-              <p className="text-xs text-gray-400 text-right mt-1">
-                {reshareComment.length}/280
-              </p>
+              <span className="text-sm font-medium">
+                {originalPost.users?.first_name} {originalPost.users?.last_name}
+              </span>
             </div>
-
-            {error && (
-              <p className="text-red-500 text-sm text-center mb-4">{error}</p>
+            {previewImage && (
+              <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden mb-2">
+                <img
+                  src={previewImage}
+                  alt="Post preview"
+                  className={`w-full h-full object-cover ${
+                    originalPost.is_premium ? 'blur-sm' : ''
+                  }`}
+                />
+                {originalPost.is_premium && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <Lock className="w-6 h-6 text-white" />
+                  </div>
+                )}
+              </div>
             )}
+            {originalPost.caption && (
+              <p className="text-sm text-gray-600 line-clamp-2">
+                {originalPost.caption}
+              </p>
+            )}
+          </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowModal(false)
-                  setReshareComment('')
-                  setError('')
-                }}
-                disabled={isProcessing}
-                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReshare}
-                disabled={isProcessing}
-                className="flex-1 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50"
-              >
-                {isProcessing ? 'Resharing...' : 'Reshare'}
-              </button>
-            </div>
+          {/* Comment field */}
+          <div className="mb-4">
+            <textarea
+              value={reshareComment}
+              onChange={(e) => setReshareComment(e.target.value)}
+              placeholder="Add your thoughts... (optional)"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none text-sm transition-all"
+              rows={2}
+              maxLength={280}
+            />
+            <p className="text-xs text-gray-400 text-right mt-1">
+              {reshareComment.length}/280
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-red-500 text-sm text-center mb-4">{error}</p>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => { setShowModal(false); setReshareComment(''); setError('') }}
+              disabled={isProcessing}
+              className="flex-1"
+              size="lg"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReshare}
+              isLoading={isProcessing}
+              className="flex-1"
+              size="lg"
+            >
+              Reshare
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Success Toast */}
       {showToast && (

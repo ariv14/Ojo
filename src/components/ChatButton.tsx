@@ -162,7 +162,7 @@ export default function ChatButton({ targetUserAddress }: ChatButtonProps) {
     <button
       onClick={handleChat}
       disabled={isLoading}
-      className="text-sm text-blue-500 font-medium disabled:opacity-50"
+      className="text-sm text-blue-500 font-medium disabled:opacity-50 hover:text-blue-600 transition-colors flex items-center gap-1"
     >
       {isLoading ? '...' : 'Chat'}
     </button>

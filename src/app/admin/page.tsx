@@ -6,6 +6,11 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { isLegacySupabaseUrl, resolveImageUrl } from '@/lib/s3'
 import { sendBroadcast, previewBroadcast, BroadcastResult } from '@/lib/broadcast'
+import UserAvatar from '@/components/UserAvatar'
+import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
+import Modal from '@/components/ui/Modal'
+import { ChevronLeft, Users, FileText, AlertTriangle, MessageSquare, TrendingUp, Activity, UserPlus, Ban, Eye, Send, Bell } from 'lucide-react'
 
 interface Stats {
   totalUsers: number
@@ -653,17 +658,21 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         {debugInfo ? (
-          <div className="bg-white p-6 rounded-xl shadow max-w-md w-full">
+          <div className="bg-white p-6 rounded-xl shadow-[var(--shadow-lg)] max-w-md w-full">
             <pre className="text-sm whitespace-pre-wrap break-all font-mono">{debugInfo}</pre>
-            <button
+            <Button
               onClick={() => router.push('/feed')}
-              className="mt-4 w-full py-2 bg-black text-white rounded-lg"
+              className="mt-4 w-full"
+              size="lg"
             >
               Go to Feed
-            </button>
+            </Button>
           </div>
         ) : (
-          <p className="text-gray-500">Loading...</p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
+            <p className="text-sm text-gray-400">Loading dashboard...</p>
+          </div>
         )}
       </div>
     )
@@ -672,14 +681,18 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Admin Dashboard</h1>
-        <button
-          onClick={() => router.push('/feed')}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          Back to Feed
-        </button>
+      <div className="bg-white border-b shadow-[var(--shadow-xs)] sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/feed')}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-lg font-semibold tracking-tight">Admin Dashboard</h1>
+          </div>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto p-4 space-y-6">
@@ -736,15 +749,12 @@ export default function AdminPage() {
                     <tr key={user.nullifier_hash} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                            {user.avatar_url ? (
-                              <img src={resolveImageUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-                                {(user.username || user.first_name)?.[0] || '?'}
-                              </div>
-                            )}
-                          </div>
+                          <UserAvatar
+                            avatarUrl={user.avatar_url}
+                            username={user.username || user.first_name}
+                            size="sm"
+                            showStatus={false}
+                          />
                           <span className="font-medium">{user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}</span>
                         </div>
                       </td>
@@ -826,15 +836,12 @@ export default function AdminPage() {
                     <tr key={user.referrer_id} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                            {user.avatar_url ? (
-                              <img src={resolveImageUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-                                {(user.username || user.first_name)?.[0] || '?'}
-                              </div>
-                            )}
-                          </div>
+                          <UserAvatar
+                            avatarUrl={user.avatar_url}
+                            username={user.username || user.first_name}
+                            size="sm"
+                            showStatus={false}
+                          />
                           <span className="font-medium">{user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}</span>
                         </div>
                       </td>
@@ -1340,7 +1347,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
     red: 'text-red-600',
   }
   return (
-    <div className="bg-white rounded-xl p-4">
+    <div className="bg-white rounded-xl p-4 shadow-[var(--shadow-xs)]">
       <p className="text-sm text-gray-500">{label}</p>
       <p className={`text-2xl font-bold ${color ? colorClasses[color as keyof typeof colorClasses] : ''}`}>
         {value}

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { Shield, Lock, Coins } from 'lucide-react'
 import LoginButton from '@/components/LoginButton'
 import DoodleLogo from '@/components/DoodleLogo'
 import { getSession, UserSession } from '@/lib/session'
@@ -38,12 +39,12 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-indigo-50 px-4">
+      <div className="w-full max-w-md text-center animate-fade-in-up">
         <h1 className="mb-2 flex items-center justify-center">
           <DoodleLogo size="lg" />
         </h1>
-        <p className="text-gray-500 mb-8">
+        <p className="text-lg font-semibold mb-8 bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent">
           Keep an eye on what is real
         </p>
 
@@ -63,14 +64,39 @@ function HomeContent() {
           <LoginButton />
         )}
 
+        {/* Feature highlight cards */}
+        <div className="mt-10 grid grid-cols-3 gap-3">
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm">
+            <Shield className="w-6 h-6 mx-auto mb-2 text-indigo-600" />
+            <h3 className="text-xs font-semibold text-gray-800 mb-1">Verified Humans</h3>
+            <p className="text-[10px] leading-tight text-gray-500">
+              Every user is Orb-verified unique human
+            </p>
+          </div>
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm">
+            <Lock className="w-6 h-6 mx-auto mb-2 text-fuchsia-600" />
+            <h3 className="text-xs font-semibold text-gray-800 mb-1">Premium Content</h3>
+            <p className="text-[10px] leading-tight text-gray-500">
+              Unlock exclusive content with WLD
+            </p>
+          </div>
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm">
+            <Coins className="w-6 h-6 mx-auto mb-2 text-amber-500" />
+            <h3 className="text-xs font-semibold text-gray-800 mb-1">WLD Payments</h3>
+            <p className="text-[10px] leading-tight text-gray-500">
+              Send tips and earn from your content
+            </p>
+          </div>
+        </div>
+
         {/* Legal links footer */}
-        <div className="mt-12 pt-6 border-t border-gray-200">
-          <div className="flex justify-center gap-4 text-sm text-gray-500">
-            <Link href="/privacy" className="hover:text-gray-700 transition">
+        <div className="mt-16 pt-6 border-t border-gray-200/60">
+          <div className="flex justify-center gap-4 text-sm text-gray-400">
+            <Link href="/privacy" className="hover:text-gray-600 transition">
               Privacy Policy
             </Link>
             <span>|</span>
-            <Link href="/terms" className="hover:text-gray-700 transition">
+            <Link href="/terms" className="hover:text-gray-600 transition">
               Terms of Service
             </Link>
           </div>
@@ -82,7 +108,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-indigo-50"><p className="text-gray-500">Loading...</p></div>}>
       <HomeContent />
     </Suspense>
   )

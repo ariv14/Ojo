@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronLeft } from 'lucide-react'
 import DoodleLogo from './DoodleLogo'
 
 interface HeaderProps {
@@ -29,17 +30,15 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 animated-gradient-header text-white z-40">
+    <header className="fixed top-0 left-0 right-0 animated-gradient-header text-white z-40 shadow-[var(--shadow-sm)]">
       <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {showBackButton && (
             <button
               onClick={handleBack}
-              className="text-white/80 hover:text-white"
+              className="text-white/80 hover:text-white transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ChevronLeft className="w-6 h-6" />
             </button>
           )}
           {isFeedPage ? (

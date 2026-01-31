@@ -7,6 +7,8 @@ import { getSession } from '@/lib/session'
 import { hapticLight } from '@/lib/haptics'
 import { sendNotification } from '@/lib/notify'
 import Header from '@/components/Header'
+import { SkeletonMessage } from '@/components/ui/Skeleton'
+import { ChevronLeft, MoreVertical, ArrowDown, Send, Trash2, Pencil, Ban, ShieldOff, MessageSquareX, Eraser } from 'lucide-react'
 
 interface Message {
   id: string
@@ -485,8 +487,16 @@ export default function ChatPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading chat...</p>
+      <div className="min-h-screen flex flex-col bg-gray-50 pt-14">
+        <Header showBackButton />
+        <div className="flex-1 px-4 py-4 space-y-3">
+          <SkeletonMessage isMe={false} />
+          <SkeletonMessage isMe={true} />
+          <SkeletonMessage isMe={false} />
+          <SkeletonMessage isMe={true} />
+          <SkeletonMessage isMe={false} />
+          <SkeletonMessage isMe={true} />
+        </div>
       </div>
     )
   }
@@ -502,40 +512,42 @@ export default function ChatPage() {
               onClick={() => setShowSettings(!showSettings)}
               className="text-white/80 hover:text-white p-1"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
+              <MoreVertical className="w-6 h-6" />
             </button>
 
             {showSettings && (
               <div
-                className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden z-20"
+                className="absolute right-0 top-full mt-1 bg-white shadow-[var(--shadow-lg)] rounded-xl border border-gray-200 overflow-hidden z-20 animate-scale-in"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
                   onClick={handleClearChat}
-                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700"
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700 flex items-center gap-2"
                 >
+                  <Eraser className="w-4 h-4" />
                   Clear Chat
                 </button>
                 <button
                   onClick={handleDeleteConversation}
-                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600"
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
                 >
+                  <Trash2 className="w-4 h-4" />
                   Delete Conversation
                 </button>
                 {isBlocked && blockedBy === session?.nullifier_hash ? (
                   <button
                     onClick={handleUnblockUser}
-                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-green-600"
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-green-600 flex items-center gap-2"
                   >
+                    <ShieldOff className="w-4 h-4" />
                     Unblock User
                   </button>
                 ) : (
                   <button
                     onClick={handleBlockUser}
-                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600"
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
                   >
+                    <Ban className="w-4 h-4" />
                     Block User
                   </button>
                 )}
@@ -551,9 +563,7 @@ export default function ChatPage() {
           onClick={() => router.push('/inbox')}
           className="flex items-center gap-1 text-sm text-blue-500 font-medium"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft className="w-4 h-4" />
           Back to Inbox
         </button>
       </div>
@@ -599,8 +609,8 @@ export default function ChatPage() {
                       onClick={() => isMe && !isEditing && setMenuMessageId(menuMessageId === message.id ? null : message.id)}
                       className={`max-w-[75%] px-4 py-2 rounded-2xl ${
                         isMe
-                          ? 'bg-blue-500 text-white rounded-br-md cursor-pointer'
-                          : 'bg-gray-200 text-gray-900 rounded-bl-md'
+                          ? 'bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-br-md cursor-pointer'
+                          : 'bg-gray-100 border border-gray-200 text-gray-900 rounded-bl-md'
                       }`}
                     >
                       {!isMe && (
@@ -646,19 +656,21 @@ export default function ChatPage() {
                     {/* Context Menu */}
                     {menuMessageId === message.id && isMe && (
                       <div
-                        className="absolute right-0 bottom-full mb-1 bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden z-10"
+                        className="absolute right-0 bottom-full mb-1 bg-white shadow-[var(--shadow-lg)] rounded-xl border border-gray-200 overflow-hidden z-10 animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => handleStartEdit(message)}
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700"
+                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700 flex items-center gap-2"
                         >
+                          <Pencil className="w-4 h-4" />
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteMessage(message.id)}
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600"
+                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
                         >
+                          <Trash2 className="w-4 h-4" />
                           Delete
                         </button>
                       </div>
@@ -681,9 +693,7 @@ export default function ChatPage() {
           }}
           className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg flex items-center gap-2 z-10"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
+          <ArrowDown className="w-4 h-4" />
           New messages
         </button>
       )}
@@ -705,9 +715,9 @@ export default function ChatPage() {
           <button
             type="submit"
             disabled={!newMessage.trim() || isSending || isBlocked}
-            className="bg-blue-500 text-white px-4 py-2 rounded-full font-medium disabled:opacity-50"
+            className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center disabled:opacity-50 flex-shrink-0"
           >
-            Send
+            <Send className="w-5 h-5" />
           </button>
         </form>
       </footer>

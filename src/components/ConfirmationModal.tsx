@@ -1,5 +1,9 @@
 'use client'
 
+import { AlertCircle, Trash2, Loader2 } from 'lucide-react'
+import Modal from './ui/Modal'
+import Button from './ui/Button'
+
 interface ConfirmationModalProps {
   isOpen: boolean
   onClose: () => void
@@ -21,59 +25,50 @@ export default function ConfirmationModal({
   confirmColor = 'red',
   isLoading = false,
 }: ConfirmationModalProps) {
-  if (!isOpen) return null
-
-  const colorClasses = {
-    red: 'bg-red-500 hover:bg-red-600',
-    blue: 'bg-blue-500 hover:bg-blue-600',
-    green: 'bg-green-500 hover:bg-green-600',
+  const iconColor = {
+    red: 'text-red-500 bg-red-50',
+    blue: 'text-blue-500 bg-blue-50',
+    green: 'text-green-500 bg-green-50',
   }
 
+  const buttonVariant = confirmColor === 'red' ? 'danger' : 'primary'
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl w-full max-w-sm p-6">
-        <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="p-6">
+        <div className="flex justify-center mb-4">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconColor[confirmColor]}`}>
+            {confirmColor === 'red' ? (
+              <Trash2 className="w-6 h-6" />
+            ) : (
+              <AlertCircle className="w-6 h-6" />
+            )}
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-center mb-1">{title}</h3>
         <p className="text-gray-500 text-center text-sm mb-6">{message}</p>
 
         <div className="flex gap-3">
-          <button
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+            className="flex-1"
+            size="lg"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={buttonVariant}
             onClick={onConfirm}
-            disabled={isLoading}
-            className={`flex-1 py-3 text-white rounded-lg font-medium transition disabled:opacity-50 ${colorClasses[confirmColor]}`}
+            isLoading={isLoading}
+            className="flex-1"
+            size="lg"
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                {confirmText}
-              </span>
-            ) : (
-              confirmText
-            )}
-          </button>
+            {confirmText}
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
