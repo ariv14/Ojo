@@ -226,14 +226,15 @@ export default function CommentSection({
     if (!session) return
 
     // Create the full comment object for local state
+    const now = new Date().toISOString()
     const fullComment: Comment = {
       id: newComment.id,
       post_id: postId,
       user_id: newComment.user_id,
       parent_comment_id: newComment.parent_comment_id,
       content: newComment.content,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now,
       users: {
         first_name: session.first_name || '',
         last_name: session.last_name || '',

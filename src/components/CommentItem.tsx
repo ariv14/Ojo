@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ThumbsUp, ThumbsDown, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -57,6 +57,7 @@ function CommentItem({
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(REPLIES_PER_PAGE)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   // Sync local vote state when props change
   useEffect(() => {
@@ -69,6 +70,22 @@ function CommentItem({
   useEffect(() => {
     setVisibleRepliesCount(REPLIES_PER_PAGE)
   }, [comment.id])
+
+  // Close menu when tapping outside
+  useEffect(() => {
+    if (!showMenu) return
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [showMenu])
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
     if (!session) return
@@ -265,7 +282,7 @@ function CommentItem({
 
               {/* Menu for own comments */}
               {isOwnComment && (
-                <div className="relative ml-auto">
+                <div className="relative ml-auto" ref={menuRef}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
