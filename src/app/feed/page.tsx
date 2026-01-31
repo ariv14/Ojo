@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession, clearSession, UserSession } from '@/lib/session'
-import { getFeedCache, setFeedCache, isCacheStale, isCacheExpired, FEED_CACHE_VERSION } from '@/lib/feedCache'
+import { getFeedCache, setFeedCache, isCacheStale, isCacheExpired, FEED_CACHE_VERSION, removePostFromFeedCache } from '@/lib/feedCache'
 import { fetchFreshPostUrls, fetchPostViaProfile } from '@/lib/postRefresh'
 import { preloadPostImages, clearPreloadCache } from '@/lib/imagePreloader'
 import { ensureWalletConnected } from '@/lib/wallet'
@@ -1002,6 +1002,8 @@ function FeedContent() {
 
     // Optimistically remove from state
     setPosts(prev => prev.filter(p => p.id !== deletePostId))
+    // Also remove from localStorage cache
+    removePostFromFeedCache(deletePostId)
 
     // Delete media from storage before deleting post from DB
     if (post) {

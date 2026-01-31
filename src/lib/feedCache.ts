@@ -128,5 +128,19 @@ export function isCacheExpired(cache: FeedCache): boolean {
   return Date.now() - cache.timestamp > CACHE_EXPIRED_MS
 }
 
+export function removePostFromFeedCache(postId: string): void {
+  if (typeof window === 'undefined') return
+  const data = localStorage.getItem(FEED_CACHE_KEY)
+  if (!data) return
+  try {
+    const cache = JSON.parse(data) as FeedCache
+    cache.posts = cache.posts.filter(p => p.id !== postId)
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(cache))
+  } catch {
+    // If cache is corrupt, just clear it
+    clearFeedCache()
+  }
+}
+
 export { FEED_CACHE_VERSION }
 export type { FeedCache, CachedPost, MediaUrl }
