@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, memo } from 'react'
+import { useState, useEffect, useRef, useCallback, memo } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ThumbsUp, ThumbsDown, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -57,7 +58,9 @@ function CommentItem({
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(REPLIES_PER_PAGE)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   // Sync local vote state when props change
   useEffect(() => {
@@ -71,20 +74,43 @@ function CommentItem({
     setVisibleRepliesCount(REPLIES_PER_PAGE)
   }, [comment.id])
 
-  // Close menu when tapping outside
+  // Close menu when tapping outside or scrolling
   useEffect(() => {
     if (!showMenu) return
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
+          triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
         setShowMenu(false)
       }
     }
+    const handleScroll = () => setShowMenu(false)
     document.addEventListener('mousedown', handleClickOutside)
     document.addEventListener('touchend', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('touchend', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
     }
+  }, [showMenu])
+
+  const openMenu = useCallback(() => {
+    if (showMenu) {
+      setShowMenu(false)
+      return
+    }
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const menuHeight = 110 // approximate menu height
+      const spaceAbove = rect.top
+      // Open upward if enough space, otherwise downward
+      if (spaceAbove > menuHeight) {
+        setMenuPos({ top: rect.top - menuHeight, left: rect.right - 140 })
+      } else {
+        setMenuPos({ top: rect.bottom + 4, left: rect.right - 140 })
+      }
+    }
+    setShowMenu(true)
   }, [showMenu])
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
@@ -282,23 +308,28 @@ function CommentItem({
 
               {/* Menu for own comments */}
               {isOwnComment && (
-                <div className="relative ml-auto" ref={menuRef}>
+                <div className="ml-auto">
                   <button
+                    ref={triggerRef}
                     onTouchEnd={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      setShowMenu(!showMenu)
+                      openMenu()
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
-                      setShowMenu(!showMenu)
+                      openMenu()
                     }}
                     className="text-gray-400 hover:text-gray-600 p-2 -m-1 transition-colors"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
-                  {showMenu && (
-                    <div className="absolute right-0 bottom-full mb-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 min-w-[140px] animate-scale-in">
+                  {showMenu && menuPos && createPortal(
+                    <div
+                      ref={menuRef}
+                      className="fixed bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[140px] animate-scale-in"
+                      style={{ top: menuPos.top, left: Math.max(8, menuPos.left), zIndex: 9999 }}
+                    >
                       <button
                         onTouchEnd={(e) => {
                           e.preventDefault()
@@ -328,7 +359,8 @@ function CommentItem({
                         <Trash2 className="w-4 h-4" />
                         {isDeleting ? 'Deleting...' : 'Delete'}
                       </button>
-                    </div>
+                    </div>,
+                    document.body
                   )}
                 </div>
               )}
