@@ -238,6 +238,51 @@ CREATE POLICY "Users can create transactions"
   WITH CHECK (true);
 
 -- =============================================
+-- COMMENTS POLICIES
+-- Public read, authenticated write
+-- =============================================
+
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comment_votes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Comments are viewable by everyone"
+  ON comments FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can create comments"
+  ON comments FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Users can update own comments"
+  ON comments FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Users can delete own comments"
+  ON comments FOR DELETE
+  USING (true);
+
+-- =============================================
+-- COMMENT_VOTES POLICIES
+-- Public read, authenticated write
+-- =============================================
+
+CREATE POLICY "Comment votes are viewable by everyone"
+  ON comment_votes FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can vote on comments"
+  ON comment_votes FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Users can change comment vote"
+  ON comment_votes FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Users can remove comment vote"
+  ON comment_votes FOR DELETE
+  USING (true);
+
+-- =============================================
 -- POLICIES COMPLETE
 -- Next: Run 03-storage.sql
 -- =============================================
