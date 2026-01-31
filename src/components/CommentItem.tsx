@@ -80,10 +80,10 @@ function CommentItem({
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
+    document.addEventListener('touchend', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
+      document.removeEventListener('touchend', handleClickOutside)
     }
   }, [showMenu])
 
@@ -284,32 +284,48 @@ function CommentItem({
               {isOwnComment && (
                 <div className="relative ml-auto" ref={menuRef}>
                   <button
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowMenu(!showMenu)
+                    }}
                     onClick={(e) => {
                       e.stopPropagation()
                       setShowMenu(!showMenu)
                     }}
-                    className="text-gray-400 hover:text-gray-600 p-1 transition-colors"
+                    className="text-gray-400 hover:text-gray-600 p-2 -m-1 transition-colors"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
                   {showMenu && (
-                    <div className="absolute right-0 mt-1 bg-white rounded-xl shadow-[var(--shadow-lg)] border border-gray-100 py-1 z-10 min-w-[120px] animate-scale-in">
+                    <div className="absolute right-0 bottom-full mb-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 min-w-[140px] animate-scale-in">
                       <button
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setShowMenu(false)
+                          setIsEditing(true)
+                        }}
                         onClick={() => {
                           setShowMenu(false)
                           setIsEditing(true)
                         }}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
+                        className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2.5 text-gray-700"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="w-4 h-4" />
                         Edit
                       </button>
                       <button
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleDelete()
+                        }}
                         onClick={handleDelete}
                         disabled={isDeleting}
-                        className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
+                        className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-gray-50 active:bg-red-50 disabled:opacity-50 flex items-center gap-2.5"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                         {isDeleting ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
