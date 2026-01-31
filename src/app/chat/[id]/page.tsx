@@ -656,7 +656,7 @@ export default function ChatPage() {
                     {/* Context Menu */}
                     {menuMessageId === message.id && isMe && (
                       <div
-                        className="absolute right-0 bottom-full mb-1 bg-white shadow-[var(--shadow-lg)] rounded-xl border border-gray-200 overflow-hidden z-50 animate-scale-in"
+                        className="absolute right-0 top-full mt-1 bg-white shadow-[var(--shadow-lg)] rounded-xl border border-gray-200 overflow-hidden z-50 animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
