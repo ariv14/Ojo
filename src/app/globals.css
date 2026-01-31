@@ -164,7 +164,21 @@ input, textarea {
     #1e1b4b   /* deep indigo */
   );
   background-size: 300% 100%;
-  animation: gradient-shift 12s ease infinite;
+  animation: gradient-shift 16s ease infinite;
+}
+
+/* Standardized header icon button */
+.header-icon-btn {
+  padding: 0.625rem;
+  border-radius: 9999px;
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.header-icon-btn:active {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
 }
 
 /* OJO Logo Cybernetic Animations */

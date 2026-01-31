@@ -1411,10 +1411,10 @@ function FeedContent() {
           <>
             <button
               onClick={() => router.push('/discover')}
-              className="p-2"
+              className="header-icon-btn"
               title="Discover Users"
             >
-              <Search className="w-6 h-6" />
+              <Search className="w-5 h-5" />
             </button>
             <button
               onClick={async () => {
@@ -1432,23 +1432,21 @@ function FeedContent() {
 
                 router.push('/inbox')
               }}
-              className="relative p-2"
+              className="relative header-icon-btn"
             >
-              <MessageCircle className="w-6 h-6" />
+              <MessageCircle className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  {unreadCount}
-                </span>
+                <span className="absolute top-1 right-1 bg-red-500 w-2.5 h-2.5 rounded-full animate-pulse" />
               )}
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1"
+              className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1 shadow-lg shadow-white/20 active:scale-95 transition-transform"
             >
               <Plus className="w-4 h-4" />
               Post
             </button>
-            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)}>
+            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="ring-2 ring-white/30 rounded-full">
               <UserAvatar
                 avatarUrl={currentSession?.avatar_url}
                 username={currentSession?.username || currentSession?.first_name}
