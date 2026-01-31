@@ -657,7 +657,9 @@ export default function AdminPage() {
 
   if (!isAuthorized || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen bg-gray-50 pt-14">
+        <Header showBackButton title="Admin" />
+        <div className="flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 3.5rem)' }}>
         {debugInfo ? (
           <div className="bg-white p-6 rounded-xl shadow-[var(--shadow-lg)] max-w-md w-full">
             <pre className="text-sm whitespace-pre-wrap break-all font-mono">{debugInfo}</pre>
@@ -675,6 +677,7 @@ export default function AdminPage() {
             <p className="text-sm text-gray-400">Loading dashboard...</p>
           </div>
         )}
+        </div>
       </div>
     )
   }

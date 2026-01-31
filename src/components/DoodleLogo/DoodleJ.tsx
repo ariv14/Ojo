@@ -9,7 +9,7 @@ interface DoodleJProps {
 }
 
 export default function DoodleJ({ variant, theme, shouldAnimate }: DoodleJProps) {
-  const baseGradient = `linear-gradient(180deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 50%, #8B5CF6 100%)`
+  const baseGradient = `linear-gradient(180deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 50%, #4A6FA5 100%)`
 
   const renderDecoration = () => {
     switch (variant) {

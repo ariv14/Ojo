@@ -161,15 +161,13 @@ input, textarea {
 .animated-gradient-header {
   background: linear-gradient(
     135deg,
-    #0f0a2e,  /* near-black indigo */
-    #1a1550,  /* deep indigo */
-    #2d1b69,  /* rich violet */
-    #4a1970,  /* vivid purple */
-    #6b1d6e,  /* magenta edge */
-    #4a1970,  /* vivid purple */
-    #2d1b69,  /* rich violet */
-    #1a1550,  /* deep indigo */
-    #0f0a2e   /* near-black indigo */
+    #080f1e,  /* near-black navy */
+    #0f1d3a,  /* deep navy */
+    #162d55,  /* mid navy */
+    #1a3a6e,  /* rich blue-navy */
+    #162d55,  /* mid navy */
+    #0f1d3a,  /* deep navy */
+    #080f1e   /* near-black navy */
   );
   background-size: 400% 100%;
   animation: gradient-shift 20s ease infinite;
@@ -184,9 +182,9 @@ input, textarea {
   background: linear-gradient(
     105deg,
     transparent 40%,
-    rgba(255, 255, 255, 0.03) 45%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.03) 55%,
+    rgba(200, 215, 235, 0.04) 45%,
+    rgba(200, 215, 235, 0.12) 50%,
+    rgba(200, 215, 235, 0.04) 55%,
     transparent 60%
   );
   background-size: 200% 100%;
@@ -203,7 +201,7 @@ input, textarea {
   left: 10%;
   right: 10%;
   height: 16px;
-  background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, rgba(168, 85, 247, 0.15) 40%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(148, 178, 215, 0.25) 0%, rgba(148, 178, 215, 0.12) 40%, transparent 70%);
   filter: blur(8px);
   animation: header-aurora-pulse 4s ease-in-out infinite;
   pointer-events: none;
@@ -224,8 +222,8 @@ input, textarea {
 .header-icon-btn {
   padding: 0.5rem;
   border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(200, 215, 235, 0.08);
+  border: 1px solid rgba(200, 215, 235, 0.12);
   backdrop-filter: blur(8px);
   transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms;
 }

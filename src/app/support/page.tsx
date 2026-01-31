@@ -149,8 +149,11 @@ export default function SupportPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full" />
+      <div className="min-h-screen bg-gray-50 pt-14">
+        <Header showBackButton title="Support" />
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 3.5rem)' }}>
+          <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full" />
+        </div>
       </div>
     )
   }

@@ -8,9 +8,9 @@ export const themes: Record<ThemeId, Theme> = {
     eyeComponent: 'DefaultEye',
     jVariant: 'default',
     colors: {
-      primary: '#00FFFF',
-      secondary: '#0080FF',
-      glow: 'rgba(0, 255, 255, 0.5)',
+      primary: '#C8D7EB',
+      secondary: '#8BA4C4',
+      glow: 'rgba(200, 215, 235, 0.5)',
     },
     idleAnimation: 'doodle-idle-pulse',
     clickAnimation: 'doodle-click-spin',
