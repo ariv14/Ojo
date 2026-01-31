@@ -586,11 +586,11 @@ export default function ProfilePage() {
 
           {/* Follow, Chat and Report Buttons (other profiles only) */}
           {!isOwnProfile && (
-            <div className="flex gap-3 mt-6 w-full px-4">
+            <div className="flex items-center justify-center w-full gap-3 px-4 mt-6">
               <button
                 onClick={handleFollowToggle}
                 disabled={isFollowLoading}
-                className={`flex-1 py-2 rounded-full font-medium transition disabled:opacity-50 ${
+                className={`flex-1 h-10 rounded-lg font-medium text-sm flex items-center justify-center transition disabled:opacity-50 ${
                   isFollowing
                     ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     : 'bg-black text-white hover:bg-gray-800'
@@ -598,12 +598,12 @@ export default function ProfilePage() {
               >
                 {isFollowLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
               </button>
-              <div className="flex-1 py-2 bg-gray-100 text-gray-900 rounded-full font-medium text-center hover:bg-gray-200 transition">
+              <div className="flex-1 h-10 bg-black text-white rounded-lg font-medium text-sm flex items-center justify-center transition hover:bg-gray-800">
                 <ChatButton targetUserAddress={profileId} />
               </div>
               <button
                 onClick={() => setShowReportModal(true)}
-                className="py-2 px-4 bg-gray-100 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition"
+                className="h-10 w-10 shrink-0 bg-gray-50 text-gray-600 rounded-lg flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition"
                 title="Report user"
               >
                 <AlertTriangle className="w-5 h-5" />
