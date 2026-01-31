@@ -30,15 +30,19 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 animated-gradient-header backdrop-blur-xl text-white z-40 border-b border-white/10">
-      <div className="w-full md:max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 animated-gradient-header backdrop-blur-xl text-white z-40">
+      {/* Top highlight edge for depth */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      {/* Bottom border with gradient */}
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="relative z-10 w-full md:max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {showBackButton && (
             <button
               onClick={handleBack}
-              className="-ml-1.5 p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+              className="-ml-1.5 p-2 rounded-full text-white/80 hover:text-white bg-white/5 hover:bg-white/15 active:scale-92 border border-white/10 hover:border-white/20 transition-all duration-150"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
           )}
           {isFeedPage ? (
@@ -52,7 +56,7 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
           )}
         </div>
         {rightContent && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {rightContent}
           </div>
         )}

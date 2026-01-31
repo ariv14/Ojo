@@ -137,6 +137,12 @@ input, textarea {
   .animate-shimmer {
     animation: none;
   }
+  .animated-gradient-header::before,
+  .animated-gradient-header::after,
+  .notification-dot,
+  .post-btn-shimmer::after {
+    animation: none;
+  }
 }
 
 /* Animated gradient for headers */
@@ -154,31 +160,118 @@ input, textarea {
 
 .animated-gradient-header {
   background: linear-gradient(
-    90deg,
-    #1e1b4b,  /* deep indigo */
-    #312e81,  /* indigo */
-    #4c1d95,  /* violet */
-    #701a75,  /* fuchsia/magenta */
-    #4c1d95,  /* violet */
-    #312e81,  /* indigo */
-    #1e1b4b   /* deep indigo */
+    135deg,
+    #0f0a2e,  /* near-black indigo */
+    #1a1550,  /* deep indigo */
+    #2d1b69,  /* rich violet */
+    #4a1970,  /* vivid purple */
+    #6b1d6e,  /* magenta edge */
+    #4a1970,  /* vivid purple */
+    #2d1b69,  /* rich violet */
+    #1a1550,  /* deep indigo */
+    #0f0a2e   /* near-black indigo */
   );
-  background-size: 300% 100%;
-  animation: gradient-shift 16s ease infinite;
+  background-size: 400% 100%;
+  animation: gradient-shift 20s ease infinite;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Standardized header icon button */
+/* Animated light streak that sweeps across the header */
+.animated-gradient-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: header-light-streak 6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Soft aurora glow bleeding from bottom edge */
+.animated-gradient-header::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 10%;
+  right: 10%;
+  height: 16px;
+  background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, rgba(168, 85, 247, 0.15) 40%, transparent 70%);
+  filter: blur(8px);
+  animation: header-aurora-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes header-light-streak {
+  0%, 100% { background-position: 200% 0; }
+  50% { background-position: -200% 0; }
+}
+
+@keyframes header-aurora-pulse {
+  0%, 100% { opacity: 0.6; transform: scaleX(0.8); }
+  50% { opacity: 1; transform: scaleX(1); }
+}
+
+/* Standardized header icon button — glass pill */
 .header-icon-btn {
-  padding: 0.625rem;
+  padding: 0.5rem;
   border-radius: 9999px;
-  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms;
 }
 .header-icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 .header-icon-btn:active {
   background-color: rgba(255, 255, 255, 0.2);
-  transform: scale(0.95);
+  transform: scale(0.92);
+}
+
+/* Notification dot with glow */
+.notification-dot {
+  animation: notification-glow 2s ease-in-out infinite;
+}
+@keyframes notification-glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 8px 3px rgba(239, 68, 68, 0.8); }
+}
+
+/* Post button shimmer effect */
+.post-btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.post-btn-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.4) 45%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.4) 55%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  animation: post-btn-shine 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes post-btn-shine {
+  0%, 70%, 100% { background-position: 250% 0; }
+  35% { background-position: -250% 0; }
 }
 
 /* OJO Logo Cybernetic Animations */
