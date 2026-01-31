@@ -174,7 +174,6 @@ input, textarea {
   background-size: 400% 100%;
   animation: gradient-shift 20s ease infinite;
   position: relative;
-  overflow: hidden;
 }
 
 /* Animated light streak that sweeps across the header */

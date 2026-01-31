@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, HelpCircle, Plus } from 'lucide-react'
+import { HelpCircle, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import Header from '@/components/Header'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
@@ -155,19 +156,12 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b shadow-[var(--shadow-xs)]">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-lg font-semibold tracking-tight">Support</h1>
-          </div>
+    <div className="min-h-screen bg-gray-50 pt-14">
+      <Header
+        showBackButton
+        onBack={() => router.back()}
+        title="Support"
+        rightContent={
           <Button
             size="sm"
             onClick={() => setShowNewTicket(true)}
@@ -175,8 +169,8 @@ export default function SupportPage() {
           >
             New Ticket
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tickets List */}
       <div className="w-full md:max-w-2xl mx-auto p-4">

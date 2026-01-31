@@ -8,7 +8,8 @@ import ChatButton from '@/components/ChatButton'
 import UserAvatar from '@/components/UserAvatar'
 import { SkeletonUserRow } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
-import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
+import { ChevronRight, Users } from 'lucide-react'
+import Header from '@/components/Header'
 
 interface Follower {
   nullifier_hash: string
@@ -87,17 +88,8 @@ export default function FollowersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white border-b">
-          <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
-            <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-900">
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold">Followers</h1>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 pt-14">
+        <Header showBackButton onBack={() => router.back()} title="Followers" />
         <div className="w-full md:max-w-2xl mx-auto bg-white">
           <div className="divide-y">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -110,22 +102,8 @@ export default function FollowersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h1 className="text-lg font-semibold">Followers</h1>
-            <p className="text-sm text-gray-500">{profileName}</p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 pt-14">
+      <Header showBackButton onBack={() => router.back()} title={`Followers${profileName ? ` · ${profileName}` : ''}`} />
 
       {/* Followers List */}
       <div className="w-full md:max-w-2xl mx-auto bg-white">

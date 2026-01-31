@@ -491,10 +491,10 @@ export default function ProfilePage() {
         rightContent={
           <button
             onClick={handleShareProfile}
-            className="text-white/80 hover:text-white"
+            className="header-icon-btn"
             title="Share profile"
           >
-            <Share2 className="w-6 h-6" />
+            <Share2 className="w-[18px] h-[18px]" />
           </button>
         }
       />

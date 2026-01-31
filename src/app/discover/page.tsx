@@ -382,7 +382,7 @@ export default function DiscoverPage() {
         rightContent={
           <button
             onClick={handleInviteFriends}
-            className="flex items-center gap-1 px-3 py-1.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition"
+            className="flex items-center gap-1 px-3 py-1.5 bg-white/10 text-white text-sm font-medium rounded-full border border-white/15 hover:bg-white/20 active:scale-95 transition-all"
           >
             <UserPlus className="w-4 h-4" />
             Invite

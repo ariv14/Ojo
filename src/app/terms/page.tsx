@@ -2,25 +2,14 @@
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import Header from '@/components/Header'
 
 export default function TermsOfServicePage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b shadow-[var(--shadow-xs)] sticky top-0 z-10">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-lg font-semibold tracking-tight">Terms of Service</h1>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 pt-14">
+      <Header showBackButton onBack={() => router.back()} title="Terms of Service" />
 
       {/* Content */}
       <div className="w-full md:max-w-2xl mx-auto p-4">

@@ -8,7 +8,8 @@ import { ensureWalletConnected } from '@/lib/wallet'
 import { MiniKit, tokenToDecimals, Tokens, PayCommandInput } from '@worldcoin/minikit-js'
 import { isLegacySupabaseUrl, resolveImageUrl } from '@/lib/s3'
 import { compressImage } from '@/utils/compress'
-import { ChevronLeft, Camera, ChevronRight, Shield, Eye, Wallet, HelpCircle, Trash2 } from 'lucide-react'
+import { Camera, ChevronRight, Shield, Eye, Wallet, HelpCircle, Trash2 } from 'lucide-react'
+import Header from '@/components/Header'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 
@@ -409,20 +410,8 @@ export default function EditProfilePage() {
   const displayAvatar = avatarPreview || resolveImageUrl(currentAvatarUrl)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900 transition"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-lg font-semibold">Edit Profile</h1>
-          <div className="w-6" />
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 pt-14">
+      <Header showBackButton onBack={() => router.back()} title="Edit Profile" />
 
       {/* Form */}
       <div className="w-full md:max-w-2xl mx-auto px-4 py-6">

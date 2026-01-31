@@ -510,9 +510,9 @@ export default function ChatPage() {
           <div className="relative">
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="text-white/80 hover:text-white p-1"
+              className="header-icon-btn"
             >
-              <MoreVertical className="w-6 h-6" />
+              <MoreVertical className="w-[18px] h-[18px]" />
             </button>
 
             {showSettings && (
