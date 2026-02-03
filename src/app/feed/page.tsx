@@ -25,7 +25,7 @@ import Logo from '@/components/Logo'
 import Header from '@/components/Header'
 import ReshareButton from '@/components/ReshareButton'
 import CommentSection from '@/components/CommentSection'
-import { Search, MessageCircle, Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock } from 'lucide-react'
+import { Search, MessageCircle, Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock, Gift } from 'lucide-react'
 import { SkeletonPost } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -1411,6 +1411,13 @@ function FeedContent() {
         isFeedPage={true}
         rightContent={
           <>
+            <button
+              onClick={() => router.push('/rewards')}
+              className="header-icon-btn"
+              title="Daily Rewards"
+            >
+              <Gift className="w-[18px] h-[18px]" />
+            </button>
             <button
               onClick={() => router.push('/discover')}
               className="header-icon-btn"

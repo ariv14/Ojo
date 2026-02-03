@@ -870,3 +870,168 @@ input, textarea {
     animation: none;
   }
 }
+
+/* ========================================
+   REWARDS PAGE ANIMATIONS
+   ======================================== */
+
+/* Mesh gradient background - aurora effect */
+@keyframes mesh-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.bg-mesh-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--oro-cyan) 0%,
+    #a5f3fc 25%,
+    #ffffff 50%,
+    #c4b5fd 75%,
+    var(--oro-purple-light) 100%
+  );
+  background-size: 400% 400%;
+  animation: mesh-gradient 15s ease infinite;
+}
+
+/* Coin fall animation for reward celebration */
+@keyframes coin-fall {
+  0% {
+    transform: translateY(-100px) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.animate-coin-fall {
+  animation: coin-fall 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Streak flame pulse animation */
+@keyframes flame-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.15);
+    filter: brightness(1.2);
+  }
+}
+
+.animate-flame-pulse {
+  animation: flame-pulse 1.5s ease-in-out infinite;
+}
+
+/* Slide track glow animation */
+@keyframes slide-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+  }
+}
+
+.animate-slide-glow {
+  animation: slide-glow 2s ease-in-out infinite;
+}
+
+/* Success burst animation */
+@keyframes success-burst {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-success-burst {
+  animation: success-burst 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Timer digit tick animation */
+@keyframes timer-tick {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-timer-tick {
+  animation: timer-tick 0.3s ease-out;
+}
+
+/* Balance number count up glow */
+@keyframes balance-glow {
+  0% {
+    text-shadow: 0 0 10px var(--oro-orange);
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
+.animate-balance-glow {
+  animation: balance-glow 1s ease-out forwards;
+}
+
+/* Coin shimmer effect */
+@keyframes coin-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-coin-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--oro-orange) 0%,
+    var(--oro-orange-light) 50%,
+    var(--oro-orange) 100%
+  );
+  background-size: 200% 100%;
+  animation: coin-shimmer 2s linear infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Reduced motion support for rewards animations */
+@media (prefers-reduced-motion: reduce) {
+  .bg-mesh-gradient {
+    animation: none;
+    background-position: 50% 50%;
+  }
+
+  .animate-coin-fall,
+  .animate-flame-pulse,
+  .animate-slide-glow,
+  .animate-success-burst,
+  .animate-timer-tick,
+  .animate-balance-glow,
+  .animate-coin-shimmer {
+    animation: none;
+  }
+}
