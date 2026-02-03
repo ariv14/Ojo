@@ -39,12 +39,18 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-indigo-50 px-4">
-      <div className="w-full max-w-md text-center animate-fade-in-up">
-        <h1 className="mb-2 flex items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--gradient-subtle)] px-4 relative overflow-hidden">
+      {/* Subtle background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-1/2 -right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-violet-200/30 to-transparent blur-3xl" />
+        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-rose-200/20 to-transparent blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-md text-center animate-fade-in-up relative z-10">
+        <h1 className="mb-2 flex items-center justify-center animate-subtle-float">
           <DoodleLogo size="lg" />
         </h1>
-        <p className="text-lg font-semibold mb-8 bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent">
+        <p className="text-lg font-semibold mb-8 text-gradient-brand-animated">
           Keep an eye on what is real
         </p>
 
@@ -55,7 +61,7 @@ function HomeContent() {
             </p>
             <button
               onClick={() => router.push('/feed')}
-              className="bg-black text-white px-6 py-3 rounded-full font-medium hover:bg-gray-800 transition"
+              className="btn-brand px-6 py-3 rounded-full font-medium"
             >
               Go to Feed
             </button>
@@ -66,22 +72,28 @@ function HomeContent() {
 
         {/* Feature highlight cards */}
         <div className="mt-10 grid grid-cols-3 gap-3">
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm">
-            <Shield className="w-6 h-6 mx-auto mb-2 text-indigo-600" />
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '0ms' }}>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-violet-100 to-violet-50 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-violet-600" />
+            </div>
             <h3 className="text-xs font-semibold text-gray-800 mb-1">Verified Humans</h3>
             <p className="text-[10px] leading-tight text-gray-500">
               Every user is Orb-verified unique human
             </p>
           </div>
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm">
-            <Lock className="w-6 h-6 mx-auto mb-2 text-fuchsia-600" />
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '100ms' }}>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-rose-100 to-rose-50 flex items-center justify-center">
+              <Lock className="w-5 h-5 text-rose-500" />
+            </div>
             <h3 className="text-xs font-semibold text-gray-800 mb-1">Premium Content</h3>
             <p className="text-[10px] leading-tight text-gray-500">
               Unlock exclusive content with WLD
             </p>
           </div>
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm">
-            <Coins className="w-6 h-6 mx-auto mb-2 text-amber-500" />
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '200ms' }}>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
+              <Coins className="w-5 h-5 text-amber-500" />
+            </div>
             <h3 className="text-xs font-semibold text-gray-800 mb-1">WLD Payments</h3>
             <p className="text-[10px] leading-tight text-gray-500">
               Send tips and earn from your content

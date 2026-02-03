@@ -500,11 +500,13 @@ export default function ProfilePage() {
       />
 
       {/* Profile Info */}
-      <div className="bg-white border-b">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-6">
+      <div className="bg-white border-b relative overflow-hidden">
+        {/* Gradient hero background */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-violet-100 via-violet-50 to-rose-50" />
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-6 relative">
           <div className="flex flex-col items-center">
           {/* Avatar */}
-          <div className="mb-4">
+          <div className="mb-4 mt-4">
             <UserAvatar
               avatarUrl={user.avatar_url}
               username={user.username || user.first_name}
@@ -543,24 +545,20 @@ export default function ProfilePage() {
           <p className="text-gray-400 text-sm mt-1">Joined {joinDate}</p>
 
           {/* Stats */}
-          <div className="flex flex-row justify-center gap-8 py-6 w-full">
-            <div className="text-center">
+          <div className="flex flex-row justify-center gap-3 py-6 w-full px-4">
+            <div className="flex-1 text-center py-3 rounded-xl bg-gradient-to-br from-gray-50 to-white shadow-[var(--shadow-xs)]">
               <p className="text-2xl font-bold text-gray-900">{viewCount}</p>
-              <p className="text-sm font-medium text-gray-500">Views</p>
+              <p className="text-xs font-medium text-gray-500">Views</p>
             </div>
-            <div className="h-8 w-px bg-gray-200 self-center" />
-            <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{followerCount}</p>
-              <p className="text-sm font-medium text-gray-500">Followers</p>
+            <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="flex-1 text-center py-3 rounded-xl bg-gradient-to-br from-violet-50 to-white shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)] transition-shadow">
+              <p className="text-2xl font-bold text-violet-600">{followerCount}</p>
+              <p className="text-xs font-medium text-gray-500">Followers</p>
             </button>
             {isOwnProfile && (
-              <>
-                <div className="h-8 w-px bg-gray-200 self-center" />
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-amber-600">{tipsEarned.toFixed(1)}</p>
-                  <p className="text-sm font-medium text-gray-500">WLD Earned</p>
-                </div>
-              </>
+              <div className="flex-1 text-center py-3 rounded-xl bg-gradient-to-br from-amber-50 to-white shadow-[var(--shadow-xs)]">
+                <p className="text-2xl font-bold text-amber-600">{tipsEarned.toFixed(1)}</p>
+                <p className="text-xs font-medium text-gray-500">WLD Earned</p>
+              </div>
             )}
           </div>
 
@@ -590,15 +588,15 @@ export default function ProfilePage() {
               <button
                 onClick={handleFollowToggle}
                 disabled={isFollowLoading}
-                className={`flex-1 h-10 rounded-lg font-medium text-sm flex items-center justify-center transition disabled:opacity-50 ${
+                className={`flex-1 h-10 rounded-lg font-medium text-sm flex items-center justify-center transition-all disabled:opacity-50 active:scale-95 ${
                   isFollowing
                     ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                    : 'bg-black text-white hover:bg-gray-800'
+                    : 'btn-brand'
                 }`}
               >
                 {isFollowLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
               </button>
-              <div className="flex-1 h-10 bg-black text-white rounded-lg font-medium text-sm flex items-center justify-center transition hover:bg-gray-800">
+              <div className="flex-1 h-10 bg-gray-900 text-white rounded-lg font-medium text-sm flex items-center justify-center transition hover:bg-gray-800">
                 <ChatButton targetUserAddress={profileId} />
               </div>
               <button

@@ -41,15 +41,19 @@ export default function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/50 to-violet-900/30 backdrop-blur-sm"
             onClick={closeOnBackdrop ? onClose : undefined}
           />
           {/* Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            transition={{
+              duration: 0.3,
+              ease: [0.34, 1.56, 0.64, 1],
+              opacity: { duration: 0.2 }
+            }}
             className={cn(
               'relative w-full max-w-sm bg-white rounded-2xl shadow-[var(--shadow-xl)] overflow-hidden',
               className,

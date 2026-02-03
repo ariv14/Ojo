@@ -207,7 +207,7 @@ export default function InboxPage() {
             <button
               key={chat.connection_id}
               onClick={() => router.push(`/chat/${chat.connection_id}`)}
-              className="w-full px-4 py-3 flex items-center gap-3 bg-white border-b border-gray-100 hover:bg-gray-50 transition text-left"
+              className="w-full px-4 py-3 flex items-center gap-3 bg-white border-b border-gray-100 hover:bg-violet-50/50 transition text-left"
             >
               <UserAvatar
                 username={displayName}

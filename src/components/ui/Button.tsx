@@ -7,10 +7,12 @@ import { cn } from '@/lib/utils'
 
 const variants = {
   primary: 'bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-950',
-  secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-250',
+  secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300',
   outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100',
   ghost: 'text-gray-600 hover:bg-gray-100 active:bg-gray-200',
   danger: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700',
+  brand: 'btn-brand text-white',
+  accent: 'btn-accent text-white',
 }
 
 const sizes = {
@@ -34,7 +36,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         whileTap={{ scale: 0.98 }}
         className={cn(
-          'inline-flex items-center justify-center font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
+          'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
           variants[variant],
           sizes[size],
           className,

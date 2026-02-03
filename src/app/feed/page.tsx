@@ -1383,7 +1383,7 @@ function FeedContent() {
         style={{ transform: 'translateY(-40px)' }}
       >
         {isRefreshing ? (
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
         ) : pullDistance > 0 && (
           <div className={`transition-transform ${pullDistance >= PULL_THRESHOLD ? 'text-black' : 'text-gray-400'}`}>
             <ArrowDown className={`w-6 h-6 transition-transform ${pullDistance >= PULL_THRESHOLD ? 'rotate-180' : ''}`} />
@@ -1399,7 +1399,7 @@ function FeedContent() {
             fetchPosts(currentSession!)
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg z-30 flex items-center gap-2 hover:bg-blue-600 transition-colors"
+          className="fixed top-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-500 to-violet-600 text-white px-4 py-2 rounded-full shadow-[var(--shadow-brand-md)] z-30 flex items-center gap-2 hover:from-violet-600 hover:to-violet-700 transition-all animate-bounce-in"
         >
           <ArrowUp className="w-4 h-4" />
           {newPostCount} new {newPostCount === 1 ? 'post' : 'posts'}
@@ -1443,12 +1443,12 @@ function FeedContent() {
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="post-btn-shimmer bg-black text-white px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 active:scale-92 transition-transform"
+              className="post-btn-shimmer text-white px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               Post
             </button>
-            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-slate-300 via-sky-300 to-white">
+            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-violet-300 via-violet-400 to-violet-500">
               <div className="rounded-full p-[1px] bg-white">
                 <UserAvatar
                   avatarUrl={currentSession?.avatar_url}
@@ -1549,7 +1549,7 @@ function FeedContent() {
             const effectiveUsers = isReshare ? post.original!.users : post.users
 
             return (
-            <article key={post.id} id={`post-${post.id}`} className="bg-white border-b border-gray-200">
+            <article key={post.id} id={`post-${post.id}`} className="bg-white border-b border-gray-100 shadow-[var(--shadow-xs)]">
               {/* Reshare Header */}
               {isReshare && (
                 <div className="px-4 pt-2 pb-1 flex items-center gap-2 text-gray-500 text-sm">
@@ -1740,17 +1740,17 @@ function FeedContent() {
               <div className="flex items-center gap-4 px-4 py-2">
                 <button
                   onClick={() => handleVote(post.id, effectivePostId, 'like')}
-                  className={`flex items-center gap-1 transition ${
-                    post.user_vote === 'like' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
+                  className={`flex items-center gap-1 transition-all active:scale-90 ${
+                    post.user_vote === 'like' ? 'text-violet-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  <ThumbsUp className="w-6 h-6" fill={post.user_vote === 'like' ? 'currentColor' : 'none'} />
+                  <ThumbsUp className={`w-6 h-6 ${post.user_vote === 'like' ? 'animate-heart-pop' : ''}`} fill={post.user_vote === 'like' ? 'currentColor' : 'none'} />
                   <span className="text-sm font-medium">{post.like_count}</span>
                 </button>
                 <button
                   onClick={() => handleVote(post.id, effectivePostId, 'dislike')}
-                  className={`flex items-center gap-1 transition ${
-                    post.user_vote === 'dislike' ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
+                  className={`flex items-center gap-1 transition-all active:scale-90 ${
+                    post.user_vote === 'dislike' ? 'text-rose-500' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   <ThumbsDown className="w-6 h-6" fill={post.user_vote === 'dislike' ? 'currentColor' : 'none'} />
@@ -1914,7 +1914,7 @@ function FeedContent() {
             <div className="flex justify-center py-4">
               {isLoadingMore ? (
                 <div className="flex items-center gap-2 text-gray-500">
-                  <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
                   <span>Loading more posts...</span>
                 </div>
               ) : (

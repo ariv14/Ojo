@@ -2,9 +2,10 @@ import { type HTMLAttributes, forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 
 const cardVariants = {
-  default: 'bg-white border border-gray-100 shadow-[var(--shadow-xs)]',
+  default: 'bg-white shadow-[var(--shadow-card)]',
   elevated: 'bg-white shadow-[var(--shadow-md)]',
-  interactive: 'bg-white border border-gray-100 shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-md)] transition-shadow duration-200 cursor-pointer',
+  interactive: 'bg-white shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer',
+  featured: 'bg-gradient-to-br from-violet-50 to-white shadow-[var(--shadow-card)] border border-violet-100',
 }
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {

@@ -383,7 +383,7 @@ export default function DiscoverPage() {
           <button
             onClick={handleInviteFriends}
             title="Invite and earn"
-            className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-sm font-medium rounded-full border border-gray-800 hover:bg-gray-800 active:scale-95 transition-all"
+            className="btn-accent flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full active:scale-95"
           >
             <UserPlus className="w-4 h-4" />
             Invite
@@ -412,7 +412,7 @@ export default function DiscoverPage() {
             {/* Progress bar */}
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-amber-500 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-violet-500 to-rose-500 transition-all duration-300"
                 style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
               />
             </div>
@@ -478,10 +478,10 @@ export default function DiscoverPage() {
               <button
                 onClick={() => handleFollowToggle(user.nullifier_hash)}
                 disabled={processingUserId === user.nullifier_hash}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition disabled:opacity-50 ${
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 active:scale-95 ${
                   followingSet.has(user.nullifier_hash)
                     ? 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                    : 'bg-black text-white hover:bg-gray-800'
+                    : 'btn-brand'
                 }`}
               >
                 {processingUserId === user.nullifier_hash
