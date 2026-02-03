@@ -501,8 +501,8 @@ export default function ProfilePage() {
 
       {/* Profile Info */}
       <div className="bg-white border-b relative overflow-hidden">
-        {/* Gradient hero background */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-violet-100 via-violet-50 to-rose-50" />
+        {/* Vibrant ORO gradient hero background */}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-br from-[var(--oro-cyan)]/30 via-[var(--oro-purple)]/20 to-[var(--oro-orange)]/30" />
         <div className="w-full md:max-w-2xl mx-auto px-4 py-6 relative">
           <div className="flex flex-col items-center">
           {/* Avatar */}
@@ -544,19 +544,19 @@ export default function ProfilePage() {
           {/* Join Date */}
           <p className="text-gray-400 text-sm mt-1">Joined {joinDate}</p>
 
-          {/* Stats */}
+          {/* Stats - ORO cream cards */}
           <div className="flex flex-row justify-center gap-3 py-6 w-full px-4">
-            <div className="flex-1 text-center py-3 rounded-xl bg-gradient-to-br from-gray-50 to-white shadow-[var(--shadow-xs)]">
+            <div className="flex-1 text-center py-3 rounded-2xl bg-[var(--oro-cream)] shadow-[var(--shadow-oro-card)]">
               <p className="text-2xl font-bold text-gray-900">{viewCount}</p>
               <p className="text-xs font-medium text-gray-500">Views</p>
             </div>
-            <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="flex-1 text-center py-3 rounded-xl bg-gradient-to-br from-violet-50 to-white shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)] transition-shadow">
-              <p className="text-2xl font-bold text-violet-600">{followerCount}</p>
+            <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="flex-1 text-center py-3 rounded-2xl bg-[var(--oro-cream)] shadow-[var(--shadow-oro-card)] hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] transition-shadow">
+              <p className="text-2xl font-bold text-[var(--oro-cyan)]">{followerCount}</p>
               <p className="text-xs font-medium text-gray-500">Followers</p>
             </button>
             {isOwnProfile && (
-              <div className="flex-1 text-center py-3 rounded-xl bg-gradient-to-br from-amber-50 to-white shadow-[var(--shadow-xs)]">
-                <p className="text-2xl font-bold text-amber-600">{tipsEarned.toFixed(1)}</p>
+              <div className="flex-1 text-center py-3 rounded-2xl bg-[var(--oro-cream)] shadow-[var(--shadow-oro-card)]">
+                <p className="text-2xl font-bold text-[var(--oro-orange)]">{tipsEarned.toFixed(1)}</p>
                 <p className="text-xs font-medium text-gray-500">WLD Earned</p>
               </div>
             )}
@@ -588,20 +588,20 @@ export default function ProfilePage() {
               <button
                 onClick={handleFollowToggle}
                 disabled={isFollowLoading}
-                className={`flex-1 h-10 rounded-lg font-medium text-sm flex items-center justify-center transition-all disabled:opacity-50 active:scale-95 ${
+                className={`flex-1 h-10 rounded-full font-medium text-sm flex items-center justify-center transition-all disabled:opacity-50 active:scale-95 ${
                   isFollowing
                     ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                    : 'btn-brand'
+                    : 'btn-oro-3d'
                 }`}
               >
                 {isFollowLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
               </button>
-              <div className="flex-1 h-10 bg-gray-900 text-white rounded-lg font-medium text-sm flex items-center justify-center transition hover:bg-gray-800">
+              <div className="flex-1 h-10 bg-gray-900 text-white rounded-full font-medium text-sm flex items-center justify-center transition hover:bg-gray-800">
                 <ChatButton targetUserAddress={profileId} />
               </div>
               <button
                 onClick={() => setShowReportModal(true)}
-                className="h-10 w-10 shrink-0 bg-gray-50 text-gray-600 rounded-lg flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition"
+                className="h-10 w-10 shrink-0 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition"
                 title="Report user"
               >
                 <AlertTriangle className="w-5 h-5" />

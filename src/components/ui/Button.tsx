@@ -13,6 +13,8 @@ const variants = {
   danger: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700',
   brand: 'btn-brand text-white',
   accent: 'btn-accent text-white',
+  oro: 'btn-oro-3d text-white',
+  oroCyan: 'btn-oro-cyan text-white',
 }
 
 const sizes = {

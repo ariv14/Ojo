@@ -383,7 +383,7 @@ export default function DiscoverPage() {
           <button
             onClick={handleInviteFriends}
             title="Invite and earn"
-            className="btn-accent flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full active:scale-95"
+            className="btn-oro-3d flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full active:scale-95"
           >
             <UserPlus className="w-4 h-4" />
             Invite
@@ -409,10 +409,10 @@ export default function DiscoverPage() {
                 <p className="text-xs text-gray-500">until 1 WLD bonus</p>
               </div>
             </div>
-            {/* Progress bar */}
+            {/* Progress bar - ORO gradient */}
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-violet-500 to-rose-500 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-[var(--oro-cyan)] via-[var(--oro-purple)] to-[var(--oro-orange)] transition-all duration-300"
                 style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
               />
             </div>
@@ -481,7 +481,7 @@ export default function DiscoverPage() {
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 active:scale-95 ${
                   followingSet.has(user.nullifier_hash)
                     ? 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                    : 'btn-brand'
+                    : 'btn-oro-3d'
                 }`}
               >
                 {processingUserId === user.nullifier_hash

@@ -173,7 +173,7 @@ export default function LoginButton() {
     <button
       onClick={handleVerify}
       disabled={isLoading}
-      className="btn-brand px-8 py-3.5 rounded-full font-semibold disabled:opacity-50 transition-all duration-150 flex items-center gap-2.5 mx-auto animate-glow-pulse"
+      className="btn-oro-3d px-8 py-3.5 rounded-full font-semibold disabled:opacity-50 transition-all duration-150 flex items-center gap-2.5 mx-auto"
     >
       {isLoading && (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">

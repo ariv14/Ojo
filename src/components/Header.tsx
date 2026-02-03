@@ -31,26 +31,26 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
   }
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-[var(--shadow-xs)]">
+    <header className="sticky top-0 left-0 right-0 z-40 bg-black shadow-lg">
       <div className="relative z-10 w-full md:max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           {showBackButton && (
             <button
               onClick={handleBack}
-              className="shrink-0 -ml-1.5 p-2 rounded-full text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 active:scale-92 border-0 transition-all duration-150"
+              className="shrink-0 -ml-1.5 p-2 rounded-full text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 active:scale-92 border-0 transition-all duration-150"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
           )}
           {title ? (
-            <h1 className="text-base font-semibold tracking-tight truncate text-gray-900">{title}</h1>
+            <h1 className="text-base font-semibold tracking-tight truncate text-white">{title}</h1>
           ) : isFeedPage ? (
             <div className="flex items-center">
-              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain" />
+              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain brightness-0 invert" />
             </div>
           ) : (
             <button onClick={handleLogoClick} className="flex items-center">
-              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain" />
+              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain brightness-0 invert" />
             </button>
           )}
         </div>
@@ -60,6 +60,8 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
           </div>
         )}
       </div>
+      {/* Accent gradient bar */}
+      <div className="h-0.5 bg-gradient-to-r from-[var(--oro-cyan)] via-[var(--oro-purple)] to-[var(--oro-orange)]" />
     </header>
   )
 }

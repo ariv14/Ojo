@@ -31,12 +31,30 @@
   --success-500: #22c55e;
   --success-600: #16a34a;
 
+  /* ORO-inspired Colors */
+  --oro-cyan: #00d4ff;
+  --oro-cyan-light: #4dd0e1;
+  --oro-turquoise: #00b8d4;
+  --oro-orange: #ff9800;
+  --oro-orange-light: #ffb74d;
+  --oro-purple: #7c4dff;
+  --oro-purple-light: #9c7cff;
+  --oro-purple-dark: #651fff;
+  --oro-cream: #fefdf9;
+  --oro-cream-warm: #fef9f3;
+
   /* Gradients */
   --gradient-brand: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   --gradient-brand-hover: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
   --gradient-accent: linear-gradient(135deg, #f43f5e 0%, #8b5cf6 100%);
   --gradient-subtle: linear-gradient(135deg, #f8f7ff 0%, #f0f9ff 50%, #fdf4ff 100%);
   --gradient-glow: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.1) 100%);
+
+  /* ORO Gradients */
+  --gradient-oro-cyan: linear-gradient(180deg, #00d4ff 0%, #00b8d4 50%, #4dd0e1 100%);
+  --gradient-oro-orange: linear-gradient(180deg, #ff9800 0%, #ffb74d 100%);
+  --gradient-oro-button: linear-gradient(180deg, #9c7cff 0%, #7c4dff 50%, #651fff 100%);
+  --gradient-oro-hero: linear-gradient(135deg, #00d4ff 0%, #00b8d4 40%, #ff9800 100%);
 
   /* Shadow scale */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
@@ -52,12 +70,18 @@
   --shadow-card: 0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-card-hover: 0 8px 20px -4px rgba(0,0,0,0.12), 0 4px 8px -2px rgba(0,0,0,0.06);
 
+  /* ORO Shadows */
+  --shadow-oro-glow: 0 0 30px -5px rgba(0, 212, 255, 0.4);
+  --shadow-oro-card: 0 8px 32px -8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255,255,255,0.8) inset;
+  --shadow-oro-button: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.2), 0 4px 12px rgba(124, 77, 255, 0.4);
+
   /* Radius tokens */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --radius-2xl: 1.25rem;
+  --radius-3xl: 1.5rem;
   --radius-full: 9999px;
   /* Transition tokens */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -297,20 +321,20 @@ input, textarea {
   }
 }
 
-/* Standardized header icon button */
+/* Standardized header icon button - dark theme */
 .header-icon-btn {
   padding: 0.5rem;
   border-radius: 9999px;
-  color: #374151;
-  background-color: #f3f4f6;
+  color: #d1d5db;
+  background-color: #374151;
   transition: background-color 150ms, transform 150ms, color 150ms;
 }
 .header-icon-btn:hover {
-  background-color: #ede9fe;
-  color: #6d28d9;
+  background-color: #4b5563;
+  color: #ffffff;
 }
 .header-icon-btn:active {
-  background-color: #ddd6fe;
+  background-color: #6b7280;
   transform: scale(0.92);
 }
 
@@ -380,6 +404,101 @@ input, textarea {
 }
 .btn-accent:active {
   transform: scale(0.98);
+}
+
+/* ORO 3D Button - Premium depth effect */
+.btn-oro-3d {
+  background: var(--gradient-oro-button);
+  color: white;
+  font-weight: 600;
+  border-radius: 9999px;
+  box-shadow: var(--shadow-oro-button);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+.btn-oro-3d::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  pointer-events: none;
+}
+.btn-oro-3d:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 0 rgba(0,0,0,0.25), 0 6px 16px rgba(124, 77, 255, 0.5);
+}
+.btn-oro-3d:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), inset 0 2px 4px rgba(0,0,0,0.2), 0 2px 8px rgba(124, 77, 255, 0.3);
+}
+
+/* ORO Cyan Button variant */
+.btn-oro-cyan {
+  background: linear-gradient(180deg, #4dd0e1 0%, #00d4ff 50%, #00b8d4 100%);
+  color: white;
+  font-weight: 600;
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.15), 0 4px 12px rgba(0, 212, 255, 0.35);
+  transition: all var(--transition-base);
+}
+.btn-oro-cyan:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 0 rgba(0,0,0,0.2), 0 6px 16px rgba(0, 212, 255, 0.45);
+}
+
+/* ORO Card styles */
+.card-oro {
+  background: var(--oro-cream);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-oro-card);
+}
+.card-oro-warm {
+  background: var(--oro-cream-warm);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-oro-card);
+}
+
+/* ORO Wave Background */
+.bg-oro-waves {
+  background: var(--gradient-oro-cyan);
+  position: relative;
+}
+.bg-oro-waves::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,60 C200,90 400,30 600,60 C800,90 1000,30 1200,60 L1200,120 L0,120 Z' fill='rgba(255,255,255,0.1)'/%3E%3C/svg%3E");
+  background-size: 100% 80px;
+  background-repeat: repeat-x;
+  background-position: bottom;
+  pointer-events: none;
+}
+
+/* ORO Glow effect for interactive elements */
+.glow-oro {
+  box-shadow: var(--shadow-oro-glow);
+}
+.glow-oro-hover:hover {
+  box-shadow: 0 0 40px -5px rgba(0, 212, 255, 0.5);
+}
+
+/* ORO Gradient text */
+.text-gradient-oro {
+  background: linear-gradient(135deg, var(--oro-cyan) 0%, var(--oro-purple) 50%, var(--oro-orange) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-oro-animated {
+  background: linear-gradient(135deg, var(--oro-cyan) 0%, var(--oro-purple) 50%, var(--oro-orange) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
 }
 
 /* OJO Logo Cybernetic Animations */

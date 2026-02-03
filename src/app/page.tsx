@@ -39,18 +39,19 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--gradient-subtle)] px-4 relative overflow-hidden">
-      {/* Subtle background decoration */}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-oro-waves px-4 relative overflow-hidden">
+      {/* Vibrant background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-violet-200/30 to-transparent blur-3xl" />
-        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-rose-200/20 to-transparent blur-3xl" />
+        <div className="absolute -top-1/2 -right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-[var(--oro-cyan)]/30 to-transparent blur-3xl" />
+        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-[var(--oro-orange)]/20 to-transparent blur-3xl" />
+        <div className="absolute top-1/3 left-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-br from-[var(--oro-purple)]/20 to-transparent blur-3xl" />
       </div>
 
       <div className="w-full max-w-md text-center animate-fade-in-up relative z-10">
         <h1 className="mb-2 flex items-center justify-center animate-subtle-float">
           <DoodleLogo size="lg" />
         </h1>
-        <p className="text-lg font-semibold mb-8 text-gradient-brand-animated">
+        <p className="text-xl font-bold mb-8 text-gradient-oro-animated">
           Keep an eye on what is real
         </p>
 
@@ -70,31 +71,31 @@ function HomeContent() {
           <LoginButton />
         )}
 
-        {/* Feature highlight cards */}
+        {/* Feature highlight cards - ORO cream style */}
         <div className="mt-10 grid grid-cols-3 gap-3">
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '0ms' }}>
-            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-violet-100 to-violet-50 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-violet-600" />
+          <div className="bg-[var(--oro-cream)] backdrop-blur-md rounded-3xl p-4 shadow-[var(--shadow-oro-card)] hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '0ms' }}>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-[var(--oro-cyan)]/20 to-[var(--oro-cyan)]/5 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-[var(--oro-turquoise)]" />
             </div>
-            <h3 className="text-xs font-semibold text-gray-800 mb-1">Verified Humans</h3>
+            <h3 className="text-xs font-bold text-gray-800 mb-1">Verified Humans</h3>
             <p className="text-[10px] leading-tight text-gray-500">
               Every user is Orb-verified unique human
             </p>
           </div>
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '100ms' }}>
-            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-rose-100 to-rose-50 flex items-center justify-center">
-              <Lock className="w-5 h-5 text-rose-500" />
+          <div className="bg-[var(--oro-cream)] backdrop-blur-md rounded-3xl p-4 shadow-[var(--shadow-oro-card)] hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '100ms' }}>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-[var(--oro-purple)]/20 to-[var(--oro-purple)]/5 flex items-center justify-center">
+              <Lock className="w-5 h-5 text-[var(--oro-purple)]" />
             </div>
-            <h3 className="text-xs font-semibold text-gray-800 mb-1">Premium Content</h3>
+            <h3 className="text-xs font-bold text-gray-800 mb-1">Premium Content</h3>
             <p className="text-[10px] leading-tight text-gray-500">
               Unlock exclusive content with WLD
             </p>
           </div>
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '200ms' }}>
-            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
-              <Coins className="w-5 h-5 text-amber-500" />
+          <div className="bg-[var(--oro-cream)] backdrop-blur-md rounded-3xl p-4 shadow-[var(--shadow-oro-card)] hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-1 transition-all duration-300 animate-bounce-in" style={{ animationDelay: '200ms' }}>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-[var(--oro-orange)]/20 to-[var(--oro-orange)]/5 flex items-center justify-center">
+              <Coins className="w-5 h-5 text-[var(--oro-orange)]" />
             </div>
-            <h3 className="text-xs font-semibold text-gray-800 mb-1">WLD Payments</h3>
+            <h3 className="text-xs font-bold text-gray-800 mb-1">WLD Payments</h3>
             <p className="text-[10px] leading-tight text-gray-500">
               Send tips and earn from your content
             </p>

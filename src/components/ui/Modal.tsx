@@ -41,7 +41,7 @@ export default function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/50 to-violet-900/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/50 to-cyan-900/30 backdrop-blur-sm"
             onClick={closeOnBackdrop ? onClose : undefined}
           />
           {/* Content */}
@@ -55,7 +55,7 @@ export default function Modal({
               opacity: { duration: 0.2 }
             }}
             className={cn(
-              'relative w-full max-w-sm bg-white rounded-2xl shadow-[var(--shadow-xl)] overflow-hidden',
+              'relative w-full max-w-sm bg-[var(--oro-cream)] rounded-3xl shadow-[var(--shadow-xl)] overflow-hidden',
               className,
             )}
           >

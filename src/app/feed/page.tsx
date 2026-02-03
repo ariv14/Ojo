@@ -1383,7 +1383,7 @@ function FeedContent() {
         style={{ transform: 'translateY(-40px)' }}
       >
         {isRefreshing ? (
-          <div className="w-6 h-6 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-cyan-200 border-t-[var(--oro-cyan)] rounded-full animate-spin" />
         ) : pullDistance > 0 && (
           <div className={`transition-transform ${pullDistance >= PULL_THRESHOLD ? 'text-black' : 'text-gray-400'}`}>
             <ArrowDown className={`w-6 h-6 transition-transform ${pullDistance >= PULL_THRESHOLD ? 'rotate-180' : ''}`} />
@@ -1399,7 +1399,7 @@ function FeedContent() {
             fetchPosts(currentSession!)
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-500 to-violet-600 text-white px-4 py-2 rounded-full shadow-[var(--shadow-brand-md)] z-30 flex items-center gap-2 hover:from-violet-600 hover:to-violet-700 transition-all animate-bounce-in"
+          className="fixed top-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--oro-cyan)] to-[var(--oro-turquoise)] text-white px-4 py-2 rounded-full shadow-[0_4px_12px_rgba(0,212,255,0.4)] z-30 flex items-center gap-2 hover:from-[var(--oro-turquoise)] hover:to-[var(--oro-cyan)] transition-all animate-bounce-in"
         >
           <ArrowUp className="w-4 h-4" />
           {newPostCount} new {newPostCount === 1 ? 'post' : 'posts'}
@@ -1443,12 +1443,12 @@ function FeedContent() {
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="post-btn-shimmer text-white px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform"
+              className="btn-oro-3d text-white px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               Post
             </button>
-            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-violet-300 via-violet-400 to-violet-500">
+            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-[var(--oro-cyan)] via-[var(--oro-purple)] to-[var(--oro-orange)]">
               <div className="rounded-full p-[1px] bg-white">
                 <UserAvatar
                   avatarUrl={currentSession?.avatar_url}
@@ -1741,7 +1741,7 @@ function FeedContent() {
                 <button
                   onClick={() => handleVote(post.id, effectivePostId, 'like')}
                   className={`flex items-center gap-1 transition-all active:scale-90 ${
-                    post.user_vote === 'like' ? 'text-violet-500' : 'text-gray-500 hover:text-gray-700'
+                    post.user_vote === 'like' ? 'text-[var(--oro-cyan)]' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   <ThumbsUp className={`w-6 h-6 ${post.user_vote === 'like' ? 'animate-heart-pop' : ''}`} fill={post.user_vote === 'like' ? 'currentColor' : 'none'} />
@@ -1914,7 +1914,7 @@ function FeedContent() {
             <div className="flex justify-center py-4">
               {isLoadingMore ? (
                 <div className="flex items-center gap-2 text-gray-500">
-                  <div className="w-5 h-5 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-cyan-200 border-t-[var(--oro-cyan)] rounded-full animate-spin" />
                   <span>Loading more posts...</span>
                 </div>
               ) : (

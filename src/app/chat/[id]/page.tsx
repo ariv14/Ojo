@@ -609,7 +609,7 @@ export default function ChatPage() {
                       onClick={() => isMe && !isEditing && setMenuMessageId(menuMessageId === message.id ? null : message.id)}
                       className={`max-w-[75%] px-4 py-2 rounded-2xl ${
                         isMe
-                          ? 'bg-gradient-to-br from-violet-600 to-violet-700 text-white rounded-br-md cursor-pointer shadow-[var(--shadow-brand-sm)]'
+                          ? 'bg-gradient-to-br from-[var(--oro-cyan)] to-[var(--oro-turquoise)] text-white rounded-br-md cursor-pointer shadow-[0_2px_8px_-2px_rgba(0,212,255,0.4)]'
                           : 'bg-gray-100 border border-gray-200 text-gray-900 rounded-bl-md'
                       }`}
                     >
@@ -691,7 +691,7 @@ export default function ChatPage() {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
             setHasNewMessages(false)
           }}
-          className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-500 to-violet-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-[var(--shadow-brand-md)] flex items-center gap-2 z-10 animate-bounce-in"
+          className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--oro-cyan)] to-[var(--oro-turquoise)] text-white px-4 py-2 rounded-full text-sm font-medium shadow-[0_4px_12px_rgba(0,212,255,0.4)] flex items-center gap-2 z-10 animate-bounce-in"
         >
           <ArrowDown className="w-4 h-4" />
           New messages
@@ -710,12 +710,12 @@ export default function ChatPage() {
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isBlocked ? "This conversation is blocked" : "Type a message..."}
             disabled={isBlocked}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-violet-500 focus:border-violet-300 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-[var(--oro-cyan)] focus:border-[var(--oro-cyan-light)] outline-none disabled:bg-gray-100 disabled:text-gray-500"
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || isSending || isBlocked}
-            className="w-10 h-10 rounded-full btn-brand flex items-center justify-center disabled:opacity-50 flex-shrink-0"
+            className="w-10 h-10 rounded-full btn-oro-3d flex items-center justify-center disabled:opacity-50 flex-shrink-0"
           >
             <Send className="w-5 h-5" />
           </button>
