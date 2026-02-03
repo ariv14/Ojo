@@ -13,6 +13,8 @@ import Header from '@/components/Header'
 import { SkeletonUserRow } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/Input'
+import AppBackground from '@/components/ui/AppBackground'
+import ParticleShower from '@/components/ui/ParticleShower'
 import { Search, UserPlus, Image } from 'lucide-react'
 
 interface User {
@@ -77,6 +79,7 @@ export default function DiscoverPage() {
   })
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null)
+  const [showParticles, setShowParticles] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -285,6 +288,8 @@ export default function DiscoverPage() {
           return newSet
         })
       } else {
+        // Trigger particle effect on successful follow
+        setShowParticles(true)
         // Notify the user being followed
         const followedUser = users.find(u => u.nullifier_hash === userId)
         const followerName = currentSession.username || currentSession.first_name
@@ -353,28 +358,30 @@ export default function DiscoverPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header showBackButton onBack={() => router.back()} />
-        <div className="bg-white border-b">
-          <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
-            <Input
-              icon={<Search className="w-4 h-4" />}
-              placeholder="Search by name..."
-              disabled
-            />
+        <AppBackground variant="animated">
+          <div className="bg-white/80 backdrop-blur-sm border-b">
+            <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
+              <Input
+                icon={<Search className="w-4 h-4" />}
+                placeholder="Search by name..."
+                disabled
+              />
+            </div>
           </div>
-        </div>
-        <div className="w-full md:max-w-2xl mx-auto bg-white">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonUserRow key={i} />
-          ))}
-        </div>
+          <div className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonUserRow key={i} />
+            ))}
+          </div>
+        </AppBackground>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
       <Header
         showBackButton
@@ -391,122 +398,127 @@ export default function DiscoverPage() {
         }
       />
 
-      {/* Referral Stats Card */}
-      {referralStats && (referralStats.completed > 0 || referralStats.signed_up > 0 || referralStats.pending > 0) && (
-        <div className="bg-white border-b">
-          <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Your Referrals</p>
-                <p className="text-xs text-gray-500">
-                  {referralStats.completed} completed, {referralStats.signed_up} signed up
-                </p>
+      <AppBackground variant="animated">
+        {/* Particle effect on follow */}
+        <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
+
+        {/* Referral Stats Card */}
+        {referralStats && (referralStats.completed > 0 || referralStats.signed_up > 0 || referralStats.pending > 0) && (
+          <div className="bg-white/80 backdrop-blur-sm border-b">
+            <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Your Referrals</p>
+                  <p className="text-xs text-gray-500">
+                    {referralStats.completed} completed, {referralStats.signed_up} signed up
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-amber-600">
+                    {referralStats.unpaid_completed % 10}/10
+                  </p>
+                  <p className="text-xs text-gray-500">until 1 WLD bonus</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-amber-600">
-                  {referralStats.unpaid_completed % 10}/10
-                </p>
-                <p className="text-xs text-gray-500">until 1 WLD bonus</p>
+              {/* Progress bar - ORO gradient */}
+              <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[var(--oro-cyan)] via-[var(--oro-purple)] to-[var(--oro-orange)] transition-all duration-300"
+                  style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
+                />
               </div>
-            </div>
-            {/* Progress bar - ORO gradient */}
-            <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[var(--oro-cyan)] via-[var(--oro-purple)] to-[var(--oro-orange)] transition-all duration-300"
-                style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
-              />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Search Bar */}
-      <div className="bg-white border-b">
-        <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
-          <Input
-            icon={<Search className="w-4 h-4" />}
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search by name..."
-          />
+        {/* Search Bar */}
+        <div className="bg-white/80 backdrop-blur-sm border-b">
+          <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
+            <Input
+              icon={<Search className="w-4 h-4" />}
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search by name..."
+            />
+          </div>
         </div>
-      </div>
 
-      {/* User List */}
-      <div className="w-full md:max-w-2xl mx-auto bg-white">
-        {users.length === 0 ? (
-          <EmptyState
-            icon={<Search className="w-6 h-6" />}
-            title={searchQuery ? 'No users found' : 'No users to discover'}
-            description={searchQuery ? `No results for "${searchQuery}"` : 'Check back later for new people to connect with'}
-          />
-        ) : (
-          users.map((user) => (
-            <div
-              key={user.nullifier_hash}
-              className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 hover:rounded-xl border-b border-gray-100 transition-all"
-            >
-              <button
-                onClick={() => router.push(`/profile/${user.nullifier_hash}`)}
-                className="flex-1 flex items-center gap-3"
+        {/* User List */}
+        <div className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+          {users.length === 0 ? (
+            <EmptyState
+              icon={<Search className="w-6 h-6" />}
+              title={searchQuery ? 'No users found' : 'No users to discover'}
+              description={searchQuery ? `No results for "${searchQuery}"` : 'Check back later for new people to connect with'}
+            />
+          ) : (
+            users.map((user) => (
+              <div
+                key={user.nullifier_hash}
+                className="px-4 py-3 flex items-center gap-3 hover:bg-cyan-50/50 hover:rounded-xl border-b border-gray-100 transition-all"
               >
-                <UserAvatar
-                  avatarUrl={user.avatar_url}
-                  username={user.username || user.first_name}
-                  lastSeenAt={user.last_seen_at}
-                  size="md"
-                />
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-sm">
-                    {user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}
-                  </p>
-                  {user.country && (
-                    <p className="text-xs text-gray-500">{user.country}</p>
-                  )}
-                </div>
-              </button>
-              {/* Post count button */}
-              {user.post_count > 0 && (
                 <button
                   onClick={() => router.push(`/profile/${user.nullifier_hash}`)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                  className="flex-1 flex items-center gap-3"
                 >
-                  <Image className="w-4 h-4" />
-                  <span>{user.post_count}</span>
+                  <UserAvatar
+                    avatarUrl={user.avatar_url}
+                    username={user.username || user.first_name}
+                    lastSeenAt={user.last_seen_at}
+                    size="md"
+                  />
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-sm">
+                      {user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}
+                    </p>
+                    {user.country && (
+                      <p className="text-xs text-gray-500">{user.country}</p>
+                    )}
+                  </div>
                 </button>
-              )}
+                {/* Post count button */}
+                {user.post_count > 0 && (
+                  <button
+                    onClick={() => router.push(`/profile/${user.nullifier_hash}`)}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                  >
+                    <Image className="w-4 h-4" />
+                    <span>{user.post_count}</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => handleFollowToggle(user.nullifier_hash)}
+                  disabled={processingUserId === user.nullifier_hash}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 active:scale-95 ${
+                    followingSet.has(user.nullifier_hash)
+                      ? 'border border-gray-300 text-gray-700 hover:bg-cyan-50/50'
+                      : 'btn-oro-3d'
+                  }`}
+                >
+                  {processingUserId === user.nullifier_hash
+                    ? '...'
+                    : followingSet.has(user.nullifier_hash)
+                    ? 'Following'
+                    : 'Follow'}
+                </button>
+              </div>
+            ))
+          )}
+
+          {/* Load More Button */}
+          {hasMore && users.length > 0 && (
+            <div className="p-4">
               <button
-                onClick={() => handleFollowToggle(user.nullifier_hash)}
-                disabled={processingUserId === user.nullifier_hash}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 active:scale-95 ${
-                  followingSet.has(user.nullifier_hash)
-                    ? 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                    : 'btn-oro-3d'
-                }`}
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="w-full py-3 text-[var(--oro-cyan)] font-medium border border-[var(--oro-cyan)] rounded-lg hover:bg-cyan-50/50 disabled:opacity-50 transition"
               >
-                {processingUserId === user.nullifier_hash
-                  ? '...'
-                  : followingSet.has(user.nullifier_hash)
-                  ? 'Following'
-                  : 'Follow'}
+                {isLoadingMore ? 'Loading...' : 'Load More'}
               </button>
             </div>
-          ))
-        )}
-
-        {/* Load More Button */}
-        {hasMore && users.length > 0 && (
-          <div className="p-4">
-            <button
-              onClick={handleLoadMore}
-              disabled={isLoadingMore}
-              className="w-full py-3 text-blue-500 font-medium border border-blue-500 rounded-lg hover:bg-blue-50 disabled:opacity-50 transition"
-            >
-              {isLoadingMore ? 'Loading...' : 'Load More'}
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </AppBackground>
     </div>
   )
 }

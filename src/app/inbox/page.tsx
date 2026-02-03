@@ -9,6 +9,7 @@ import { SkeletonChatRow } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import Badge from '@/components/ui/Badge'
 import UserAvatar from '@/components/UserAvatar'
+import AppBackground from '@/components/ui/AppBackground'
 import { MessageCircle } from 'lucide-react'
 
 interface InboxChat {
@@ -176,67 +177,71 @@ export default function InboxPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header showBackButton />
-        <main className="w-full md:max-w-2xl mx-auto">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonChatRow key={i} />
-          ))}
-        </main>
+        <AppBackground variant="animated">
+          <main className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonChatRow key={i} />
+            ))}
+          </main>
+        </AppBackground>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
       <Header showBackButton />
 
-      {/* Chat List */}
-      <main className="w-full md:max-w-2xl mx-auto">
-        {chats.length === 0 ? (
-          <EmptyState
-            icon={<MessageCircle className="w-6 h-6" />}
-            title="No messages yet"
-            description="When you connect with someone, your conversations will appear here."
-          />
-        ) : (
-          chats.map((chat) => {
-            const displayName = chat.other_username || `${chat.other_first_name || ''} ${chat.other_last_name || ''}`.trim() || 'Unknown'
-            return (
-            <button
-              key={chat.connection_id}
-              onClick={() => router.push(`/chat/${chat.connection_id}`)}
-              className="w-full px-4 py-3 flex items-center gap-3 bg-white border-b border-gray-100 hover:bg-violet-50/50 transition text-left"
-            >
-              <UserAvatar
-                username={displayName}
-                size="lg"
-                showStatus={false}
-              />
-              <div className="flex-1">
-                <p className="font-medium text-gray-900">
-                  {displayName}
-                </p>
-                <p className="text-sm text-gray-500">
-                  Started a chat with you
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {chat.unread_count > 0 && (
-                  <Badge variant="info" size="sm">
-                    {chat.unread_count > 99 ? '99+' : chat.unread_count}
-                  </Badge>
-                )}
-                <span className="text-xs text-gray-400">
-                  {new Date(chat.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </button>
-            )
-          })
-        )}
-      </main>
+      <AppBackground variant="animated">
+        {/* Chat List */}
+        <main className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+          {chats.length === 0 ? (
+            <EmptyState
+              icon={<MessageCircle className="w-6 h-6" />}
+              title="No messages yet"
+              description="When you connect with someone, your conversations will appear here."
+            />
+          ) : (
+            chats.map((chat) => {
+              const displayName = chat.other_username || `${chat.other_first_name || ''} ${chat.other_last_name || ''}`.trim() || 'Unknown'
+              return (
+              <button
+                key={chat.connection_id}
+                onClick={() => router.push(`/chat/${chat.connection_id}`)}
+                className="w-full px-4 py-3 flex items-center gap-3 bg-white/80 border-b border-gray-100 hover:bg-cyan-50/50 transition text-left"
+              >
+                <UserAvatar
+                  username={displayName}
+                  size="lg"
+                  showStatus={false}
+                />
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">
+                    {displayName}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Started a chat with you
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {chat.unread_count > 0 && (
+                    <Badge variant="info" size="sm">
+                      {chat.unread_count > 99 ? '99+' : chat.unread_count}
+                    </Badge>
+                  )}
+                  <span className="text-xs text-gray-400">
+                    {new Date(chat.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </button>
+              )
+            })
+          )}
+        </main>
+      </AppBackground>
     </div>
   )
 }

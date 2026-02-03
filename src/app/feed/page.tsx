@@ -28,6 +28,8 @@ import CommentSection from '@/components/CommentSection'
 import { Search, MessageCircle, Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock, Gift } from 'lucide-react'
 import { SkeletonPost } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
+import AppBackground from '@/components/ui/AppBackground'
+import ParticleShower from '@/components/ui/ParticleShower'
 
 interface MediaUrl {
   key: string
@@ -124,6 +126,7 @@ function FeedContent() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const [newPostCount, setNewPostCount] = useState(0)
+  const [showParticles, setShowParticles] = useState(false)
   const touchStartY = useRef(0)
   const lastFetchTime = useRef<string | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
@@ -1201,6 +1204,8 @@ function FeedContent() {
 
         // Haptic feedback for successful unlock
         hapticSuccess()
+        // Trigger particle effect for successful unlock
+        setShowParticles(true)
         setUnlockingPost(null)
       }
     } catch (err) {
@@ -1360,13 +1365,15 @@ function FeedContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header isFeedPage={true} />
-        <main className="w-full md:max-w-2xl mx-auto">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <SkeletonPost key={i} />
-          ))}
-        </main>
+        <AppBackground variant="static">
+          <main className="w-full md:max-w-2xl mx-auto">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonPost key={i} />
+            ))}
+          </main>
+        </AppBackground>
       </div>
     )
   }
@@ -1374,8 +1381,11 @@ function FeedContent() {
   return (
     <div
       ref={feedRef}
-      className="min-h-screen bg-gray-50 relative"
+      className="min-h-screen relative"
     >
+      {/* Particle effect for celebrations */}
+      <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
+
       {/* Pull-to-refresh indicator */}
       <div
         ref={pullIndicatorRef}
@@ -1406,6 +1416,7 @@ function FeedContent() {
         </button>
       )}
 
+      <AppBackground variant="static" showOrbs={false}>
       {/* Header */}
       <Header
         isFeedPage={true}
@@ -1514,6 +1525,8 @@ function FeedContent() {
               }
               // Prepend to the top of the feed
               setPosts(prev => [fullPost, ...prev])
+              // Trigger particle effect for successful post
+              setShowParticles(true)
               // Scroll to top
               window.scrollTo({ top: 0, behavior: 'smooth' })
 
@@ -1941,6 +1954,7 @@ function FeedContent() {
           )}
         </div>
       </main>
+      </AppBackground>
 
       {/* Report Modal */}
       {reportingPostId && (

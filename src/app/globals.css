@@ -898,6 +898,20 @@ input, textarea {
   animation: mesh-gradient 15s ease infinite;
 }
 
+/* Static version for performance-sensitive pages like Feed */
+.bg-mesh-gradient-static {
+  background: linear-gradient(
+    135deg,
+    var(--oro-cyan) 0%,
+    #a5f3fc 25%,
+    #ffffff 50%,
+    #c4b5fd 75%,
+    var(--oro-purple-light) 100%
+  );
+  background-size: 400% 400%;
+  background-position: 50% 50%;
+}
+
 /* Coin fall animation for reward celebration */
 @keyframes coin-fall {
   0% {

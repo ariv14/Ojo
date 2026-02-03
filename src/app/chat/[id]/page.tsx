@@ -8,6 +8,7 @@ import { hapticLight } from '@/lib/haptics'
 import { sendNotification } from '@/lib/notify'
 import Header from '@/components/Header'
 import { SkeletonMessage } from '@/components/ui/Skeleton'
+import AppBackground from '@/components/ui/AppBackground'
 import { ChevronLeft, MoreVertical, ArrowDown, Send, Trash2, Pencil, Ban, ShieldOff, MessageSquareX, Eraser } from 'lucide-react'
 
 interface Message {
@@ -487,22 +488,24 @@ export default function ChatPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col">
         <Header showBackButton />
-        <div className="flex-1 px-4 py-4 space-y-3">
-          <SkeletonMessage isMe={false} />
-          <SkeletonMessage isMe={true} />
-          <SkeletonMessage isMe={false} />
-          <SkeletonMessage isMe={true} />
-          <SkeletonMessage isMe={false} />
-          <SkeletonMessage isMe={true} />
-        </div>
+        <AppBackground variant="animated">
+          <div className="flex-1 px-4 py-4 space-y-3">
+            <SkeletonMessage isMe={false} />
+            <SkeletonMessage isMe={true} />
+            <SkeletonMessage isMe={false} />
+            <SkeletonMessage isMe={true} />
+            <SkeletonMessage isMe={false} />
+            <SkeletonMessage isMe={true} />
+          </div>
+        </AppBackground>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
       <Header
         showBackButton
@@ -557,28 +560,29 @@ export default function ChatPage() {
         }
       />
 
-      {/* Back to Inbox Navigation */}
-      <div className="sticky top-14 z-10 bg-white border-b border-gray-200 px-4 py-2">
-        <button
-          onClick={() => router.push('/inbox')}
-          className="flex items-center gap-1 text-sm text-blue-500 font-medium"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to Inbox
-        </button>
-      </div>
-
-      {/* Blocked Banner */}
-      {isBlocked && (
-        <div className="bg-red-50 text-red-600 text-center py-2 text-sm">
-          {blockedBy === session?.nullifier_hash
-            ? 'You blocked this user'
-            : 'You have been blocked'}
+      <AppBackground variant="animated" showOrbs={false}>
+        {/* Back to Inbox Navigation */}
+        <div className="sticky top-14 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-2">
+          <button
+            onClick={() => router.push('/inbox')}
+            className="flex items-center gap-1 text-sm text-[var(--oro-cyan)] font-medium"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Inbox
+          </button>
         </div>
-      )}
 
-      {/* Messages */}
-      <main className="flex-1 overflow-y-auto" ref={messagesContainerRef}>
+        {/* Blocked Banner */}
+        {isBlocked && (
+          <div className="bg-red-50 text-red-600 text-center py-2 text-sm">
+            {blockedBy === session?.nullifier_hash
+              ? 'You blocked this user'
+              : 'You have been blocked'}
+          </div>
+        )}
+
+        {/* Messages */}
+        <main className="flex-1 overflow-y-auto" ref={messagesContainerRef}>
         <div className="w-full md:max-w-2xl mx-auto px-4 py-4 space-y-3">
           {/* Load More Button */}
           {hasMoreMessages && messages.length > 0 && (
@@ -697,6 +701,7 @@ export default function ChatPage() {
           New messages
         </button>
       )}
+      </AppBackground>
 
       {/* Input */}
       <footer className="sticky bottom-0 bg-white border-t border-gray-200">

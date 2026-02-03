@@ -18,6 +18,8 @@ import { SkeletonPost } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import Badge from '@/components/ui/Badge'
 import { Share2, BadgeCheck, Camera, Lock, Layers, Video, RefreshCw, AlertTriangle, Images } from 'lucide-react'
+import AppBackground from '@/components/ui/AppBackground'
+import ParticleShower from '@/components/ui/ParticleShower'
 
 interface User {
   nullifier_hash: string
@@ -79,6 +81,7 @@ export default function ProfilePage() {
   const [showReportModal, setShowReportModal] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [tipsEarned, setTipsEarned] = useState(0)
+  const [showParticles, setShowParticles] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -403,6 +406,9 @@ export default function ProfilePage() {
       }
       console.log('Followed successfully')
 
+      // Trigger particle effect on successful follow
+      setShowParticles(true)
+
       // Notify the user being followed
       const followerName = session.username || session.first_name
       if (user?.wallet_address && followerName) {
@@ -449,30 +455,36 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header showBackButton />
-        <div className="w-full md:max-w-2xl mx-auto flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
-            <p className="text-sm text-gray-400">Loading profile...</p>
+        <AppBackground variant="animated">
+          <div className="w-full md:max-w-2xl mx-auto flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-[var(--oro-cyan)] border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-500">Loading profile...</p>
+            </div>
           </div>
-        </div>
+        </AppBackground>
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">User not found</p>
-          <button
-            onClick={() => router.push('/feed')}
-            className="text-black underline"
-          >
-            Go to Feed
-          </button>
-        </div>
+      <div className="min-h-screen">
+        <AppBackground variant="animated">
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-gray-500 mb-4">User not found</p>
+              <button
+                onClick={() => router.push('/feed')}
+                className="text-[var(--oro-cyan)] underline"
+              >
+                Go to Feed
+              </button>
+            </div>
+          </div>
+        </AppBackground>
       </div>
     )
   }
@@ -483,7 +495,7 @@ export default function ProfilePage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
       <Header
         showBackButton
@@ -499,8 +511,12 @@ export default function ProfilePage() {
         }
       />
 
-      {/* Profile Info */}
-      <div className="bg-white border-b relative overflow-hidden">
+      <AppBackground variant="animated">
+        {/* Particle effect on follow */}
+        <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
+
+        {/* Profile Info */}
+        <div className="bg-white/90 backdrop-blur-sm border-b relative overflow-hidden">
         {/* Vibrant ORO gradient hero background */}
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-br from-[var(--oro-cyan)]/30 via-[var(--oro-purple)]/20 to-[var(--oro-orange)]/30" />
         <div className="w-full md:max-w-2xl mx-auto px-4 py-6 relative">
@@ -614,7 +630,7 @@ export default function ProfilePage() {
 
       {/* Recent Visitors */}
       {recentVisitors.length > 0 && (
-        <div className="bg-white border-b">
+        <div className="bg-white/90 backdrop-blur-sm border-b">
           <div className="w-full md:max-w-2xl mx-auto px-4 py-4">
             <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
               Recent Visitors
@@ -710,6 +726,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      </AppBackground>
 
       {/* Report User Modal */}
       {showReportModal && user && (

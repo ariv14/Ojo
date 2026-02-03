@@ -12,6 +12,8 @@ import { Camera, ChevronRight, Shield, Eye, Wallet, HelpCircle, Trash2 } from 'l
 import Header from '@/components/Header'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
+import AppBackground from '@/components/ui/AppBackground'
+import ParticleShower from '@/components/ui/ParticleShower'
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other']
 
@@ -63,6 +65,7 @@ export default function EditProfilePage() {
   const [isBuyingInvisible, setIsBuyingInvisible] = useState(false)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnectingWallet, setIsConnectingWallet] = useState(false)
+  const [showParticles, setShowParticles] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -388,7 +391,12 @@ export default function EditProfilePage() {
         avatar_url: avatarUrl || undefined,
       })
 
-      router.push(`/profile/${nullifierHash}`)
+      // Show particle effect on successful save
+      setShowParticles(true)
+      // Navigate after a short delay to let particles show
+      setTimeout(() => {
+        router.push(`/profile/${nullifierHash}`)
+      }, 800)
     } catch (err) {
       console.error('Error:', err)
       setError('Something went wrong. Please try again.')
@@ -398,11 +406,15 @@ export default function EditProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
-          <p className="text-sm text-gray-400">Loading profile...</p>
-        </div>
+      <div className="min-h-screen">
+        <AppBackground variant="animated">
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-[var(--oro-cyan)] border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-500">Loading profile...</p>
+            </div>
+          </div>
+        </AppBackground>
       </div>
     )
   }
@@ -410,12 +422,16 @@ export default function EditProfilePage() {
   const displayAvatar = avatarPreview || resolveImageUrl(currentAvatarUrl)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header showBackButton onBack={() => router.back()} title="Edit Profile" />
 
-      {/* Form */}
-      <div className="w-full md:max-w-2xl mx-auto px-4 py-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <AppBackground variant="animated">
+        {/* Particle effect on save */}
+        <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
+
+        {/* Form */}
+        <div className="w-full md:max-w-2xl mx-auto px-4 py-6">
+        <form onSubmit={handleSubmit} className="space-y-6 bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
           {/* Avatar */}
           <div className="flex flex-col items-center">
             <input
@@ -712,7 +728,8 @@ export default function EditProfilePage() {
             </div>
           </div>
         </form>
-      </div>
+        </div>
+      </AppBackground>
 
       {/* Delete Confirmation Modal */}
       <Modal
