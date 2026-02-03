@@ -13,6 +13,11 @@ export const sizeConfig: Record<'sm' | 'md' | 'lg' | 'xl', SizeConfig> = {
     eyeMiddlePx: 14,
     eyeInnerPx: 8,
     maxOffset: 2,
+    // 3D properties
+    perspective: 400,
+    maxRotate: 8,
+    shadowLayers: 2,
+    hoverLift: 4,
   },
   md: {
     text: 'text-2xl',
@@ -26,6 +31,11 @@ export const sizeConfig: Record<'sm' | 'md' | 'lg' | 'xl', SizeConfig> = {
     eyeMiddlePx: 16,
     eyeInnerPx: 10,
     maxOffset: 3,
+    // 3D properties
+    perspective: 500,
+    maxRotate: 10,
+    shadowLayers: 3,
+    hoverLift: 6,
   },
   lg: {
     text: 'text-4xl',
@@ -39,6 +49,11 @@ export const sizeConfig: Record<'sm' | 'md' | 'lg' | 'xl', SizeConfig> = {
     eyeMiddlePx: 24,
     eyeInnerPx: 14,
     maxOffset: 4,
+    // 3D properties
+    perspective: 600,
+    maxRotate: 12,
+    shadowLayers: 4,
+    hoverLift: 8,
   },
   xl: {
     text: 'text-6xl',
@@ -52,5 +67,10 @@ export const sizeConfig: Record<'sm' | 'md' | 'lg' | 'xl', SizeConfig> = {
     eyeMiddlePx: 36,
     eyeInnerPx: 20,
     maxOffset: 6,
+    // 3D properties
+    perspective: 800,
+    maxRotate: 15,
+    shadowLayers: 5,
+    hoverLift: 12,
   },
 }

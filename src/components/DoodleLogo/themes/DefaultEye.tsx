@@ -7,7 +7,7 @@ export default function DefaultEye({ size, offset, isWinking, isClicked, shouldA
   const config = sizeConfig[size]
 
   return (
-    <span className="relative inline-flex items-center justify-center">
+    <span className="relative inline-flex items-center justify-center" style={{ transformStyle: 'preserve-3d' }}>
       {/* Hidden O for spacing */}
       <span className="opacity-0">O</span>
 
@@ -17,9 +17,10 @@ export default function DefaultEye({ size, offset, isWinking, isClicked, shouldA
         style={{
           transform: `translate(${offset.x}px, ${offset.y}px)`,
           transition: 'transform 0.1s ease-out',
+          transformStyle: 'preserve-3d',
         }}
       >
-        {/* Outer ring */}
+        {/* Outer ring - back layer (translateZ: 0) */}
         <span
           className={`${config.eyeOuter} rounded-full flex items-center justify-center relative ${
             shouldAnimate ? `cyber-ring-glow ${delayed ? 'cyber-blink-delayed' : 'cyber-blink'}` : ''
@@ -28,8 +29,9 @@ export default function DefaultEye({ size, offset, isWinking, isClicked, shouldA
             background: 'linear-gradient(135deg, #0A1628 0%, #1E3A8A 100%)',
             border: `2px solid ${theme.colors.primary}`,
             boxShadow: `0 0 ${config.glowSize} ${theme.colors.glow}, inset 0 0 ${config.glowSize} rgba(0, 255, 255, 0.2)`,
-            transform: isWinking && !delayed ? 'scaleY(0.1)' : 'scaleY(1)',
+            transform: `${isWinking && !delayed ? 'scaleY(0.1)' : 'scaleY(1)'} translateZ(0px)`,
             transition: 'transform 0.1s ease-out',
+            transformStyle: 'preserve-3d',
           }}
         >
           {/* Scanning arc */}
@@ -41,29 +43,34 @@ export default function DefaultEye({ size, offset, isWinking, isClicked, shouldA
             }}
           />
 
-          {/* Middle ring */}
+          {/* Middle ring - translateZ: 3px */}
           <span
             className={`${config.eyeMiddle} rounded-full flex items-center justify-center relative z-10`}
             style={{
               background: `radial-gradient(circle at center, ${theme.colors.secondary} 0%, #1E3A8A 70%, #0A1628 100%)`,
               boxShadow: `inset 0 0 4px ${theme.colors.glow}`,
+              transform: 'translateZ(3px)',
+              transformStyle: 'preserve-3d',
             }}
           >
-            {/* Inner iris */}
+            {/* Inner iris - translateZ: 5px */}
             <span
               className={`${config.eyeInner} rounded-full flex items-center justify-center`}
               style={{
                 background: `radial-gradient(circle at center, ${theme.colors.primary} 0%, ${theme.colors.secondary} 60%, #1E3A8A 100%)`,
                 boxShadow: `0 0 6px ${theme.colors.glow}`,
+                transform: 'translateZ(5px)',
+                transformStyle: 'preserve-3d',
               }}
             >
-              {/* Core */}
+              {/* Core - front layer (translateZ: 8px) */}
               <span
                 className={`${config.coreSize} rounded-full ${shouldAnimate ? 'cyber-core-pulse' : ''}`}
                 style={{
                   background: `radial-gradient(circle at center, #FFFFFF 0%, ${theme.colors.primary} 50%, transparent 100%)`,
                   boxShadow: `0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px ${theme.colors.glow}`,
                   animationDelay: delayed ? '1s' : '0s',
+                  transform: 'translateZ(8px)',
                 }}
               />
             </span>

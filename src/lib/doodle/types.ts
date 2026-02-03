@@ -82,4 +82,9 @@ export interface SizeConfig {
   eyeMiddlePx: number
   eyeInnerPx: number
   maxOffset: number
+  // 3D properties
+  perspective: number
+  maxRotate: number
+  shadowLayers: number
+  hoverLift: number
 }

@@ -57,15 +57,24 @@ export default function DoodleJ({ variant, theme, shouldAnimate }: DoodleJProps)
   }
 
   return (
-    <span className="mx-1 relative inline-block">
-      {/* Base J with gradient */}
+    <span
+      className="mx-1 relative inline-block"
+      style={{
+        transformStyle: 'preserve-3d',
+        transform: 'translateZ(4px)',
+      }}
+    >
+      {/* Base J with gradient and 3D depth */}
       <span
+        className={shouldAnimate ? 'doodle-j-wobble' : ''}
         style={{
           background: baseGradient,
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
           filter: `drop-shadow(0 0 8px ${theme.colors.glow})`,
+          display: 'inline-block',
+          transformStyle: 'preserve-3d',
         }}
       >
         J
@@ -82,6 +91,7 @@ export default function DoodleJ({ variant, theme, shouldAnimate }: DoodleJProps)
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             mixBlendMode: 'overlay',
+            transform: 'translateZ(2px)',
           }}
         >
           J

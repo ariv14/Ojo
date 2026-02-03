@@ -786,3 +786,87 @@ input, textarea {
     transform: translateY(0) scale(1);
   }
 }
+
+/* ========================================
+   3D DOODLE LOGO ANIMATIONS
+   ======================================== */
+
+/* Hand-drawn wobble effect */
+@keyframes doodle-wobble-anim {
+  0%, 100% { transform: rotate(-0.5deg) skewX(-0.3deg); }
+  25% { transform: rotate(0.3deg) skewX(0.2deg); }
+  50% { transform: rotate(0.5deg) skewX(0.3deg); }
+  75% { transform: rotate(-0.3deg) skewX(-0.2deg); }
+}
+
+/* J character wobble */
+@keyframes doodle-j-wobble-anim {
+  0%, 100% { transform: rotate(-0.8deg) translateY(0); }
+  25% { transform: rotate(0.5deg) translateY(-0.5px); }
+  50% { transform: rotate(0.8deg) translateY(0); }
+  75% { transform: rotate(-0.5deg) translateY(0.5px); }
+}
+
+/* Pop-out effect on click */
+@keyframes doodle-pop-out {
+  0% { transform: translateZ(0) scale(1); }
+  30% { transform: translateZ(20px) scale(1.15); }
+  60% { transform: translateZ(10px) scale(1.05); }
+  100% { transform: translateZ(0) scale(1); }
+}
+
+/* 3D lift on hover */
+@keyframes doodle-hover-lift {
+  0% { transform: translateZ(0) translateY(0); }
+  100% { transform: translateZ(8px) translateY(-2px); }
+}
+
+/* Subtle breathing effect for depth */
+@keyframes doodle-depth-breathe {
+  0%, 100% { transform: translateZ(0); }
+  50% { transform: translateZ(4px); }
+}
+
+/* Animation classes */
+.doodle-wobble {
+  animation: doodle-wobble-anim 3s ease-in-out infinite;
+}
+
+.doodle-j-wobble {
+  animation: doodle-j-wobble-anim 2.5s ease-in-out infinite;
+}
+
+.doodle-pop-out {
+  animation: doodle-pop-out 0.5s ease-out;
+}
+
+.doodle-hover-lift {
+  animation: doodle-hover-lift 0.2s ease-out forwards;
+}
+
+.doodle-depth-breathe {
+  animation: doodle-depth-breathe 4s ease-in-out infinite;
+}
+
+/* Depth shadow utility for 3D effect */
+.doodle-depth-shadow {
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3))
+          drop-shadow(4px 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.doodle-depth-shadow-lg {
+  filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.35))
+          drop-shadow(6px 6px 12px rgba(0, 0, 0, 0.25))
+          drop-shadow(9px 9px 18px rgba(0, 0, 0, 0.15));
+}
+
+/* Reduced motion support for 3D animations */
+@media (prefers-reduced-motion: reduce) {
+  .doodle-wobble,
+  .doodle-j-wobble,
+  .doodle-pop-out,
+  .doodle-hover-lift,
+  .doodle-depth-breathe {
+    animation: none;
+  }
+}

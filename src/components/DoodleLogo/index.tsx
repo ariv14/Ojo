@@ -6,6 +6,7 @@ import { sizeConfig } from './sizeConfig'
 import DoodleEye from './DoodleEye'
 import DoodleJ from './DoodleJ'
 import DoodleTooltip from './DoodleTooltip'
+import DoodleFilters from './DoodleFilters'
 
 interface DoodleLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
@@ -26,6 +27,8 @@ export default function DoodleLogo({
   const containerRef = useRef<HTMLSpanElement>(null)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [rotation, setRotation] = useState({ x: 0, y: 0 })
+  const [isHovered, setIsHovered] = useState(false)
   const [isWinking, setIsWinking] = useState(false)
   const [isClicked, setIsClicked] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
@@ -62,7 +65,7 @@ export default function DoodleLogo({
 
   const shouldAnimate = animated && !prefersReducedMotion
 
-  // Cursor tracking
+  // Cursor tracking with 3D rotation
   useEffect(() => {
     if (!shouldAnimate || isTouchDevice) return
 
@@ -88,8 +91,16 @@ export default function DoodleLogo({
             x: Math.cos(angle) * factor,
             y: Math.sin(angle) * factor,
           })
+
+          // Calculate 3D rotation based on cursor position
+          const rotationFactor = Math.min(distance / maxDistance, 1)
+          setRotation({
+            x: -(dy / maxDistance) * config.maxRotate * rotationFactor,
+            y: (dx / maxDistance) * config.maxRotate * rotationFactor,
+          })
         } else {
           setOffset({ x: 0, y: 0 })
+          setRotation({ x: 0, y: 0 })
         }
       })
     }
@@ -99,7 +110,7 @@ export default function DoodleLogo({
       window.removeEventListener('mousemove', handleMouseMove)
       if (rafId) cancelAnimationFrame(rafId)
     }
-  }, [shouldAnimate, isTouchDevice, config.maxOffset])
+  }, [shouldAnimate, isTouchDevice, config.maxOffset, config.maxRotate])
 
   // Random winking
   useEffect(() => {
@@ -129,6 +140,18 @@ export default function DoodleLogo({
     }
   }, [shouldAnimate, showTooltipOnTap])
 
+  // Hover handlers
+  const handleMouseEnter = useCallback(() => {
+    if (!isTouchDevice) {
+      setIsHovered(true)
+    }
+  }, [isTouchDevice])
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false)
+    setRotation({ x: 0, y: 0 })
+  }, [])
+
   const closeTooltip = useCallback(() => {
     setShowTooltip(false)
   }, [])
@@ -142,17 +165,59 @@ export default function DoodleLogo({
     theme,
   }
 
+  // Generate multi-layer depth shadow
+  const generateDepthShadow = () => {
+    const shadows = []
+    for (let i = 1; i <= config.shadowLayers; i++) {
+      const offset = i * 2
+      const blur = i * 4
+      const opacity = 0.3 - (i * 0.05)
+      shadows.push(`${offset}px ${offset}px ${blur}px rgba(0, 0, 0, ${opacity})`)
+    }
+    return shadows.join(', ')
+  }
+
+  // Calculate 3D transform
+  const get3DTransform = () => {
+    const baseTransform = `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`
+    const hoverLift = isHovered ? `translateZ(${config.hoverLift}px)` : 'translateZ(0px)'
+    const clickPop = isClicked ? 'scale(1.1)' : 'scale(1)'
+    return `${baseTransform} ${hoverLift} ${clickPop}`
+  }
+
   return (
     <span
       ref={containerRef}
       className={`${config.text} font-bold flex items-center relative cursor-pointer select-none ${className}`}
       onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       role="img"
       aria-label={`OJO logo - ${holiday.name}`}
+      style={{
+        perspective: `${config.perspective}px`,
+        perspectiveOrigin: 'center',
+      }}
     >
-      <DoodleEye {...eyeProps} delayed={false} />
-      <DoodleJ variant={theme.jVariant} theme={theme} shouldAnimate={shouldAnimate} />
-      <DoodleEye {...eyeProps} delayed={true} />
+      {/* SVG Filters for doodle effects */}
+      <DoodleFilters />
+
+      {/* 3D transformed content */}
+      <span
+        className={`flex items-center ${shouldAnimate ? 'doodle-wobble' : ''}`}
+        style={{
+          transform: shouldAnimate ? get3DTransform() : undefined,
+          transformStyle: 'preserve-3d',
+          transition: 'transform 0.15s ease-out',
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
+          filter: `drop-shadow(${generateDepthShadow()})`,
+        }}
+      >
+        <DoodleEye {...eyeProps} delayed={false} />
+        <DoodleJ variant={theme.jVariant} theme={theme} shouldAnimate={shouldAnimate} />
+        <DoodleEye {...eyeProps} delayed={true} />
+      </span>
 
       {showTooltipOnTap && (
         <DoodleTooltip
