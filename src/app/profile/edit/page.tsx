@@ -13,7 +13,6 @@ import Header from '@/components/Header'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import AppBackground from '@/components/ui/AppBackground'
-import ParticleShower from '@/components/ui/ParticleShower'
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other']
 
@@ -65,7 +64,6 @@ export default function EditProfilePage() {
   const [isBuyingInvisible, setIsBuyingInvisible] = useState(false)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnectingWallet, setIsConnectingWallet] = useState(false)
-  const [showParticles, setShowParticles] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -391,12 +389,8 @@ export default function EditProfilePage() {
         avatar_url: avatarUrl || undefined,
       })
 
-      // Show particle effect on successful save
-      setShowParticles(true)
-      // Navigate after a short delay to let particles show
-      setTimeout(() => {
-        router.push(`/profile/${nullifierHash}`)
-      }, 800)
+      // Navigate to profile
+      router.push(`/profile/${nullifierHash}`)
     } catch (err) {
       console.error('Error:', err)
       setError('Something went wrong. Please try again.')
@@ -407,11 +401,11 @@ export default function EditProfilePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen">
-        <AppBackground variant="animated">
+        <AppBackground>
           <div className="min-h-screen flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-[var(--oro-cyan)] border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-gray-500">Loading profile...</p>
+              <div className="spinner-iris" />
+              <p className="text-sm text-[var(--text-secondary)]">Loading profile...</p>
             </div>
           </div>
         </AppBackground>
@@ -425,13 +419,10 @@ export default function EditProfilePage() {
     <div className="min-h-screen">
       <Header showBackButton onBack={() => router.back()} title="Edit Profile" />
 
-      <AppBackground variant="animated">
-        {/* Particle effect on save */}
-        <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
-
+      <AppBackground>
         {/* Form */}
         <div className="w-full md:max-w-2xl mx-auto px-4 py-6">
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+        <form onSubmit={handleSubmit} className="space-y-6 bg-[#1A1A2E] rounded-2xl p-6 shadow-sm border border-[#2A2A3E]">
           {/* Avatar */}
           <div className="flex flex-col items-center">
             <input
@@ -444,7 +435,7 @@ export default function EditProfilePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden hover:border-gray-400 transition group"
+              className="relative w-24 h-24 rounded-full bg-[var(--obsidian-surface)] border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden hover:border-[var(--iris-blue)] transition group"
             >
               {displayAvatar ? (
                 <>
@@ -458,24 +449,24 @@ export default function EditProfilePage() {
                   </div>
                 </>
               ) : (
-                <Camera className="w-8 h-8 text-gray-400" />
+                <Camera className="w-8 h-8 text-[var(--text-tertiary)]" />
               )}
             </button>
-            <p className="text-sm text-gray-500 mt-2">Tap to change photo</p>
+            <p className="text-sm text-[var(--text-secondary)] mt-2">Tap to change photo</p>
           </div>
 
           {/* Username (read-only, synced from World App) */}
           <div>
             <label
               htmlFor="username"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-[var(--text-secondary)] mb-1"
             >
               Username
             </label>
-            <div className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-700">
+            <div className="w-full px-4 py-3 bg-[var(--obsidian-surface)] border border-[var(--border)] rounded-lg text-[var(--text-secondary)]">
               {username || 'Anonymous'}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
               Your username is synced from your World App profile
             </p>
           </div>
@@ -484,7 +475,7 @@ export default function EditProfilePage() {
           <div>
             <label
               htmlFor="country"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-[var(--text-secondary)] mb-1"
             >
               Country
             </label>
@@ -492,7 +483,7 @@ export default function EditProfilePage() {
               id="country"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition bg-white"
+              className="w-full px-4 py-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--iris-blue)] focus:border-transparent outline-none transition bg-[var(--obsidian-elevated)] text-[var(--sclera-white)]"
             >
               <option value="">Select your country</option>
               {COUNTRIES.map((c) => (
@@ -507,7 +498,7 @@ export default function EditProfilePage() {
           <div>
             <label
               htmlFor="sex"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-[var(--text-secondary)] mb-1"
             >
               Sex
             </label>
@@ -515,7 +506,7 @@ export default function EditProfilePage() {
               id="sex"
               value={sex}
               onChange={(e) => setSex(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition bg-white"
+              className="w-full px-4 py-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--iris-blue)] focus:border-transparent outline-none transition bg-[var(--obsidian-elevated)] text-[var(--sclera-white)]"
             >
               <option value="">Prefer not to say</option>
               {SEX_OPTIONS.map((s) => (
@@ -530,7 +521,7 @@ export default function EditProfilePage() {
           <div>
             <label
               htmlFor="age"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-[var(--text-secondary)] mb-1"
             >
               Age
             </label>
@@ -542,13 +533,13 @@ export default function EditProfilePage() {
               value={age}
               onChange={(e) => setAge(e.target.value ? parseInt(e.target.value) : '')}
               placeholder="Your age"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--iris-blue)] focus:border-transparent outline-none transition bg-[var(--obsidian-elevated)] text-[var(--sclera-white)] placeholder:text-[var(--text-tertiary)]"
             />
           </div>
 
           {/* Bio */}
           <div>
-            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="bio" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
               About You
             </label>
             <textarea
@@ -558,9 +549,9 @@ export default function EditProfilePage() {
               placeholder="Tell us a bit about yourself..."
               rows={3}
               maxLength={200}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition resize-none"
+              className="w-full px-4 py-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--iris-blue)] focus:border-transparent outline-none transition resize-none bg-[var(--obsidian-elevated)] text-[var(--sclera-white)] placeholder:text-[var(--text-tertiary)]"
             />
-            <p className="text-xs text-gray-400 mt-1 text-right">{bio.length}/200</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1 text-right">{bio.length}/200</p>
           </div>
 
           {error && (
@@ -572,24 +563,24 @@ export default function EditProfilePage() {
             disabled={isSaving}
             isLoading={isSaving}
             size="lg"
-            className="w-full"
+            className="w-full btn-iris"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
 
           {/* Settings Section */}
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Settings</h3>
+          <div className="mt-12 pt-8 border-t border-[var(--border)]">
+            <h3 className="text-lg font-semibold text-[var(--sclera-white)] mb-4">Settings</h3>
 
             {/* Disable Profile */}
-            <div className="flex items-center justify-between py-4 border-b">
+            <div className="flex items-center justify-between py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-4.5 h-4.5 text-amber-600" />
+                <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-4.5 h-4.5 text-amber-500" />
                 </div>
                 <div>
-                  <p className="font-medium">Disable Profile</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-[var(--sclera-white)]">Disable Profile</p>
+                  <p className="text-sm text-[var(--text-secondary)]">
                     Hide your posts from the feed
                   </p>
                 </div>
@@ -598,7 +589,7 @@ export default function EditProfilePage() {
                 type="button"
                 onClick={handleToggleDisable}
                 className={`w-12 h-6 rounded-full transition ${
-                  isDisabled ? 'bg-amber-500' : 'bg-gray-300'
+                  isDisabled ? 'bg-amber-500' : 'bg-[var(--obsidian-surface)]'
                 }`}
               >
                 <div
@@ -610,14 +601,14 @@ export default function EditProfilePage() {
             </div>
 
             {/* Wallet Connection */}
-            <div className="flex items-center justify-between py-4 border-b">
+            <div className="flex items-center justify-between py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
-                  <Wallet className="w-4.5 h-4.5 text-green-600" />
+                <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                  <Wallet className="w-4.5 h-4.5 text-green-500" />
                 </div>
                 <div>
-                  <p className="font-medium">Wallet Connected</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-[var(--sclera-white)]">Wallet Connected</p>
+                  <p className="text-sm text-[var(--text-secondary)]">
                     {walletAddress
                       ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
                       : 'Connect wallet for payments'}
@@ -629,7 +620,7 @@ export default function EditProfilePage() {
                 onClick={handleToggleWallet}
                 disabled={isConnectingWallet}
                 className={`w-12 h-6 rounded-full transition disabled:opacity-50 ${
-                  walletAddress ? 'bg-green-500' : 'bg-gray-300'
+                  walletAddress ? 'bg-green-500' : 'bg-[var(--obsidian-surface)]'
                 }`}
               >
                 <div
@@ -641,14 +632,14 @@ export default function EditProfilePage() {
             </div>
 
             {/* Invisible Mode */}
-            <div className="flex items-center justify-between py-4 border-b">
+            <div className="flex items-center justify-between py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0">
-                  <Eye className="w-4.5 h-4.5 text-purple-600" />
+                <div className="w-9 h-9 rounded-full bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                  <Eye className="w-4.5 h-4.5 text-purple-500" />
                 </div>
                 <div>
-                  <p className="font-medium">Invisible Mode</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-[var(--sclera-white)]">Invisible Mode</p>
+                  <p className="text-sm text-[var(--text-secondary)]">
                     {invisibleExpiry && new Date(invisibleExpiry) > new Date()
                       ? `Active until ${new Date(invisibleExpiry).toLocaleDateString()}`
                       : 'Browse profiles without being seen'}
@@ -656,7 +647,7 @@ export default function EditProfilePage() {
                 </div>
               </div>
               {invisibleExpiry && new Date(invisibleExpiry) > new Date() ? (
-                <span className="px-3 py-1 bg-green-100 text-green-600 text-sm rounded-full">
+                <span className="px-3 py-1 bg-green-500/10 text-green-500 text-sm rounded-full">
                   Active
                 </span>
               ) : (
@@ -664,7 +655,7 @@ export default function EditProfilePage() {
                   type="button"
                   onClick={handleBuyInvisible}
                   disabled={isBuyingInvisible}
-                  className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg font-medium hover:bg-amber-600 transition disabled:opacity-50"
+                  className="px-4 py-2 bg-[var(--iris-blue)] text-white text-sm rounded-lg font-medium hover:bg-[var(--iris-blue-hover)] transition disabled:opacity-50"
                 >
                   {isBuyingInvisible ? '...' : '5 WLD'}
                 </button>
@@ -675,35 +666,35 @@ export default function EditProfilePage() {
             <button
               type="button"
               onClick={() => router.push('/support')}
-              className="flex items-center justify-between w-full py-4 border-b"
+              className="flex items-center justify-between w-full py-4 border-b border-[var(--border)]"
             >
               <div className="flex items-center gap-3 text-left">
-                <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                  <HelpCircle className="w-4.5 h-4.5 text-blue-600" />
+                <div className="w-9 h-9 rounded-full bg-[var(--iris-blue)]/10 flex items-center justify-center flex-shrink-0">
+                  <HelpCircle className="w-4.5 h-4.5 text-[var(--iris-blue)]" />
                 </div>
                 <div>
-                  <p className="font-medium">Support</p>
-                  <p className="text-sm text-gray-500">Get help or report an issue</p>
+                  <p className="font-medium text-[var(--sclera-white)]">Support</p>
+                  <p className="text-sm text-[var(--text-secondary)]">Get help or report an issue</p>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
+              <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)]" />
             </button>
 
             {/* Legal */}
-            <div className="py-4 border-b">
-              <p className="font-medium mb-3">Legal</p>
+            <div className="py-4 border-b border-[var(--border)]">
+              <p className="font-medium mb-3 text-[var(--sclera-white)]">Legal</p>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => router.push('/privacy')}
-                  className="flex-1 py-2 px-3 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
+                  className="flex-1 py-2 px-3 border border-[var(--border)] rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--obsidian-elevated)] transition"
                 >
                   Privacy Policy
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push('/terms')}
-                  className="flex-1 py-2 px-3 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
+                  className="flex-1 py-2 px-3 border border-[var(--border)] rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--obsidian-elevated)] transition"
                 >
                   Terms of Service
                 </button>
@@ -711,8 +702,8 @@ export default function EditProfilePage() {
             </div>
 
             {/* Danger Zone */}
-            <div className="mt-6">
-              <h4 className="text-sm font-semibold text-red-600 uppercase mb-3">
+            <div className="mt-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+              <h4 className="text-sm font-semibold text-red-500 uppercase mb-3">
                 Danger Zone
               </h4>
               <Button
@@ -721,7 +712,7 @@ export default function EditProfilePage() {
                 size="lg"
                 onClick={() => setShowDeleteConfirm(true)}
                 leftIcon={<Trash2 className="w-4 h-4" />}
-                className="w-full border-red-300 text-red-500 hover:bg-red-50 hover:text-red-600"
+                className="w-full border-red-500/30 text-red-500 hover:bg-red-500/20 hover:text-red-400"
               >
                 Delete Account
               </Button>
@@ -738,8 +729,8 @@ export default function EditProfilePage() {
         closeOnBackdrop={!isDeleting}
       >
         <div className="p-6">
-          <h3 className="text-lg font-bold text-center mb-2">Delete Account?</h3>
-          <p className="text-gray-500 text-center mb-6">
+          <h3 className="text-lg font-bold text-center mb-2 text-[var(--sclera-white)]">Delete Account?</h3>
+          <p className="text-[var(--text-secondary)] text-center mb-6">
             This will permanently delete your account and all your data. This cannot be undone.
           </p>
           <div className="flex gap-3">
@@ -748,7 +739,7 @@ export default function EditProfilePage() {
               size="lg"
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isDeleting}
-              className="flex-1"
+              className="flex-1 btn-outline-dark"
             >
               Cancel
             </Button>

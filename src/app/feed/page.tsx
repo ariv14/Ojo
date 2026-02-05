@@ -25,11 +25,11 @@ import Logo from '@/components/Logo'
 import Header from '@/components/Header'
 import ReshareButton from '@/components/ReshareButton'
 import CommentSection from '@/components/CommentSection'
-import { Search, MessageCircle, Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock, Gift } from 'lucide-react'
+import { Search, MessageCircle, Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock } from 'lucide-react'
 import { SkeletonPost } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import AppBackground from '@/components/ui/AppBackground'
-import ParticleShower from '@/components/ui/ParticleShower'
+import BottomNav from '@/components/BottomNav'
 
 interface MediaUrl {
   key: string
@@ -126,7 +126,6 @@ function FeedContent() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const [newPostCount, setNewPostCount] = useState(0)
-  const [showParticles, setShowParticles] = useState(false)
   const touchStartY = useRef(0)
   const lastFetchTime = useRef<string | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
@@ -1204,8 +1203,6 @@ function FeedContent() {
 
         // Haptic feedback for successful unlock
         hapticSuccess()
-        // Trigger particle effect for successful unlock
-        setShowParticles(true)
         setUnlockingPost(null)
       }
     } catch (err) {
@@ -1367,7 +1364,7 @@ function FeedContent() {
     return (
       <div className="min-h-screen">
         <Header isFeedPage={true} />
-        <AppBackground variant="static">
+        <AppBackground>
           <main className="w-full md:max-w-2xl mx-auto">
             {Array.from({ length: 3 }).map((_, i) => (
               <SkeletonPost key={i} />
@@ -1383,9 +1380,6 @@ function FeedContent() {
       ref={feedRef}
       className="min-h-screen relative"
     >
-      {/* Particle effect for celebrations */}
-      <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
-
       {/* Pull-to-refresh indicator */}
       <div
         ref={pullIndicatorRef}
@@ -1393,9 +1387,9 @@ function FeedContent() {
         style={{ transform: 'translateY(-40px)' }}
       >
         {isRefreshing ? (
-          <div className="w-6 h-6 border-2 border-cyan-200 border-t-[var(--oro-cyan)] rounded-full animate-spin" />
+          <div className="w-6 h-6 spinner-iris" />
         ) : pullDistance > 0 && (
-          <div className={`transition-transform ${pullDistance >= PULL_THRESHOLD ? 'text-black' : 'text-gray-400'}`}>
+          <div className={`transition-transform ${pullDistance >= PULL_THRESHOLD ? 'text-[var(--iris-blue)]' : 'text-[var(--text-tertiary)]'}`}>
             <ArrowDown className={`w-6 h-6 transition-transform ${pullDistance >= PULL_THRESHOLD ? 'rotate-180' : ''}`} />
           </div>
         )}
@@ -1409,26 +1403,19 @@ function FeedContent() {
             fetchPosts(currentSession!)
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--oro-cyan)] to-[var(--oro-turquoise)] text-white px-4 py-2 rounded-full shadow-[0_4px_12px_rgba(0,212,255,0.4)] z-30 flex items-center gap-2 hover:from-[var(--oro-turquoise)] hover:to-[var(--oro-cyan)] transition-all animate-bounce-in"
+          className="fixed top-20 left-1/2 -translate-x-1/2 btn-iris px-4 py-2 z-30 flex items-center gap-2 animate-bounce-in"
         >
           <ArrowUp className="w-4 h-4" />
           {newPostCount} new {newPostCount === 1 ? 'post' : 'posts'}
         </button>
       )}
 
-      <AppBackground variant="static" showOrbs={false}>
+      <AppBackground>
       {/* Header */}
       <Header
         isFeedPage={true}
         rightContent={
           <>
-            <button
-              onClick={() => router.push('/rewards')}
-              className="header-icon-btn"
-              title="Daily Rewards"
-            >
-              <Gift className="w-[18px] h-[18px]" />
-            </button>
             <button
               onClick={() => router.push('/discover')}
               className="header-icon-btn"
@@ -1461,13 +1448,13 @@ function FeedContent() {
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="btn-oro-3d text-white px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform"
+              className="btn-iris px-3.5 py-1.5 text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               Post
             </button>
-            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-[var(--oro-cyan)] via-[var(--oro-purple)] to-[var(--oro-orange)]">
-              <div className="rounded-full p-[1px] bg-white">
+            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-[var(--iris-blue)] via-[var(--pupil-purple)] to-[var(--retina-gold)]">
+              <div className="rounded-full p-[1px] bg-[var(--obsidian)]">
                 <UserAvatar
                   avatarUrl={currentSession?.avatar_url}
                   username={currentSession?.username || currentSession?.first_name}
@@ -1525,8 +1512,6 @@ function FeedContent() {
               }
               // Prepend to the top of the feed
               setPosts(prev => [fullPost, ...prev])
-              // Trigger particle effect for successful post
-              setShowParticles(true)
               // Scroll to top
               window.scrollTo({ top: 0, behavior: 'smooth' })
 
@@ -1569,22 +1554,22 @@ function FeedContent() {
             const effectiveUsers = isReshare ? post.original!.users : post.users
 
             return (
-            <article key={post.id} id={`post-${post.id}`} className="bg-white border-b border-gray-100 shadow-[var(--shadow-xs)]">
+            <article key={post.id} id={`post-${post.id}`} className="bg-[var(--obsidian-elevated)] border-b border-[var(--border)]">
               {/* Reshare Header */}
               {isReshare && (
-                <div className="px-4 pt-2 pb-1 flex items-center gap-2 text-gray-500 text-sm">
+                <div className="px-4 pt-2 pb-1 flex items-center gap-2 text-[var(--text-secondary)] text-sm">
                   <RefreshCw className="w-4 h-4" />
                   <button
                     onClick={() => router.push(`/profile/${post.user_id}`)}
-                    className="hover:underline"
+                    className="hover:underline hover:text-[var(--sclera-white)]"
                   >
                     {post.users?.username || `${post.users?.first_name || ''} ${post.users?.last_name || ''}`.trim() || 'Anonymous'}
                   </button>
                   <span>reshared</span>
-                  <span className="text-gray-300">•</span>
+                  <span className="text-[var(--border)]">•</span>
                   <button
                     onClick={() => router.push(`/feed?scrollTo=${effectivePostId}`)}
-                    className="text-blue-500 hover:underline"
+                    className="text-[var(--iris-blue)] hover:underline"
                   >
                     View original
                   </button>
@@ -1593,7 +1578,7 @@ function FeedContent() {
 
               {/* Reshare Comment (if any) */}
               {isReshare && post.reshare_comment && (
-                <div className="px-4 py-2 text-sm text-gray-700 bg-gray-50 border-b">
+                <div className="px-4 py-2 text-sm text-[var(--sclera-muted)] bg-[var(--obsidian-surface)] border-b border-[var(--border)]">
                   {post.reshare_comment}
                 </div>
               )}
@@ -1610,11 +1595,11 @@ function FeedContent() {
                     lastSeenAt={isReshare ? undefined : post.users?.last_seen_at}
                     size="sm"
                   />
-                  <span className="font-medium text-sm">
+                  <span className="font-medium text-sm text-[var(--sclera-white)]">
                     {effectiveUsers?.username || `${effectiveUsers?.first_name || ''} ${effectiveUsers?.last_name || ''}`.trim() || 'Anonymous'}
                   </span>
                   {post.boosted_until && new Date(post.boosted_until) > new Date() && (
-                    <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-600 text-xs rounded-full">
+                    <span className="ml-2 px-2 py-0.5 bg-[var(--retina-gold)]/20 text-[var(--retina-gold)] text-xs rounded-full border border-[var(--retina-gold)]/30">
                       Boosted
                     </span>
                   )}
@@ -1630,14 +1615,14 @@ function FeedContent() {
                             e.stopPropagation()
                             setOpenOtherMenuId(openOtherMenuId === post.id ? null : post.id)
                           }}
-                          className="p-2 text-gray-400 hover:text-gray-600 transition"
+                          className="p-2 text-[var(--text-tertiary)] hover:text-[var(--sclera-white)] transition"
                         >
                           <MoreVertical className="w-5 h-5" />
                         </button>
                         {/* Dropdown Menu for other users' posts */}
                         {openOtherMenuId === post.id && (
                           <div
-                            className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-[var(--shadow-lg)] border py-1 z-50 min-w-[140px] animate-scale-in"
+                            className="absolute right-0 top-full mt-1 bg-[var(--obsidian-surface)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] py-1 z-50 min-w-[140px] animate-scale-in"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -1645,7 +1630,7 @@ function FeedContent() {
                                 setOpenOtherMenuId(null)
                                 handleRefreshPost(post.id)
                               }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                              className="w-full px-4 py-2 text-left text-sm text-[var(--sclera-muted)] hover:bg-[var(--obsidian-elevated)]"
                             >
                               <RefreshCw className="w-4 h-4 inline mr-2" />Refresh
                             </button>
@@ -1654,7 +1639,7 @@ function FeedContent() {
                                 setOpenOtherMenuId(null)
                                 handleShareToWorldChat(post)
                               }}
-                              className="w-full px-4 py-2 text-left text-sm text-blue-500 hover:bg-gray-100"
+                              className="w-full px-4 py-2 text-left text-sm text-[var(--iris-blue)] hover:bg-[var(--obsidian-elevated)]"
                             >
                               <Send className="w-4 h-4 inline mr-2" />Share to Chat
                             </button>
@@ -1663,7 +1648,7 @@ function FeedContent() {
                                 setOpenOtherMenuId(null)
                                 handleHideUser(post.user_id)
                               }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                              className="w-full px-4 py-2 text-left text-sm text-[var(--sclera-muted)] hover:bg-[var(--obsidian-elevated)]"
                             >
                               <EyeOff className="w-4 h-4 inline mr-2" />Hide User
                             </button>
@@ -1672,7 +1657,7 @@ function FeedContent() {
                                 setOpenOtherMenuId(null)
                                 setReportingPostId(post.id)
                               }}
-                              className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+                              className="w-full px-4 py-2 text-left text-sm text-[var(--error)] hover:bg-[var(--obsidian-elevated)]"
                             >
                               <Flag className="w-4 h-4 inline mr-2" />Report
                             </button>
@@ -1689,14 +1674,14 @@ function FeedContent() {
                           e.stopPropagation()
                           setOpenMenuId(openMenuId === post.id ? null : post.id)
                         }}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition"
+                        className="p-2 text-[var(--text-tertiary)] hover:text-[var(--sclera-white)] transition"
                       >
                         <MoreVertical className="w-5 h-5" />
                       </button>
                       {/* Dropdown Menu */}
                       {openMenuId === post.id && (
                         <div
-                          className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-[var(--shadow-lg)] border py-1 z-50 min-w-[140px] animate-scale-in"
+                          className="absolute right-0 top-full mt-1 bg-[var(--obsidian-surface)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] py-1 z-50 min-w-[140px] animate-scale-in"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -1704,13 +1689,13 @@ function FeedContent() {
                               setOpenMenuId(null)
                               handleRefreshPost(post.id)
                             }}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                            className="w-full px-4 py-2 text-left text-sm text-[var(--sclera-muted)] hover:bg-[var(--obsidian-elevated)]"
                           >
                             <RefreshCw className="w-4 h-4 inline mr-2" />Refresh
                           </button>
                           <button
                             onClick={() => handleStartEdit(post)}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                            className="w-full px-4 py-2 text-left text-sm text-[var(--sclera-muted)] hover:bg-[var(--obsidian-elevated)]"
                           >
                             <Pencil className="w-4 h-4 inline mr-2" />Edit
                           </button>
@@ -1719,19 +1704,19 @@ function FeedContent() {
                               setOpenMenuId(null)
                               handleShareToWorldChat(post)
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-blue-500 hover:bg-gray-100"
+                            className="w-full px-4 py-2 text-left text-sm text-[var(--iris-blue)] hover:bg-[var(--obsidian-elevated)]"
                           >
                             <Send className="w-4 h-4 inline mr-2" />Share to Chat
                           </button>
                           <button
                             onClick={() => handleBoostPost(post.id)}
-                            className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-gray-100"
+                            className="w-full px-4 py-2 text-left text-sm text-[var(--retina-gold)] hover:bg-[var(--obsidian-elevated)]"
                           >
                             <Rocket className="w-4 h-4 inline mr-2" />Boost (5 WLD)
                           </button>
                           <button
                             onClick={() => handleDeletePost(post.id)}
-                            className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+                            className="w-full px-4 py-2 text-left text-sm text-[var(--error)] hover:bg-[var(--obsidian-elevated)]"
                           >
                             <Trash2 className="w-4 h-4 inline mr-2" />Delete
                           </button>
@@ -1761,7 +1746,7 @@ function FeedContent() {
                 <button
                   onClick={() => handleVote(post.id, effectivePostId, 'like')}
                   className={`flex items-center gap-1 transition-all active:scale-90 ${
-                    post.user_vote === 'like' ? 'text-[var(--oro-cyan)]' : 'text-gray-500 hover:text-gray-700'
+                    post.user_vote === 'like' ? 'text-[var(--iris-blue)]' : 'text-[var(--text-secondary)] hover:text-[var(--sclera-white)]'
                   }`}
                 >
                   <ThumbsUp className={`w-6 h-6 ${post.user_vote === 'like' ? 'animate-heart-pop' : ''}`} fill={post.user_vote === 'like' ? 'currentColor' : 'none'} />
@@ -1770,7 +1755,7 @@ function FeedContent() {
                 <button
                   onClick={() => handleVote(post.id, effectivePostId, 'dislike')}
                   className={`flex items-center gap-1 transition-all active:scale-90 ${
-                    post.user_vote === 'dislike' ? 'text-rose-500' : 'text-gray-500 hover:text-gray-700'
+                    post.user_vote === 'dislike' ? 'text-[var(--error)]' : 'text-[var(--text-secondary)] hover:text-[var(--sclera-white)]'
                   }`}
                 >
                   <ThumbsDown className="w-6 h-6" fill={post.user_vote === 'dislike' ? 'currentColor' : 'none'} />
@@ -1816,7 +1801,7 @@ function FeedContent() {
                       return next
                     })
                   }}
-                  className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition"
+                  className="flex items-center gap-1 text-[var(--text-secondary)] hover:text-[var(--sclera-white)] transition"
                 >
                   <MessageSquare className="w-6 h-6" />
                   {post.comment_count > 0 && (
@@ -1842,7 +1827,7 @@ function FeedContent() {
                 {/* Share Button */}
                 <button
                   onClick={() => handleSharePost(post)}
-                  className="text-gray-500 hover:text-gray-700 transition ml-auto"
+                  className="text-[var(--text-secondary)] hover:text-[var(--sclera-white)] transition ml-auto"
                   title="Share post"
                 >
                   <Share2 className="w-6 h-6" />
@@ -1850,7 +1835,7 @@ function FeedContent() {
 
                 {/* Total Tips Display */}
                 {post.total_tips > 0 && (
-                  <span className="text-amber-500 text-sm font-medium">
+                  <span className="text-[var(--retina-gold)] text-sm font-medium">
                     {post.total_tips} WLD
                   </span>
                 )}
@@ -1862,7 +1847,7 @@ function FeedContent() {
                   <textarea
                     value={editCaption}
                     onChange={(e) => setEditCaption(e.target.value)}
-                    className="w-full p-2 border rounded-lg resize-none focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+                    className="w-full p-2 bg-[var(--obsidian-surface)] border border-[var(--border)] text-[var(--sclera-white)] rounded-lg resize-none focus:ring-2 focus:ring-[var(--iris-blue)]/30 focus:border-[var(--iris-blue)] outline-none placeholder:text-[var(--text-tertiary)]"
                     rows={2}
                     placeholder="Add a caption..."
                     autoFocus
@@ -1870,13 +1855,13 @@ function FeedContent() {
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => handleSaveEdit(post.id)}
-                      className="px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition"
+                      className="btn-iris px-3 py-1 text-sm"
                     >
                       Save
                     </button>
                     <button
                       onClick={handleCancelEdit}
-                      className="px-3 py-1 border text-sm rounded-lg hover:bg-gray-50 transition"
+                      className="btn-outline-dark px-3 py-1 text-sm"
                     >
                       Cancel
                     </button>
@@ -1885,8 +1870,8 @@ function FeedContent() {
               ) : (
                 (isReshare && post.original?.caption) || (!isReshare && post.caption) ? (
                   <div className="px-4 py-2">
-                    <p className="text-sm">
-                      <span className="font-medium">{effectiveUsers?.username || effectiveUsers?.first_name || 'Anonymous'}</span>{' '}
+                    <p className="text-sm text-[var(--sclera-muted)]">
+                      <span className="font-medium text-[var(--sclera-white)]">{effectiveUsers?.username || effectiveUsers?.first_name || 'Anonymous'}</span>{' '}
                       {isReshare && post.original ? post.original.caption : post.caption}
                     </p>
                   </div>
@@ -1895,7 +1880,7 @@ function FeedContent() {
 
               {/* Post Time */}
               <div className="px-4 pb-3">
-                <time className="text-xs text-gray-400">
+                <time className="text-xs text-[var(--text-tertiary)]">
                   {new Date(post.created_at).toLocaleDateString()}
                 </time>
               </div>
@@ -1933,14 +1918,14 @@ function FeedContent() {
           {hasMore && posts.length > 0 && (
             <div className="flex justify-center py-4">
               {isLoadingMore ? (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <div className="w-5 h-5 border-2 border-cyan-200 border-t-[var(--oro-cyan)] rounded-full animate-spin" />
+                <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                  <div className="w-5 h-5 spinner-iris" />
                   <span>Loading more posts...</span>
                 </div>
               ) : (
                 <button
                   onClick={handleLoadMore}
-                  className="text-blue-500 font-medium hover:underline"
+                  className="text-[var(--iris-blue)] font-medium hover:underline"
                 >
                   Load More
                 </button>
@@ -1948,7 +1933,7 @@ function FeedContent() {
             </div>
           )}
           {!hasMore && posts.length > 0 && (
-            <p className="text-center text-gray-400 text-sm py-4">
+            <p className="text-center text-[var(--text-tertiary)] text-sm py-4">
               You've reached the end
             </p>
           )}
@@ -1990,35 +1975,35 @@ function FeedContent() {
 
       {/* Unlock Premium Post Modal */}
       {unlockingPost && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold text-center mb-2">Unlock Premium Post</h3>
-            <p className="text-gray-500 text-center mb-4">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A2E] rounded-2xl w-full max-w-sm p-6 border border-[#FFD700]/30">
+            <h3 className="text-lg font-bold text-center mb-2 text-[var(--sclera-white)]">Unlock Premium Post</h3>
+            <p className="text-[var(--text-secondary)] text-center mb-4">
               Unlock @{unlockingPost.users?.username || unlockingPost.users?.first_name || 'User'}'s premium content
             </p>
 
             {/* Breakdown */}
-            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
-              <div className={`flex justify-between mb-1 ${unlockStep === 1 ? 'text-amber-600 font-medium' : ''}`}>
-                <span className={unlockStep === 1 ? 'text-amber-600' : 'text-gray-500'}>
+            <div className="bg-[var(--obsidian-surface)] rounded-lg p-3 mb-4 text-sm border border-[var(--border)]">
+              <div className={`flex justify-between mb-1 ${unlockStep === 1 ? 'text-[var(--retina-gold)] font-medium' : ''}`}>
+                <span className={unlockStep === 1 ? 'text-[var(--retina-gold)]' : 'text-[var(--text-secondary)]'}>
                   1. Platform fee {unlockStep === 1 && '⏳'}
                 </span>
-                <span className={unlockStep === 1 ? 'text-amber-600' : 'text-gray-400'}>0.2 WLD</span>
+                <span className={unlockStep === 1 ? 'text-[var(--retina-gold)]' : 'text-[var(--text-tertiary)]'}>0.2 WLD</span>
               </div>
-              <div className={`flex justify-between mb-1 ${unlockStep === 2 ? 'text-amber-600 font-medium' : ''}`}>
-                <span className={unlockStep === 2 ? 'text-amber-600' : 'text-gray-500'}>
+              <div className={`flex justify-between mb-1 ${unlockStep === 2 ? 'text-[var(--retina-gold)] font-medium' : ''}`}>
+                <span className={unlockStep === 2 ? 'text-[var(--retina-gold)]' : 'text-[var(--text-secondary)]'}>
                   2. Creator receives {unlockStep === 2 && '⏳'}
                 </span>
-                <span className={unlockStep === 2 ? 'text-amber-600' : 'font-medium'}>0.8 WLD</span>
+                <span className={unlockStep === 2 ? 'text-[var(--retina-gold)]' : 'text-[var(--sclera-muted)] font-medium'}>0.8 WLD</span>
               </div>
-              <div className="border-t pt-1 mt-1 flex justify-between font-medium">
+              <div className="border-t border-[var(--border)] pt-1 mt-1 flex justify-between font-medium text-[var(--sclera-white)]">
                 <span>Total (2 transactions)</span>
                 <span>1.0 WLD</span>
               </div>
             </div>
 
             {unlockError && (
-              <p className="text-red-500 text-sm text-center mb-4">{unlockError}</p>
+              <p className="text-[var(--error)] text-sm text-center mb-4">{unlockError}</p>
             )}
 
             <div className="flex gap-3">
@@ -2029,14 +2014,14 @@ function FeedContent() {
                   setUnlockStep(0)
                 }}
                 disabled={unlockStep > 0}
-                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                className="flex-1 py-3 btn-outline-dark disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUnlockPost}
                 disabled={unlockStep > 0}
-                className="flex-1 py-3 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition disabled:opacity-50"
+                className="flex-1 py-3 btn-gold disabled:opacity-50"
               >
                 {unlockStep > 0
                   ? unlockStep === 1
@@ -2048,13 +2033,19 @@ function FeedContent() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNav />
+
+      {/* Bottom padding for nav */}
+      <div className="h-14" />
     </div>
   )
 }
 
 export default function FeedPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading feed...</p></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--obsidian)]"><div className="w-8 h-8 spinner-iris" /></div>}>
       <FeedContent />
     </Suspense>
   )

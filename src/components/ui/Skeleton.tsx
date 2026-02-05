@@ -6,7 +6,7 @@ interface SkeletonProps {
 
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div className={cn('animate-shimmer rounded-md', className)} />
+    <div className={cn('skeleton-dark rounded-md', className)} />
   )
 }
 
@@ -30,7 +30,7 @@ export function SkeletonCircle({ className, size = 'md' }: SkeletonProps & { siz
 
 export function SkeletonPost({ className }: SkeletonProps) {
   return (
-    <div className={cn('bg-white rounded-xl p-4 space-y-3', className)}>
+    <div className={cn('bg-[#1A1A2E] border-b border-[#2A2A3E] p-4 space-y-3', className)}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <SkeletonCircle size="md" />

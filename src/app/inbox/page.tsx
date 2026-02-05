@@ -10,6 +10,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Badge from '@/components/ui/Badge'
 import UserAvatar from '@/components/UserAvatar'
 import AppBackground from '@/components/ui/AppBackground'
+import BottomNav from '@/components/BottomNav'
 import { MessageCircle } from 'lucide-react'
 
 interface InboxChat {
@@ -179,8 +180,8 @@ export default function InboxPage() {
     return (
       <div className="min-h-screen">
         <Header showBackButton />
-        <AppBackground variant="animated">
-          <main className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+        <AppBackground>
+          <main className="w-full md:max-w-2xl mx-auto bg-[#1A1A2E]">
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonChatRow key={i} />
             ))}
@@ -195,9 +196,9 @@ export default function InboxPage() {
       {/* Header */}
       <Header showBackButton />
 
-      <AppBackground variant="animated">
+      <AppBackground>
         {/* Chat List */}
-        <main className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+        <main className="w-full md:max-w-2xl mx-auto bg-[#1A1A2E]">
           {chats.length === 0 ? (
             <EmptyState
               icon={<MessageCircle className="w-6 h-6" />}
@@ -211,7 +212,7 @@ export default function InboxPage() {
               <button
                 key={chat.connection_id}
                 onClick={() => router.push(`/chat/${chat.connection_id}`)}
-                className="w-full px-4 py-3 flex items-center gap-3 bg-white/80 border-b border-gray-100 hover:bg-cyan-50/50 transition text-left"
+                className="w-full px-4 py-3 flex items-center gap-3 bg-[var(--obsidian-surface)] border-b border-[var(--border)] hover:bg-[var(--obsidian-elevated)] transition text-left"
               >
                 <UserAvatar
                   username={displayName}
@@ -219,10 +220,10 @@ export default function InboxPage() {
                   showStatus={false}
                 />
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">
+                  <p className="font-medium text-[var(--sclera-white)]">
                     {displayName}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-[var(--text-secondary)]">
                     Started a chat with you
                   </p>
                 </div>
@@ -232,7 +233,7 @@ export default function InboxPage() {
                       {chat.unread_count > 99 ? '99+' : chat.unread_count}
                     </Badge>
                   )}
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-[var(--text-tertiary)]">
                     {new Date(chat.created_at).toLocaleDateString()}
                   </span>
                 </div>
@@ -241,7 +242,13 @@ export default function InboxPage() {
             })
           )}
         </main>
+
+        {/* Bottom padding for nav */}
+        <div className="h-14" />
       </AppBackground>
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   )
 }

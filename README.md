@@ -226,6 +226,20 @@ R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 
 ## Changelog
 
+### v1.4.0 - UI Overhaul & Feed Reliability
+- Redesigned header with white theme and new logo branding
+- Instagram-style profile layout with polished stats display
+- Added safe area support for World App mobile experience
+- Introduced reusable UI component library (Button, Card, Modal, Badge, Input, Skeleton, EmptyState)
+- Refreshed styling across all pages: feed, discover, inbox, chat, profile, support, privacy, and terms
+- Fixed deleted posts briefly reappearing from stale feed cache on refresh
+- Enhanced comment UI with improved styling and moderation controls
+- Updated reshare, tip, and report modals with cleaner designs
+- Improved toast notifications and avatar fallback handling
+- Simplified post upload flow
+- Added database row-level security policies for comments
+- Added fresh setup SQL scripts for clean deployments
+
 ### v1.3.0 - Comments, Reshares & Chat Improvements
 - Added full comments system with nested replies and voting
 - Added comment pagination (10 per page) with load more button

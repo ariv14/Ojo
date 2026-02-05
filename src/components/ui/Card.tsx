@@ -2,12 +2,16 @@ import { type HTMLAttributes, forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 
 const cardVariants = {
-  default: 'bg-white shadow-[var(--shadow-card)]',
-  elevated: 'bg-white shadow-[var(--shadow-md)]',
-  interactive: 'bg-white shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer',
-  featured: 'bg-gradient-to-br from-violet-50 to-white shadow-[var(--shadow-card)] border border-violet-100',
-  oro: 'bg-[var(--oro-cream)] shadow-[var(--shadow-oro-card)]',
-  oroWarm: 'bg-[var(--oro-cream-warm)] shadow-[var(--shadow-oro-card)]',
+  default: 'bg-[#1A1A2E] border border-[#2A2A3E] shadow-sm',
+  elevated: 'bg-[#1A1A2E] border border-[#2A2A3E] shadow-md',
+  interactive: 'bg-[#1A1A2E] border border-[#2A2A3E] shadow-sm cursor-pointer hover:bg-[#12121A] transition-colors',
+  featured: 'bg-[#1A1A2E] border border-[#00D4FF]/20 shadow-sm',
+  glassDark: 'bg-[#1A1A2E] border border-[#2A2A3E]',
+  glassElevated: 'bg-[#1A1A2E] border border-[#2A2A3E] shadow-md',
+  elevatedDark: 'bg-[#1A1A2E] border border-[#2A2A3E] shadow-sm',
+  premium: 'bg-[#1A1A2E] border border-[#FFD700]/30',
+  oro: 'bg-[#1A1A2E] border border-[#2A2A3E] shadow-sm',
+  oroWarm: 'bg-[#12121A] border border-[#2A2A3E] shadow-sm',
 }
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -24,12 +28,11 @@ const paddingMap = {
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', padding = 'md', children, ...props }, ref) => {
-    const isOro = variant === 'oro' || variant === 'oroWarm'
     return (
       <div
         ref={ref}
         className={cn(
-          isOro ? 'rounded-3xl' : 'rounded-xl',
+          'rounded-xl',
           cardVariants[variant],
           paddingMap[padding],
           className,

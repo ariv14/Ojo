@@ -490,7 +490,7 @@ export default function ChatPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header showBackButton />
-        <AppBackground variant="animated">
+        <AppBackground>
           <div className="flex-1 px-4 py-4 space-y-3">
             <SkeletonMessage isMe={false} />
             <SkeletonMessage isMe={true} />
@@ -520,19 +520,19 @@ export default function ChatPage() {
 
             {showSettings && (
               <div
-                className="absolute right-0 top-full mt-1 bg-white shadow-[var(--shadow-lg)] rounded-xl border border-gray-200 overflow-hidden z-20 animate-scale-in"
+                className="absolute right-0 top-full mt-1 bg-[var(--obsidian-elevated)] shadow-[var(--shadow-lg)] rounded-xl border border-[var(--border)] overflow-hidden z-20 animate-scale-in"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
                   onClick={handleClearChat}
-                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-[var(--obsidian-surface)] text-[var(--text-secondary)] flex items-center gap-2"
                 >
                   <Eraser className="w-4 h-4" />
                   Clear Chat
                 </button>
                 <button
                   onClick={handleDeleteConversation}
-                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-[var(--obsidian-surface)] text-red-500 flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete Conversation
@@ -540,7 +540,7 @@ export default function ChatPage() {
                 {isBlocked && blockedBy === session?.nullifier_hash ? (
                   <button
                     onClick={handleUnblockUser}
-                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-green-600 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-[var(--obsidian-surface)] text-green-500 flex items-center gap-2"
                   >
                     <ShieldOff className="w-4 h-4" />
                     Unblock User
@@ -548,7 +548,7 @@ export default function ChatPage() {
                 ) : (
                   <button
                     onClick={handleBlockUser}
-                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-[var(--obsidian-surface)] text-red-500 flex items-center gap-2"
                   >
                     <Ban className="w-4 h-4" />
                     Block User
@@ -560,12 +560,12 @@ export default function ChatPage() {
         }
       />
 
-      <AppBackground variant="animated" showOrbs={false}>
+      <AppBackground>
         {/* Back to Inbox Navigation */}
-        <div className="sticky top-14 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-2">
+        <div className="sticky top-14 z-10 bg-[#12121A] border-b border-[#2A2A3E] px-4 py-2">
           <button
             onClick={() => router.push('/inbox')}
-            className="flex items-center gap-1 text-sm text-[var(--oro-cyan)] font-medium"
+            className="flex items-center gap-1 text-sm text-[var(--iris-blue)] font-medium"
           >
             <ChevronLeft className="w-4 h-4" />
             Back to Inbox
@@ -574,7 +574,7 @@ export default function ChatPage() {
 
         {/* Blocked Banner */}
         {isBlocked && (
-          <div className="bg-red-50 text-red-600 text-center py-2 text-sm">
+          <div className="bg-red-500/10 text-red-400 text-center py-2 text-sm border-b border-red-500/20">
             {blockedBy === session?.nullifier_hash
               ? 'You blocked this user'
               : 'You have been blocked'}
@@ -589,14 +589,21 @@ export default function ChatPage() {
             <button
               onClick={loadMoreMessages}
               disabled={isLoadingMore}
-              className="w-full py-2 text-sm text-blue-500 font-medium hover:bg-blue-50 rounded-lg disabled:opacity-50 transition"
+              className="w-full py-2 text-sm text-[var(--iris-blue)] font-medium hover:bg-[var(--obsidian-surface)] rounded-lg disabled:opacity-50 transition"
             >
-              {isLoadingMore ? 'Loading...' : 'Load older messages'}
+              {isLoadingMore ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="spinner-iris w-4 h-4"></span>
+                  Loading...
+                </span>
+              ) : (
+                'Load older messages'
+              )}
             </button>
           )}
 
           {messages.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">
+            <p className="text-center text-[var(--text-tertiary)] py-8">
               No messages yet. Say hello!
             </p>
           ) : (
@@ -613,8 +620,8 @@ export default function ChatPage() {
                       onClick={() => isMe && !isEditing && setMenuMessageId(menuMessageId === message.id ? null : message.id)}
                       className={`max-w-[75%] px-4 py-2 rounded-2xl ${
                         isMe
-                          ? 'bg-gradient-to-br from-[var(--oro-cyan)] to-[var(--oro-turquoise)] text-white rounded-br-md cursor-pointer shadow-[0_2px_8px_-2px_rgba(0,212,255,0.4)]'
-                          : 'bg-gray-100 border border-gray-200 text-gray-900 rounded-bl-md'
+                          ? 'bg-gradient-to-r from-[var(--iris-blue)] to-[var(--iris-blue-dark)] text-[var(--sclera-white)] rounded-br-md cursor-pointer shadow-[0_2px_8px_-2px_rgba(99,102,241,0.4)]'
+                          : 'bg-[var(--obsidian-elevated)] border border-[var(--border)] text-[var(--sclera-white)] rounded-bl-md'
                       }`}
                     >
                       {!isMe && (
@@ -632,11 +639,11 @@ export default function ChatPage() {
                               if (e.key === 'Enter') handleSaveEdit()
                               if (e.key === 'Escape') handleCancelEdit()
                             }}
-                            className="text-sm bg-white text-gray-900 px-2 py-1 rounded outline-none"
+                            className="text-sm bg-[var(--obsidian-surface)] text-[var(--sclera-white)] px-2 py-1 rounded outline-none border border-[var(--border)] focus:border-[var(--iris-blue)]"
                             autoFocus
                           />
                           <div className="flex gap-2 text-xs">
-                            <button onClick={handleSaveEdit} className="underline">Save</button>
+                            <button onClick={handleSaveEdit} className="underline text-[var(--iris-blue)]">Save</button>
                             <button onClick={handleCancelEdit} className="underline opacity-70">Cancel</button>
                           </div>
                         </div>
@@ -660,19 +667,19 @@ export default function ChatPage() {
                     {/* Context Menu */}
                     {menuMessageId === message.id && isMe && (
                       <div
-                        className="absolute right-0 top-full mt-1 bg-white shadow-[var(--shadow-lg)] rounded-xl border border-gray-200 overflow-hidden z-50 animate-scale-in"
+                        className="absolute right-0 top-full mt-1 bg-[var(--obsidian-elevated)] shadow-[var(--shadow-lg)] rounded-xl border border-[var(--border)] overflow-hidden z-50 animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => handleStartEdit(message)}
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-gray-700 flex items-center gap-2"
+                          className="w-full px-4 py-2 text-sm text-left hover:bg-[var(--obsidian-surface)] text-[var(--text-secondary)] flex items-center gap-2"
                         >
                           <Pencil className="w-4 h-4" />
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteMessage(message.id)}
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                          className="w-full px-4 py-2 text-sm text-left hover:bg-[var(--obsidian-surface)] text-red-500 flex items-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete
@@ -695,7 +702,7 @@ export default function ChatPage() {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
             setHasNewMessages(false)
           }}
-          className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--oro-cyan)] to-[var(--oro-turquoise)] text-white px-4 py-2 rounded-full text-sm font-medium shadow-[0_4px_12px_rgba(0,212,255,0.4)] flex items-center gap-2 z-10 animate-bounce-in"
+          className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--iris-blue)] to-[var(--iris-blue-dark)] text-[var(--sclera-white)] px-4 py-2 rounded-full text-sm font-medium shadow-[0_4px_12px_rgba(99,102,241,0.4)] flex items-center gap-2 z-10 animate-bounce-in"
         >
           <ArrowDown className="w-4 h-4" />
           New messages
@@ -704,7 +711,7 @@ export default function ChatPage() {
       </AppBackground>
 
       {/* Input */}
-      <footer className="sticky bottom-0 bg-white border-t border-gray-200">
+      <footer className="sticky bottom-0 bg-[var(--obsidian-base)] border-t border-[var(--border)]">
         <form
           onSubmit={handleSend}
           className="w-full md:max-w-2xl mx-auto px-4 py-3 flex gap-2"
@@ -715,14 +722,18 @@ export default function ChatPage() {
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isBlocked ? "This conversation is blocked" : "Type a message..."}
             disabled={isBlocked}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-[var(--oro-cyan)] focus:border-[var(--oro-cyan-light)] outline-none disabled:bg-gray-100 disabled:text-gray-500"
+            className="flex-1 px-4 py-2 bg-[var(--obsidian-surface)] border border-[var(--border)] rounded-full text-[var(--sclera-white)] placeholder:text-[var(--text-tertiary)] focus:ring-2 focus:ring-[var(--iris-blue)] focus:border-[var(--iris-blue)] outline-none disabled:bg-[var(--obsidian-elevated)] disabled:text-[var(--text-tertiary)]"
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || isSending || isBlocked}
-            className="w-10 h-10 rounded-full btn-oro-3d flex items-center justify-center disabled:opacity-50 flex-shrink-0"
+            className="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--iris-blue)] to-[var(--iris-blue-dark)] text-[var(--sclera-white)] flex items-center justify-center disabled:opacity-50 flex-shrink-0 shadow-[0_2px_8px_rgba(99,102,241,0.3)] hover:shadow-[0_4px_12px_rgba(99,102,241,0.4)] transition-shadow"
           >
-            <Send className="w-5 h-5" />
+            {isSending ? (
+              <span className="spinner-iris w-5 h-5"></span>
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
           </button>
         </form>
       </footer>

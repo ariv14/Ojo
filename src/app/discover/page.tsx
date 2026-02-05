@@ -14,7 +14,7 @@ import { SkeletonUserRow } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/Input'
 import AppBackground from '@/components/ui/AppBackground'
-import ParticleShower from '@/components/ui/ParticleShower'
+import BottomNav from '@/components/BottomNav'
 import { Search, UserPlus, Image } from 'lucide-react'
 
 interface User {
@@ -79,7 +79,6 @@ export default function DiscoverPage() {
   })
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null)
-  const [showParticles, setShowParticles] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -288,8 +287,6 @@ export default function DiscoverPage() {
           return newSet
         })
       } else {
-        // Trigger particle effect on successful follow
-        setShowParticles(true)
         // Notify the user being followed
         const followedUser = users.find(u => u.nullifier_hash === userId)
         const followerName = currentSession.username || currentSession.first_name
@@ -358,10 +355,10 @@ export default function DiscoverPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[var(--obsidian)]">
         <Header showBackButton onBack={() => router.back()} />
-        <AppBackground variant="animated">
-          <div className="bg-white/80 backdrop-blur-sm border-b">
+        <AppBackground>
+          <div className="bg-[#1A1A2E] border-b border-[#2A2A3E]">
             <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
               <Input
                 icon={<Search className="w-4 h-4" />}
@@ -370,7 +367,7 @@ export default function DiscoverPage() {
               />
             </div>
           </div>
-          <div className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+          <div className="w-full md:max-w-2xl mx-auto bg-[var(--obsidian-surface)]">
             {Array.from({ length: 6 }).map((_, i) => (
               <SkeletonUserRow key={i} />
             ))}
@@ -381,7 +378,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[var(--obsidian)]">
       {/* Header */}
       <Header
         showBackButton
@@ -390,7 +387,7 @@ export default function DiscoverPage() {
           <button
             onClick={handleInviteFriends}
             title="Invite and earn"
-            className="btn-oro-3d flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full active:scale-95"
+            className="btn-iris flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full active:scale-95"
           >
             <UserPlus className="w-4 h-4" />
             Invite
@@ -398,32 +395,29 @@ export default function DiscoverPage() {
         }
       />
 
-      <AppBackground variant="animated">
-        {/* Particle effect on follow */}
-        <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
-
+      <AppBackground>
         {/* Referral Stats Card */}
         {referralStats && (referralStats.completed > 0 || referralStats.signed_up > 0 || referralStats.pending > 0) && (
-          <div className="bg-white/80 backdrop-blur-sm border-b">
+          <div className="bg-[#1A1A2E] border-b border-[#2A2A3E]">
             <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Your Referrals</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium text-[var(--sclera-white)]">Your Referrals</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">
                     {referralStats.completed} completed, {referralStats.signed_up} signed up
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-amber-600">
+                  <p className="text-sm font-bold text-[var(--iris-blue)]">
                     {referralStats.unpaid_completed % 10}/10
                   </p>
-                  <p className="text-xs text-gray-500">until 1 WLD bonus</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">until 1 WLD bonus</p>
                 </div>
               </div>
-              {/* Progress bar - ORO gradient */}
-              <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+              {/* Progress bar - Iris gradient */}
+              <div className="mt-2 h-2 bg-[var(--obsidian-surface)] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[var(--oro-cyan)] via-[var(--oro-purple)] to-[var(--oro-orange)] transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-[var(--iris-blue)] via-[var(--iris-purple)] to-[var(--iris-cyan)] transition-all duration-300"
                   style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
                 />
               </div>
@@ -432,7 +426,7 @@ export default function DiscoverPage() {
         )}
 
         {/* Search Bar */}
-        <div className="bg-white/80 backdrop-blur-sm border-b">
+        <div className="bg-[#1A1A2E] border-b border-[#2A2A3E]">
           <div className="w-full md:max-w-2xl mx-auto px-4 py-3">
             <Input
               icon={<Search className="w-4 h-4" />}
@@ -444,7 +438,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* User List */}
-        <div className="w-full md:max-w-2xl mx-auto bg-white/90 backdrop-blur-sm">
+        <div className="w-full md:max-w-2xl mx-auto bg-[var(--obsidian-surface)]">
           {users.length === 0 ? (
             <EmptyState
               icon={<Search className="w-6 h-6" />}
@@ -455,7 +449,7 @@ export default function DiscoverPage() {
             users.map((user) => (
               <div
                 key={user.nullifier_hash}
-                className="px-4 py-3 flex items-center gap-3 hover:bg-cyan-50/50 hover:rounded-xl border-b border-gray-100 transition-all"
+                className="px-4 py-3 flex items-center gap-3 hover:bg-[var(--obsidian-elevated)] hover:rounded-xl border-b border-[var(--border)] transition-all"
               >
                 <button
                   onClick={() => router.push(`/profile/${user.nullifier_hash}`)}
@@ -468,11 +462,11 @@ export default function DiscoverPage() {
                     size="md"
                   />
                   <div className="flex-1 text-left">
-                    <p className="font-medium text-sm">
+                    <p className="font-medium text-sm text-[var(--sclera-white)]">
                       {user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}
                     </p>
                     {user.country && (
-                      <p className="text-xs text-gray-500">{user.country}</p>
+                      <p className="text-xs text-[var(--text-tertiary)]">{user.country}</p>
                     )}
                   </div>
                 </button>
@@ -480,7 +474,7 @@ export default function DiscoverPage() {
                 {user.post_count > 0 && (
                   <button
                     onClick={() => router.push(`/profile/${user.nullifier_hash}`)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-[var(--text-secondary)] bg-[var(--obsidian-elevated)] rounded-full hover:bg-[var(--obsidian)] transition"
                   >
                     <Image className="w-4 h-4" />
                     <span>{user.post_count}</span>
@@ -491,8 +485,8 @@ export default function DiscoverPage() {
                   disabled={processingUserId === user.nullifier_hash}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 active:scale-95 ${
                     followingSet.has(user.nullifier_hash)
-                      ? 'border border-gray-300 text-gray-700 hover:bg-cyan-50/50'
-                      : 'btn-oro-3d'
+                      ? 'btn-outline-dark'
+                      : 'btn-iris'
                   }`}
                 >
                   {processingUserId === user.nullifier_hash
@@ -511,14 +505,20 @@ export default function DiscoverPage() {
               <button
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className="w-full py-3 text-[var(--oro-cyan)] font-medium border border-[var(--oro-cyan)] rounded-lg hover:bg-cyan-50/50 disabled:opacity-50 transition"
+                className="w-full py-3 text-[var(--iris-blue)] font-medium border border-[var(--iris-blue)] rounded-lg hover:bg-[var(--obsidian-elevated)] disabled:opacity-50 transition"
               >
                 {isLoadingMore ? 'Loading...' : 'Load More'}
               </button>
             </div>
           )}
         </div>
+
+        {/* Bottom padding for nav */}
+        <div className="h-14" />
       </AppBackground>
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   )
 }

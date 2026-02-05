@@ -19,7 +19,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Badge from '@/components/ui/Badge'
 import { Share2, BadgeCheck, Camera, Lock, Layers, Video, RefreshCw, AlertTriangle, Images } from 'lucide-react'
 import AppBackground from '@/components/ui/AppBackground'
-import ParticleShower from '@/components/ui/ParticleShower'
+import BottomNav from '@/components/BottomNav'
 
 interface User {
   nullifier_hash: string
@@ -81,7 +81,6 @@ export default function ProfilePage() {
   const [showReportModal, setShowReportModal] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [tipsEarned, setTipsEarned] = useState(0)
-  const [showParticles, setShowParticles] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -406,9 +405,6 @@ export default function ProfilePage() {
       }
       console.log('Followed successfully')
 
-      // Trigger particle effect on successful follow
-      setShowParticles(true)
-
       // Notify the user being followed
       const followerName = session.username || session.first_name
       if (user?.wallet_address && followerName) {
@@ -455,13 +451,13 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[var(--obsidian)]">
         <Header showBackButton />
-        <AppBackground variant="animated">
+        <AppBackground>
           <div className="w-full md:max-w-2xl mx-auto flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-[var(--oro-cyan)] border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-gray-500">Loading profile...</p>
+              <div className="w-8 h-8 spinner-iris" />
+              <p className="text-sm text-[var(--text-secondary)]">Loading profile...</p>
             </div>
           </div>
         </AppBackground>
@@ -471,14 +467,14 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen">
-        <AppBackground variant="animated">
+      <div className="min-h-screen bg-[var(--obsidian)]">
+        <AppBackground>
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
-              <p className="text-gray-500 mb-4">User not found</p>
+              <p className="text-[var(--text-secondary)] mb-4">User not found</p>
               <button
                 onClick={() => router.push('/feed')}
-                className="text-[var(--oro-cyan)] underline"
+                className="text-[var(--iris-blue)] underline"
               >
                 Go to Feed
               </button>
@@ -495,7 +491,7 @@ export default function ProfilePage() {
   })
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[var(--obsidian)]">
       {/* Header */}
       <Header
         showBackButton
@@ -511,18 +507,15 @@ export default function ProfilePage() {
         }
       />
 
-      <AppBackground variant="animated">
-        {/* Particle effect on follow */}
-        <ParticleShower show={showParticles} onComplete={() => setShowParticles(false)} />
-
+      <AppBackground>
         {/* Profile Info */}
-        <div className="bg-white/90 backdrop-blur-sm border-b relative overflow-hidden">
-        {/* Vibrant ORO gradient hero background */}
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-br from-[var(--oro-cyan)]/30 via-[var(--oro-purple)]/20 to-[var(--oro-orange)]/30" />
+        <div className="bg-[#1A1A2E] border-b border-[#2A2A3E] relative overflow-hidden">
+        {/* Simple gradient hero background */}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-br from-[#00D4FF]/10 to-[#7C4DFF]/10" />
         <div className="w-full md:max-w-2xl mx-auto px-4 py-6 relative">
           <div className="flex flex-col items-center">
           {/* Avatar */}
-          <div className="mb-4 mt-4">
+          <div className="mb-4 mt-4 rounded-full">
             <UserAvatar
               avatarUrl={user.avatar_url}
               username={user.username || user.first_name}
@@ -533,47 +526,47 @@ export default function ProfilePage() {
           </div>
 
           {/* Name */}
-          <h2 className="text-xl font-bold flex items-center gap-1.5">
+          <h2 className="text-xl font-bold flex items-center gap-1.5 text-[var(--sclera-white)]">
             {user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Anonymous'}
-            <BadgeCheck className="w-5 h-5 text-blue-500" />
+            <BadgeCheck className="w-5 h-5 text-[var(--iris-blue)]" />
           </h2>
 
           {/* Country */}
           {user.country && (
-            <p className="text-gray-500 mt-1">{user.country}</p>
+            <p className="text-[var(--text-secondary)] mt-1">{user.country}</p>
           )}
 
           {/* Demographics */}
           {(user.age || user.sex) && (
-            <p className="text-gray-500 mt-1">
+            <p className="text-[var(--text-secondary)] mt-1">
               {user.sex}{user.sex && user.age && ', '}{user.age && `${user.age} years old`}
             </p>
           )}
 
           {/* Bio */}
           {user.bio && (
-            <p className="text-gray-600 text-center mt-3 px-4 max-w-xs">
+            <p className="text-[var(--sclera-muted)] text-center mt-3 px-4 max-w-xs">
               {user.bio}
             </p>
           )}
 
           {/* Join Date */}
-          <p className="text-gray-400 text-sm mt-1">Joined {joinDate}</p>
+          <p className="text-[var(--text-tertiary)] text-sm mt-1">Joined {joinDate}</p>
 
-          {/* Stats - ORO cream cards */}
+          {/* Stats */}
           <div className="flex flex-row justify-center gap-3 py-6 w-full px-4">
-            <div className="flex-1 text-center py-3 rounded-2xl bg-[var(--oro-cream)] shadow-[var(--shadow-oro-card)]">
-              <p className="text-2xl font-bold text-gray-900">{viewCount}</p>
-              <p className="text-xs font-medium text-gray-500">Views</p>
+            <div className="flex-1 text-center py-3 rounded-2xl bg-[#1A1A2E] border border-[#2A2A3E]">
+              <p className="text-2xl font-bold text-[#F8F9FA]">{viewCount}</p>
+              <p className="text-xs font-medium text-[#71717A]">Views</p>
             </div>
-            <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="flex-1 text-center py-3 rounded-2xl bg-[var(--oro-cream)] shadow-[var(--shadow-oro-card)] hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] transition-shadow">
-              <p className="text-2xl font-bold text-[var(--oro-cyan)]">{followerCount}</p>
-              <p className="text-xs font-medium text-gray-500">Followers</p>
+            <button onClick={() => router.push(`/profile/${profileId}/followers`)} className="flex-1 text-center py-3 rounded-2xl bg-[#1A1A2E] border border-[#2A2A3E] hover:border-[#00D4FF] transition-colors">
+              <p className="text-2xl font-bold text-[#00D4FF]">{followerCount}</p>
+              <p className="text-xs font-medium text-[#71717A]">Followers</p>
             </button>
             {isOwnProfile && (
-              <div className="flex-1 text-center py-3 rounded-2xl bg-[var(--oro-cream)] shadow-[var(--shadow-oro-card)]">
-                <p className="text-2xl font-bold text-[var(--oro-orange)]">{tipsEarned.toFixed(1)}</p>
-                <p className="text-xs font-medium text-gray-500">WLD Earned</p>
+              <div className="flex-1 text-center py-3 rounded-2xl bg-[#1A1A2E] border border-[#2A2A3E]">
+                <p className="text-2xl font-bold text-[#FFD700]">{tipsEarned.toFixed(1)}</p>
+                <p className="text-xs font-medium text-[#71717A]">WLD Earned</p>
               </div>
             )}
           </div>
@@ -583,14 +576,14 @@ export default function ProfilePage() {
             <div className="flex gap-3 mt-6 w-full px-4">
               <button
                 onClick={() => router.push('/profile/edit')}
-                className="flex-1 py-2 bg-gray-100 text-gray-900 rounded-full font-medium hover:bg-gray-200 transition"
+                className="flex-1 py-2 btn-outline-dark"
               >
                 Edit Profile
               </button>
               {profileId === process.env.NEXT_PUBLIC_ADMIN_ID && (
                 <button
                   onClick={() => router.push('/admin')}
-                  className="flex-1 py-2 bg-black text-white rounded-full font-medium hover:bg-gray-800 transition"
+                  className="flex-1 py-2 btn-iris"
                 >
                   Admin
                 </button>
@@ -606,18 +599,18 @@ export default function ProfilePage() {
                 disabled={isFollowLoading}
                 className={`flex-1 h-10 rounded-full font-medium text-sm flex items-center justify-center transition-all disabled:opacity-50 active:scale-95 ${
                   isFollowing
-                    ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                    : 'btn-oro-3d'
+                    ? 'btn-outline-dark'
+                    : 'btn-iris'
                 }`}
               >
                 {isFollowLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
               </button>
-              <div className="flex-1 h-10 bg-gray-900 text-white rounded-full font-medium text-sm flex items-center justify-center transition hover:bg-gray-800">
+              <div className="flex-1 h-10 bg-[var(--obsidian-elevated)] border border-[var(--border)] text-[var(--sclera-white)] rounded-full font-medium text-sm flex items-center justify-center transition hover:bg-[var(--obsidian-surface)]">
                 <ChatButton targetUserAddress={profileId} />
               </div>
               <button
                 onClick={() => setShowReportModal(true)}
-                className="h-10 w-10 shrink-0 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition"
+                className="h-10 w-10 shrink-0 bg-[var(--obsidian-surface)] border border-[var(--border)] text-[var(--text-tertiary)] rounded-full flex items-center justify-center hover:text-[var(--error)] hover:border-[var(--error)]/30 transition"
                 title="Report user"
               >
                 <AlertTriangle className="w-5 h-5" />
@@ -630,9 +623,9 @@ export default function ProfilePage() {
 
       {/* Recent Visitors */}
       {recentVisitors.length > 0 && (
-        <div className="bg-white/90 backdrop-blur-sm border-b">
+        <div className="bg-[#1A1A2E] border-b border-[#2A2A3E]">
           <div className="w-full md:max-w-2xl mx-auto px-4 py-4">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+            <h3 className="text-sm font-semibold text-[#71717A] uppercase mb-3">
               Recent Visitors
             </h3>
             <div className="flex gap-4 overflow-x-auto pb-2">
@@ -650,7 +643,7 @@ export default function ProfilePage() {
                       size="lg"
                       showStatus={false}
                     />
-                    <span className="text-xs text-gray-500 mt-1 truncate max-w-[60px]">
+                    <span className="text-xs text-[var(--text-tertiary)] mt-1 truncate max-w-[60px]">
                       {visitorName}
                     </span>
                   </button>
@@ -663,7 +656,7 @@ export default function ProfilePage() {
 
       {/* Posts Grid */}
       <div className="w-full md:max-w-2xl mx-auto px-4 py-4">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+        <h3 className="text-sm font-semibold text-[var(--text-tertiary)] uppercase mb-3">
           Posts ({posts.length})
         </h3>
 
@@ -688,7 +681,7 @@ export default function ProfilePage() {
                 <Link
                   key={post.id}
                   href={`/feed?scrollTo=${post.id}`}
-                  className="aspect-square bg-gray-100 overflow-hidden block relative rounded-lg"
+                  className="aspect-square bg-[var(--obsidian-surface)] overflow-hidden block relative rounded-lg border border-[var(--border)]"
                 >
                   <img
                     src={thumbnailSrc}
@@ -711,13 +704,13 @@ export default function ProfilePage() {
                   )}
                   {/* Reshare indicator */}
                   {post.original_post_id && (
-                    <div className="absolute top-1 left-1 bg-green-500/80 text-white p-1 rounded">
+                    <div className="absolute top-1 left-1 bg-[var(--iris-blue)]/80 text-white p-1 rounded">
                       <RefreshCw className="w-4 h-4" />
                     </div>
                   )}
                   {post.is_premium && !post.has_access && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <Lock className="w-8 h-8 text-white" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <Lock className="w-8 h-8 text-[var(--retina-gold)]" />
                     </div>
                   )}
                 </Link>
@@ -738,6 +731,12 @@ export default function ProfilePage() {
           onSuccess={() => setShowReportModal(false)}
         />
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNav />
+
+      {/* Bottom padding for nav */}
+      <div className="h-14" />
     </div>
   )
 }
