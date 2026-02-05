@@ -271,6 +271,36 @@ input:focus, textarea:focus {
   color: var(--accent);
 }
 
+/* 3D Flashy Button */
+.btn-oro-3d {
+  background: linear-gradient(135deg, #00D4FF 0%, #7C4DFF 100%);
+  color: #0A0A0F;
+  font-weight: 700;
+  position: relative;
+  transform: translateY(0);
+  box-shadow:
+    0 4px 0 #0091FF,
+    0 6px 10px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(0, 212, 255, 0.3);
+  transition: all 0.15s ease;
+}
+
+.btn-oro-3d:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 0 #0091FF,
+    0 10px 20px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+.btn-oro-3d:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #0091FF,
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 0 15px rgba(0, 212, 255, 0.3);
+}
+
 /* Simple card styles */
 .card-default {
   background: var(--bg-secondary);

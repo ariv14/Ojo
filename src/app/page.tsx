@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Shield, Lock, Coins } from 'lucide-react'
 import LoginButton from '@/components/LoginButton'
 import { getSession, UserSession } from '@/lib/session'
@@ -39,15 +38,20 @@ function HomeContent() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A0A0F] px-4">
       <div className="w-full max-w-md text-center">
         {/* Logo */}
-        <div className="mb-6 flex items-center justify-center">
-          <Image
-            src="/logo.png"
-            alt="OJO"
-            width={120}
-            height={48}
-            className="brightness-0 invert"
-            priority
-          />
+        <div className="mb-6 flex items-center justify-center relative">
+          {/* Ambient glow behind logo */}
+          <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-[#00D4FF]/30 to-[#7C4DFF]/30 rounded-full scale-150" />
+          <h1
+            className="text-7xl font-black tracking-tight relative"
+            style={{
+              background: 'linear-gradient(135deg, #00D4FF 0%, #7C4DFF 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.5))',
+            }}
+          >
+            OJO
+          </h1>
         </div>
 
         {/* Tagline */}
