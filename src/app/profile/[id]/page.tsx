@@ -510,8 +510,6 @@ export default function ProfilePage() {
       <AppBackground>
         {/* Profile Info */}
         <div className="bg-[#1A1A2E] border-b border-[#2A2A3E] relative overflow-hidden">
-        {/* Simple gradient hero background */}
-        <div className="absolute inset-x-0 top-0 h-32 bg-[#00D4FF]/10" />
         <div className="w-full md:max-w-2xl mx-auto px-4 py-6 relative">
           <div className="flex flex-col items-center">
           {/* Avatar */}

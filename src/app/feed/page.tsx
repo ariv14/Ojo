@@ -25,7 +25,7 @@ import Logo from '@/components/Logo'
 import Header from '@/components/Header'
 import ReshareButton from '@/components/ReshareButton'
 import CommentSection from '@/components/CommentSection'
-import { Search, MessageCircle, Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock } from 'lucide-react'
+import { Plus, ThumbsUp, ThumbsDown, Share2, MoreVertical, ArrowUp, ArrowDown, MessageSquare, RefreshCw, Pencil, Trash2, Eye, EyeOff, Flag, Rocket, Send, Camera, Lock } from 'lucide-react'
 import { SkeletonPost } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import AppBackground from '@/components/ui/AppBackground'
@@ -1417,51 +1417,19 @@ function FeedContent() {
         rightContent={
           <>
             <button
-              onClick={() => router.push('/discover')}
-              className="header-icon-btn"
-              title="Discover Users"
-            >
-              <Search className="w-[18px] h-[18px]" />
-            </button>
-            <button
-              onClick={async () => {
-                // Clear unread count immediately
-                setUnreadCount(0)
-
-                // Update last_read_at for all user's connections
-                const session = getSession()
-                if (session) {
-                  await supabase
-                    .from('connections')
-                    .update({ last_read_at: new Date().toISOString() })
-                    .or(`initiator_id.eq.${session.nullifier_hash},receiver_id.eq.${session.nullifier_hash}`)
-                }
-
-                router.push('/inbox')
-              }}
-              className="relative header-icon-btn"
-            >
-              <MessageCircle className="w-[18px] h-[18px]" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-red-500 w-2.5 h-2.5 rounded-full notification-dot ring-2 ring-white" />
-              )}
-            </button>
-            <button
               onClick={() => setShowUpload(true)}
               className="btn-iris px-3.5 py-1.5 text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               Post
             </button>
-            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-[#00D4FF]">
-              <div className="rounded-full p-[1px] bg-[var(--obsidian)]">
-                <UserAvatar
-                  avatarUrl={currentSession?.avatar_url}
-                  username={currentSession?.username || currentSession?.first_name}
-                  size="sm"
-                  showStatus={false}
-                />
-              </div>
+            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)}>
+              <UserAvatar
+                avatarUrl={currentSession?.avatar_url}
+                username={currentSession?.username || currentSession?.first_name}
+                size="sm"
+                showStatus={false}
+              />
             </button>
           </>
         }
