@@ -3,7 +3,6 @@
 import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
-import Image from 'next/image'
 
 interface HeaderProps {
   showBackButton?: boolean
@@ -46,11 +45,11 @@ export default function Header({ showBackButton = false, onBack, rightContent, i
             <h1 className="text-base font-semibold tracking-tight truncate text-[var(--sclera-white)]">{title}</h1>
           ) : isFeedPage ? (
             <div className="flex items-center">
-              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain brightness-0 invert" />
+              <span className="text-2xl font-black tracking-tight text-[#00D4FF]">OJO</span>
             </div>
           ) : (
             <button onClick={handleLogoClick} className="flex items-center">
-              <Image src="/logo.png" alt="OJO" height={32} width={80} className="object-contain brightness-0 invert" />
+              <span className="text-2xl font-black tracking-tight text-[#00D4FF]">OJO</span>
             </button>
           )}
         </div>

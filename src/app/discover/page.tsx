@@ -417,7 +417,7 @@ export default function DiscoverPage() {
               {/* Progress bar - Iris gradient */}
               <div className="mt-2 h-2 bg-[var(--obsidian-surface)] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[var(--iris-blue)] via-[var(--iris-purple)] to-[var(--iris-cyan)] transition-all duration-300"
+                  className="h-full bg-[#00D4FF] transition-all duration-300"
                   style={{ width: `${(referralStats.unpaid_completed % 10) * 10}%` }}
                 />
               </div>

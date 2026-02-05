@@ -1453,7 +1453,7 @@ function FeedContent() {
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               Post
             </button>
-            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-gradient-to-br from-[var(--iris-blue)] via-[var(--pupil-purple)] to-[var(--retina-gold)]">
+            <button onClick={() => router.push(`/profile/${currentSession?.nullifier_hash}`)} className="rounded-full p-[2px] bg-[#00D4FF]">
               <div className="rounded-full p-[1px] bg-[var(--obsidian)]">
                 <UserAvatar
                   avatarUrl={currentSession?.avatar_url}

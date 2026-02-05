@@ -14,20 +14,20 @@ interface UserAvatarProps {
   ring?: boolean
 }
 
-const gradientBackgrounds = [
-  'bg-gradient-to-br from-violet-400 to-purple-600',
-  'bg-gradient-to-br from-blue-400 to-indigo-600',
-  'bg-gradient-to-br from-emerald-400 to-teal-600',
-  'bg-gradient-to-br from-amber-400 to-orange-600',
-  'bg-gradient-to-br from-rose-400 to-pink-600',
-  'bg-gradient-to-br from-cyan-400 to-blue-600',
-  'bg-gradient-to-br from-fuchsia-400 to-purple-600',
-  'bg-gradient-to-br from-lime-400 to-green-600',
+const solidBackgrounds = [
+  'bg-violet-500',
+  'bg-blue-500',
+  'bg-emerald-500',
+  'bg-amber-500',
+  'bg-rose-500',
+  'bg-cyan-500',
+  'bg-fuchsia-500',
+  'bg-lime-500',
 ]
 
-function getGradientForLetter(letter: string): string {
+function getBackgroundForLetter(letter: string): string {
   const code = (letter || '?').toUpperCase().charCodeAt(0)
-  return gradientBackgrounds[code % gradientBackgrounds.length]
+  return solidBackgrounds[code % solidBackgrounds.length]
 }
 
 export default function UserAvatar({
@@ -73,7 +73,7 @@ export default function UserAvatar({
         className={cn(
           sizeClasses[size],
           'rounded-full flex items-center justify-center font-semibold overflow-hidden',
-          resolvedAvatarUrl && !imageError ? 'bg-gray-200' : getGradientForLetter(letter),
+          resolvedAvatarUrl && !imageError ? 'bg-gray-200' : getBackgroundForLetter(letter),
           ring && 'ring-2 ring-white shadow-[var(--shadow-sm)]',
         )}
       >

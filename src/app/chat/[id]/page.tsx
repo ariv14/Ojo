@@ -620,7 +620,7 @@ export default function ChatPage() {
                       onClick={() => isMe && !isEditing && setMenuMessageId(menuMessageId === message.id ? null : message.id)}
                       className={`max-w-[75%] px-4 py-2 rounded-2xl ${
                         isMe
-                          ? 'bg-gradient-to-r from-[var(--iris-blue)] to-[var(--iris-blue-dark)] text-[var(--sclera-white)] rounded-br-md cursor-pointer shadow-[0_2px_8px_-2px_rgba(99,102,241,0.4)]'
+                          ? 'bg-[#00D4FF] text-[var(--sclera-white)] rounded-br-md cursor-pointer'
                           : 'bg-[var(--obsidian-elevated)] border border-[var(--border)] text-[var(--sclera-white)] rounded-bl-md'
                       }`}
                     >
@@ -702,7 +702,7 @@ export default function ChatPage() {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
             setHasNewMessages(false)
           }}
-          className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--iris-blue)] to-[var(--iris-blue-dark)] text-[var(--sclera-white)] px-4 py-2 rounded-full text-sm font-medium shadow-[0_4px_12px_rgba(99,102,241,0.4)] flex items-center gap-2 z-10 animate-bounce-in"
+          className="sticky bottom-20 left-1/2 -translate-x-1/2 bg-[#00D4FF] text-[var(--sclera-white)] px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 z-10"
         >
           <ArrowDown className="w-4 h-4" />
           New messages
@@ -727,7 +727,7 @@ export default function ChatPage() {
           <button
             type="submit"
             disabled={!newMessage.trim() || isSending || isBlocked}
-            className="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--iris-blue)] to-[var(--iris-blue-dark)] text-[var(--sclera-white)] flex items-center justify-center disabled:opacity-50 flex-shrink-0 shadow-[0_2px_8px_rgba(99,102,241,0.3)] hover:shadow-[0_4px_12px_rgba(99,102,241,0.4)] transition-shadow"
+            className="w-10 h-10 rounded-full bg-[#00D4FF] text-[var(--sclera-white)] flex items-center justify-center disabled:opacity-50 flex-shrink-0 hover:bg-[#00C4EF] transition-colors"
           >
             {isSending ? (
               <span className="spinner-iris w-5 h-5"></span>
