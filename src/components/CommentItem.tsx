@@ -222,15 +222,15 @@ function CommentItem({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="bg-gray-100 rounded-lg px-3 py-2">
+          <div className="bg-[var(--bg-tertiary)] rounded-lg px-3 py-2">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.push(`/profile/${comment.user_id}`)}
-                className="font-medium text-sm hover:underline"
+                className="font-medium text-sm hover:underline text-[var(--text-primary)]"
               >
                 {comment.users?.username || `${comment.users?.first_name || ''} ${comment.users?.last_name || ''}`.trim() || 'Anonymous'}
               </button>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-[var(--text-tertiary)]">
                 {timeAgo(comment.created_at)}
                 {wasEdited && ' (edited)'}
               </span>
@@ -241,7 +241,7 @@ function CommentItem({
                 <textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full p-2 border rounded text-sm resize-none focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+                  className="w-full p-2 border border-[var(--border)] rounded text-sm bg-[var(--bg-secondary)] text-[var(--text-primary)] resize-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent outline-none"
                   rows={2}
                   maxLength={50}
                   autoFocus
@@ -249,7 +249,7 @@ function CommentItem({
                 <div className="flex gap-2 mt-1">
                   <button
                     onClick={handleSaveEdit}
-                    className="text-xs px-2 py-1 bg-black text-white rounded hover:bg-gray-800"
+                    className="text-xs px-2 py-1 bg-[var(--accent)] text-[var(--bg-primary)] rounded hover:bg-[var(--accent-dark)]"
                   >
                     Save
                   </button>
@@ -258,14 +258,14 @@ function CommentItem({
                       setIsEditing(false)
                       setEditContent(comment.content)
                     }}
-                    className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+                    className="text-xs px-2 py-1 border border-[var(--border)] rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                   >
                     Cancel
                   </button>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+              <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap break-words">
                 {comment.content}
               </p>
             )}
@@ -278,7 +278,7 @@ function CommentItem({
               <button
                 onClick={() => handleVote('like')}
                 className={`flex items-center gap-1 text-xs transition-colors ${
-                  userVote === 'like' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
+                  userVote === 'like' ? 'text-blue-500' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                 }`}
               >
                 <ThumbsUp className="w-3.5 h-3.5" fill={userVote === 'like' ? 'currentColor' : 'none'} />
@@ -289,7 +289,7 @@ function CommentItem({
               <button
                 onClick={() => handleVote('dislike')}
                 className={`flex items-center gap-1 text-xs transition-colors ${
-                  userVote === 'dislike' ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
+                  userVote === 'dislike' ? 'text-red-500' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                 }`}
               >
                 <ThumbsDown className="w-3.5 h-3.5" fill={userVote === 'dislike' ? 'currentColor' : 'none'} />
@@ -300,7 +300,7 @@ function CommentItem({
               {!isReply && onReply && (
                 <button
                   onClick={() => onReply(comment.id, comment.users?.username || comment.users?.first_name || 'User')}
-                  className="text-xs text-gray-500 hover:text-gray-700"
+                  className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                 >
                   Reply
                 </button>
@@ -320,14 +320,14 @@ function CommentItem({
                       e.stopPropagation()
                       openMenu()
                     }}
-                    className="text-gray-400 hover:text-gray-600 p-2 -m-1 transition-colors"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] p-2 -m-1 transition-colors"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
                   {showMenu && menuPos && createPortal(
                     <div
                       ref={menuRef}
-                      className="fixed bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[140px] animate-scale-in"
+                      className="fixed bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border)] py-1 min-w-[140px] animate-scale-in"
                       style={{ top: menuPos.top, left: Math.max(8, menuPos.left), zIndex: 9999 }}
                     >
                       <button
@@ -341,7 +341,7 @@ function CommentItem({
                           setShowMenu(false)
                           setIsEditing(true)
                         }}
-                        className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2.5 text-gray-700"
+                        className="w-full px-4 py-3 text-left text-sm hover:bg-[var(--bg-tertiary)] active:bg-[var(--bg-primary)] flex items-center gap-2.5 text-[var(--text-primary)]"
                       >
                         <Pencil className="w-4 h-4" />
                         Edit
@@ -354,7 +354,7 @@ function CommentItem({
                         }}
                         onClick={handleDelete}
                         disabled={isDeleting}
-                        className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-gray-50 active:bg-red-50 disabled:opacity-50 flex items-center gap-2.5"
+                        className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-[var(--bg-tertiary)] active:bg-red-500/10 disabled:opacity-50 flex items-center gap-2.5"
                       >
                         <Trash2 className="w-4 h-4" />
                         {isDeleting ? 'Deleting...' : 'Delete'}
@@ -382,7 +382,7 @@ function CommentItem({
               {comment.replies.length > visibleRepliesCount && (
                 <button
                   onClick={() => setVisibleRepliesCount(prev => prev + REPLIES_PER_PAGE)}
-                  className="ml-8 mt-2 text-xs text-blue-500 hover:text-blue-600"
+                  className="ml-8 mt-2 text-xs text-[var(--accent)] hover:text-[var(--accent-dark)]"
                 >
                   View {Math.min(REPLIES_PER_PAGE, comment.replies.length - visibleRepliesCount)} more {comment.replies.length - visibleRepliesCount === 1 ? 'reply' : 'replies'}
                 </button>

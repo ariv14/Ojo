@@ -347,7 +347,7 @@ export default function CommentSection({
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        className="w-full px-4 py-2.5 text-left text-sm text-gray-500 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+        className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] flex items-center gap-2 transition-colors"
       >
         <svg
           className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
@@ -371,16 +371,16 @@ export default function CommentSection({
               <div className="space-y-3">
                 {[1, 2].map(i => (
                   <div key={i} className="animate-pulse flex gap-2">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0" />
+                    <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-full flex-shrink-0" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-gray-200 rounded w-24" />
-                      <div className="h-3 bg-gray-200 rounded w-full" />
+                      <div className="h-3 bg-[var(--bg-tertiary)] rounded w-24" />
+                      <div className="h-3 bg-[var(--bg-tertiary)] rounded w-full" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : comments.length === 0 ? (
-              <div className="text-center py-4 text-gray-400 text-sm">
+              <div className="text-center py-4 text-[var(--text-tertiary)] text-sm">
                 No comments yet. Be the first!
               </div>
             ) : (
@@ -400,7 +400,7 @@ export default function CommentSection({
                   <button
                     onClick={loadMoreComments}
                     disabled={isLoadingMore}
-                    className="w-full mt-3 py-2 min-h-[36px] text-sm text-blue-500 hover:text-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full mt-3 py-2 min-h-[36px] text-sm text-[var(--accent)] hover:text-[var(--accent-dark)] disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isLoadingMore ? (
                       <>
@@ -420,7 +420,7 @@ export default function CommentSection({
           </div>
 
           {/* Fixed input at bottom */}
-          <div className="border-t px-4 py-2 bg-white">
+          <div className="border-t px-4 py-2 bg-[var(--bg-secondary)]">
             <CommentInput
               postId={postId}
               parentCommentId={replyingTo?.commentId || null}

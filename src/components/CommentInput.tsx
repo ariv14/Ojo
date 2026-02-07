@@ -95,12 +95,12 @@ export default function CommentInput({
       <div className="flex-1 relative">
         {replyToName && (
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[var(--text-secondary)]">
               Replying to {replyToName}
             </span>
             <button
               onClick={onCancelReply}
-              className="text-xs text-gray-400 hover:text-gray-600"
+              className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >
               Cancel
             </button>
@@ -113,19 +113,19 @@ export default function CommentInput({
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={replyToName ? 'Write a reply...' : 'Add a comment...'}
-            className="flex-1 p-2 border rounded-lg resize-none focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+            className="flex-1 p-2 border border-[var(--border)] rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] resize-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent outline-none text-sm"
             rows={1}
             maxLength={50}
           />
           <button
             onClick={handleSubmit}
             disabled={!content.trim() || isSubmitting}
-            className="px-3 py-2 bg-black text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition"
+            className="px-3 py-2 bg-[var(--accent)] text-[var(--bg-primary)] rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--accent-dark)] transition"
           >
             {isSubmitting ? '...' : 'Post'}
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-[var(--text-tertiary)] mt-1">
           {content.length}/50
         </p>
       </div>

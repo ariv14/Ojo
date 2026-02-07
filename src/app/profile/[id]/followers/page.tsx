@@ -10,6 +10,7 @@ import { SkeletonUserRow } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { ChevronRight, Users } from 'lucide-react'
 import Header from '@/components/Header'
+import BottomNav from '@/components/BottomNav'
 
 interface Follower {
   nullifier_hash: string
@@ -88,10 +89,10 @@ export default function FollowersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--bg-primary)]">
         <Header showBackButton onBack={() => router.back()} title="Followers" />
-        <div className="w-full md:max-w-2xl mx-auto bg-white">
-          <div className="divide-y">
+        <div className="w-full md:max-w-2xl mx-auto bg-[var(--bg-secondary)]">
+          <div className="divide-y divide-[var(--border)]">
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonUserRow key={i} />
             ))}
@@ -102,11 +103,11 @@ export default function FollowersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--bg-primary)]">
       <Header showBackButton onBack={() => router.back()} title={`Followers${profileName ? ` · ${profileName}` : ''}`} />
 
       {/* Followers List */}
-      <div className="w-full md:max-w-2xl mx-auto bg-white">
+      <div className="w-full md:max-w-2xl mx-auto bg-[var(--bg-secondary)]">
         {followers.length === 0 ? (
           <EmptyState
             icon={<Users className="w-7 h-7" />}
@@ -114,11 +115,11 @@ export default function FollowersPage() {
             description="When people follow this profile, they'll appear here."
           />
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-[var(--border)]">
             {followers.map((follower) => (
               <div
                 key={follower.nullifier_hash}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition"
+                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition"
               >
                 {/* Clickable area for profile */}
                 <button
@@ -135,18 +136,18 @@ export default function FollowersPage() {
 
                   {/* Info */}
                   <div className="flex-1 text-left">
-                    <p className="font-medium">
+                    <p className="font-medium text-[var(--text-primary)]">
                       {follower.first_name} {follower.last_name}
                     </p>
                     {follower.country && (
-                      <p className="text-sm text-gray-500">{follower.country}</p>
+                      <p className="text-sm text-[var(--text-secondary)]">{follower.country}</p>
                     )}
                   </div>
                 </button>
 
                 {/* Chat Button (only for other users) */}
                 {currentUserId && currentUserId !== follower.nullifier_hash && (
-                  <div className="px-3 py-1 border border-gray-300 rounded-lg text-blue-500 hover:bg-blue-50 transition">
+                  <div className="px-3 py-1 border border-[var(--border)] rounded-lg text-[var(--accent)] hover:bg-[var(--accent)]/10 transition">
                     <ChatButton targetUserAddress={follower.nullifier_hash} />
                   </div>
                 )}
@@ -154,7 +155,7 @@ export default function FollowersPage() {
                 {/* Arrow */}
                 <button
                   onClick={() => router.push(`/profile/${follower.nullifier_hash}`)}
-                  className="text-gray-400"
+                  className="text-[var(--text-tertiary)]"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -163,6 +164,8 @@ export default function FollowersPage() {
           </div>
         )}
       </div>
+      <div className="h-14" />
+      <BottomNav />
     </div>
   )
 }
