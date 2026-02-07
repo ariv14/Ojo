@@ -1522,7 +1522,7 @@ function FeedContent() {
             const effectiveUsers = isReshare ? post.original!.users : post.users
 
             return (
-            <article key={post.id} id={`post-${post.id}`} className="bg-[var(--obsidian-elevated)] border-b border-[var(--border)]">
+            <article key={post.id} id={`post-${post.id}`} className="bg-[var(--obsidian-elevated)] rounded-2xl border border-[var(--border)] shadow-[var(--shadow-sm)] mx-3 mb-3 overflow-hidden">
               {/* Reshare Header */}
               {isReshare && (
                 <div className="px-4 pt-2 pb-1 flex items-center gap-2 text-[var(--text-secondary)] text-sm">

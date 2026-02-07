@@ -48,7 +48,7 @@ export default function BottomNav() {
                 }`}
               >
                 <Icon className="w-6 h-6" strokeWidth={active ? 2 : 1.5} />
-                <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
+                <span className="text-xs mt-0.5 font-medium">{item.label}</span>
               </Link>
             )
           })}

@@ -48,6 +48,12 @@
   /* Transition tokens */
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
+
+  /* Typography scale */
+  --text-page-title: 1.5rem;      /* 24px */
+  --text-section-title: 1.125rem; /* 18px */
+  --text-body: 0.875rem;          /* 14px */
+  --text-meta: 0.75rem;           /* 12px */
 }
 
 @theme inline {
@@ -338,6 +344,12 @@ input:focus, textarea:focus {
   background: var(--bg-secondary);
   border: 1px solid rgba(255, 215, 0, 0.3);
 }
+
+/* Typography scale utilities */
+.text-page-title { font-size: var(--text-page-title); font-weight: 700; }
+.text-section-title { font-size: var(--text-section-title); font-weight: 600; }
+.text-body { font-size: var(--text-body); font-weight: 400; }
+.text-meta { font-size: var(--text-meta); font-weight: 500; color: var(--text-tertiary); }
 
 /* Background utilities */
 .bg-obsidian {
