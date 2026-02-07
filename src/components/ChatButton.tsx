@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { ensureWalletConnected } from '@/lib/wallet'
 import { hapticSuccess, hapticError } from '@/lib/haptics'
+import Toast from './Toast'
 
 interface ChatButtonProps {
   targetUserAddress: string
@@ -20,6 +21,7 @@ interface ChatButtonProps {
 export default function ChatButton({ targetUserAddress }: ChatButtonProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' | 'info' } | null>(null)
 
   const handleChat = async () => {
     const session = getSession()
@@ -75,7 +77,7 @@ export default function ChatButton({ targetUserAddress }: ChatButtonProps) {
       }
 
       if (!MiniKit.isInstalled()) {
-        alert('Please open this app in World App')
+        setToast({ message: 'Please open this app in World App', variant: 'error' })
         setIsLoading(false)
         return
       }
@@ -135,7 +137,7 @@ export default function ChatButton({ targetUserAddress }: ChatButtonProps) {
         if (error) {
           console.error('Error creating connection:', error.message, error.code, error.details)
           hapticError()
-          alert('Payment successful but failed to create connection. Please contact support.')
+          setToast({ message: 'Payment successful but failed to create connection. Please contact support.', variant: 'error' })
         } else {
           router.push(`/chat/${newConnection.id}`)
         }
@@ -159,12 +161,15 @@ export default function ChatButton({ targetUserAddress }: ChatButtonProps) {
   }
 
   return (
-    <button
-      onClick={handleChat}
-      disabled={isLoading}
-      className="text-sm text-blue-500 font-medium disabled:opacity-50 hover:text-blue-600 transition-colors flex items-center gap-1"
-    >
-      {isLoading ? '...' : 'Chat'}
-    </button>
+    <>
+      <button
+        onClick={handleChat}
+        disabled={isLoading}
+        className="text-sm text-blue-500 font-medium disabled:opacity-50 hover:text-blue-600 transition-colors flex items-center gap-1"
+      >
+        {isLoading ? '...' : 'Chat'}
+      </button>
+      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
+    </>
   )
 }

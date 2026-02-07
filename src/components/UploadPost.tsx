@@ -683,9 +683,9 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
 
   return (
     <>
-    <Modal isOpen={true} onClose={onClose} closeOnBackdrop={!isUploading} className="max-w-md max-h-[90vh] flex flex-col bg-white/80 backdrop-blur-md">
+    <Modal isOpen={true} onClose={onClose} closeOnBackdrop={!isUploading} className="max-w-md max-h-[90vh] flex flex-col bg-[var(--bg-secondary)]/95 backdrop-blur-xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
           <Button variant="ghost" size="sm" onClick={onClose} leftIcon={<X className="w-4 h-4" />}>
             Cancel
           </Button>
@@ -703,14 +703,14 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
         </div>
 
         {/* Media Type Tabs */}
-        <div className="flex gap-2 px-4 py-3 border-b shrink-0">
+        <div className="flex gap-2 px-4 py-3 border-b border-[var(--border)] shrink-0">
           <button
             type="button"
             onClick={() => handleMediaTypeChange('image')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition flex items-center gap-1.5 ${
               mediaType === 'image'
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-[var(--accent)] text-[var(--bg-primary)]'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
             }`}
           >
             <Image className="w-4 h-4" />
@@ -721,8 +721,8 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
             onClick={() => handleMediaTypeChange('album')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition flex items-center gap-1.5 ${
               mediaType === 'album'
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-[var(--accent)] text-[var(--bg-primary)]'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
             }`}
           >
             <Camera className="w-4 h-4" />
@@ -733,8 +733,8 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
             onClick={() => handleMediaTypeChange('reel')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition flex items-center gap-1.5 ${
               mediaType === 'reel'
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-[var(--accent)] text-[var(--bg-primary)]'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
             }`}
           >
             <Film className="w-4 h-4" />
@@ -750,7 +750,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
               {preview ? (
                 <div className="space-y-4">
                   <div className="relative">
-                    <div className="aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
+                    <div className="aspect-square w-full overflow-hidden rounded-lg bg-[var(--bg-tertiary)]">
                       <img
                         src={preview}
                         alt="Preview"
@@ -780,17 +780,17 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 text-center">
+                  <p className="text-xs text-[var(--text-tertiary)] text-center">
                     Preview shows how image will appear in feed
                   </p>
                 </div>
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
+                  className="aspect-square border-2 border-dashed border-[var(--border)] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[var(--accent)]/50 transition"
                 >
-                  <Image className="w-12 h-12 text-gray-400 mb-2" />
-                  <p className="text-gray-500">Tap to select a photo</p>
+                  <Image className="w-12 h-12 text-[var(--text-tertiary)] mb-2" />
+                  <p className="text-[var(--text-secondary)]">Tap to select a photo</p>
                 </div>
               )}
               <input
@@ -832,26 +832,26 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:border-gray-400 transition"
+                        className="aspect-square border-2 border-dashed border-[var(--border)] rounded-lg flex items-center justify-center hover:border-[var(--accent)]/50 transition"
                       >
-                        <Upload className="w-8 h-8 text-gray-400" />
+                        <Upload className="w-8 h-8 text-[var(--text-tertiary)]" />
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 text-center">
+                  <p className="text-xs text-[var(--text-tertiary)] text-center">
                     {albumPreviews.length}/10 images selected. First image will be the cover.
                   </p>
                 </div>
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
+                  className="aspect-square border-2 border-dashed border-[var(--border)] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[var(--accent)]/50 transition"
                 >
-                  <Image className="w-12 h-12 text-gray-400 mb-2" />
-                  <p className="text-gray-500 text-center">
+                  <Image className="w-12 h-12 text-[var(--text-tertiary)] mb-2" />
+                  <p className="text-[var(--text-secondary)] text-center">
                     Tap to select photos
                     <br />
-                    <span className="text-xs text-gray-400">2-10 images</span>
+                    <span className="text-xs text-[var(--text-tertiary)]">2-10 images</span>
                   </p>
                 </div>
               )}
@@ -879,7 +879,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                       playsInline
                     />
                   </div>
-                  <p className="text-xs text-gray-500 text-center">
+                  <p className="text-xs text-[var(--text-tertiary)] text-center">
                     Duration: {videoDuration.toFixed(1)}s / 10s max
                   </p>
                   <button
@@ -899,11 +899,11 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
               ) : (
                 <div
                   onClick={() => videoInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
+                  className="aspect-square border-2 border-dashed border-[var(--border)] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[var(--accent)]/50 transition"
                 >
-                  <Film className="w-12 h-12 text-gray-400 mb-2" />
-                  <p className="text-gray-500">Browse video from gallery</p>
-                  <p className="text-xs text-gray-400 mt-1">Max 10 seconds · Camera not supported</p>
+                  <Film className="w-12 h-12 text-[var(--text-tertiary)] mb-2" />
+                  <p className="text-[var(--text-secondary)]">Browse video from gallery</p>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Max 10 seconds · Camera not supported</p>
                 </div>
               )}
               <input
@@ -923,7 +923,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="Write a caption..."
-                className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+                className="w-full p-3 border border-[var(--border)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg resize-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent outline-none placeholder:text-[var(--text-tertiary)]"
                 rows={3}
               />
 
@@ -932,13 +932,13 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Premium Post</p>
-                    <p className="text-sm text-gray-500">Fans pay 1.0 WLD to view</p>
+                    <p className="text-sm text-[var(--text-secondary)]">Fans pay 1.0 WLD to view</p>
                   </div>
                   <button
                     type="button"
                     onClick={handlePremiumToggle}
                     className={`w-12 h-6 rounded-full transition ${
-                      isPremium ? 'bg-amber-500' : 'bg-gray-300'
+                      isPremium ? 'bg-amber-500' : 'bg-[var(--bg-tertiary)]'
                     }`}
                   >
                     <div
@@ -949,8 +949,8 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
                   </button>
                 </div>
                 {showWalletPrompt && (
-                  <div className="mt-2 p-3 bg-amber-50 rounded-lg">
-                    <p className="text-sm text-amber-700 mb-2">Add wallet to receive payout</p>
+                  <div className="mt-2 p-3 bg-amber-500/15 rounded-lg">
+                    <p className="text-sm text-amber-400 mb-2">Add wallet to receive payout</p>
                     <button
                       type="button"
                       onClick={handlePremiumToggle}
@@ -964,7 +964,7 @@ export default function UploadPost({ onClose, onSuccess }: UploadPostProps) {
 
               {/* Progress bar during upload */}
               {isUploading && uploadProgress > 0 && (
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2">
                   <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}

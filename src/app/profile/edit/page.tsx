@@ -13,6 +13,7 @@ import Header from '@/components/Header'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import AppBackground from '@/components/ui/AppBackground'
+import Toast from '@/components/Toast'
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other']
 
@@ -64,6 +65,7 @@ export default function EditProfilePage() {
   const [isBuyingInvisible, setIsBuyingInvisible] = useState(false)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnectingWallet, setIsConnectingWallet] = useState(false)
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
     const session = getSession()
@@ -217,7 +219,7 @@ export default function EditProfilePage() {
     if (!nullifierHash) return
 
     if (!MiniKit.isInstalled()) {
-      alert('Please open this app in World App')
+      setToast({ message: 'Please open this app in World App', variant: 'error' })
       return
     }
 
@@ -268,20 +270,20 @@ export default function EditProfilePage() {
 
         if (error) {
           console.error('Error updating invisible mode:', error.message)
-          alert('Payment successful but failed to activate. Please contact support.')
+          setToast({ message: 'Payment successful but failed to activate. Please contact support.', variant: 'error' })
         } else {
           setInvisibleExpiry(newExpiry)
-          alert('Invisible Mode activated for 30 days!')
+          setToast({ message: 'Invisible Mode activated for 30 days!', variant: 'success' })
         }
       } else {
         console.error('Payment failed:', JSON.stringify(finalPayload))
         if (finalPayload.status === 'error') {
-          alert('Payment error: ' + (finalPayload.error_code || 'Unknown error'))
+          setToast({ message: 'Payment error: ' + (finalPayload.error_code || 'Unknown error'), variant: 'error' })
         }
       }
     } catch (err) {
       console.error('Invisible mode purchase error:', err)
-      alert('Payment failed. Please try again.')
+      setToast({ message: 'Payment failed. Please try again.', variant: 'error' })
     }
 
     setIsBuyingInvisible(false)
@@ -756,6 +758,8 @@ export default function EditProfilePage() {
           </div>
         </div>
       </Modal>
+
+      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
     </div>
   )
 }

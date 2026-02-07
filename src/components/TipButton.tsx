@@ -174,30 +174,30 @@ export default function TipButton({ postId, authorAddress, authorWalletAddress, 
       <Modal isOpen={showModal} onClose={() => !isProcessing && setShowModal(false)}>
         <div className="p-6">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center">
               <Gift className="w-6 h-6 text-amber-500" />
             </div>
           </div>
           <h3 className="text-lg font-semibold text-center mb-1">Send a Tip</h3>
-          <p className="text-gray-500 text-center text-sm mb-4">
+          <p className="text-[var(--text-secondary)] text-center text-sm mb-4">
             Tip @{authorName} for their post
           </p>
 
           {/* Breakdown */}
-          <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
+          <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 mb-4 text-sm">
             <div className={`flex justify-between mb-1 ${currentStep === 1 ? 'text-amber-600 font-medium' : ''}`}>
-              <span className={currentStep === 1 ? 'text-amber-600' : 'text-gray-500'}>
+              <span className={currentStep === 1 ? 'text-amber-600' : 'text-[var(--text-secondary)]'}>
                 1. Platform fee {currentStep === 1 && '...'}
               </span>
-              <span className={currentStep === 1 ? 'text-amber-600' : 'text-gray-400'}>{OWNER_SHARE} WLD</span>
+              <span className={currentStep === 1 ? 'text-amber-600' : 'text-[var(--text-tertiary)]'}>{OWNER_SHARE} WLD</span>
             </div>
             <div className={`flex justify-between mb-1 ${currentStep === 2 ? 'text-amber-600 font-medium' : ''}`}>
-              <span className={currentStep === 2 ? 'text-amber-600' : 'text-gray-500'}>
+              <span className={currentStep === 2 ? 'text-amber-600' : 'text-[var(--text-secondary)]'}>
                 2. Creator receives {currentStep === 2 && '...'}
               </span>
-              <span className={currentStep === 2 ? 'text-amber-600' : 'font-medium'}>{CREATOR_SHARE} WLD</span>
+              <span className={currentStep === 2 ? 'text-amber-600' : 'font-medium text-[var(--text-primary)]'}>{CREATOR_SHARE} WLD</span>
             </div>
-            <div className="border-t pt-1 mt-1 flex justify-between font-medium">
+            <div className="border-t border-[var(--border)] pt-1 mt-1 flex justify-between font-medium">
               <span>Total (2 transactions)</span>
               <span>{TIP_AMOUNT} WLD</span>
             </div>

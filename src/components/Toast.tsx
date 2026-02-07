@@ -40,9 +40,9 @@ export default function Toast({ message, onClose, duration = 3000, variant = 'su
         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
         className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
       >
-        <div className="flex items-center gap-2.5 bg-white px-5 py-3 rounded-xl shadow-[var(--shadow-lg)] border border-gray-100">
+        <div className="flex items-center gap-2.5 bg-[var(--bg-secondary)] px-5 py-3 rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)]">
           <Icon className={`w-5 h-5 flex-shrink-0 ${iconColorMap[variant]}`} />
-          <span className="text-sm font-medium text-gray-900">{message}</span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">{message}</span>
         </div>
       </motion.div>
     </AnimatePresence>
